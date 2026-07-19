@@ -42,7 +42,7 @@ export function Callout({
       {resolvedIcon ? (
         <span aria-hidden="true" className="fk-callout__icon">
           {typeof resolvedIcon === "string" ? (
-            <FokunaIcon name={resolvedIcon as IconName} />
+            <FokunaIcon name={resolvedIcon as IconName} stroke={1.5} />
           ) : (
             resolvedIcon
           )}

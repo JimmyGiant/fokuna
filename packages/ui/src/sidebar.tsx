@@ -18,6 +18,13 @@ export interface SidebarSecondaryItem {
   href?: string;
   icon?: IconName;
   badge?: ReactNode;
+  color?: string;
+}
+
+export interface SidebarSecondarySection {
+  id: string;
+  label: string;
+  items: SidebarSecondaryItem[];
 }
 
 export interface SidebarProps extends HTMLAttributes<HTMLElement> {
@@ -28,6 +35,7 @@ export interface SidebarProps extends HTMLAttributes<HTMLElement> {
   secondary?: ReactNode;
   secondaryTitle?: string;
   secondaryItems?: SidebarSecondaryItem[];
+  secondarySections?: SidebarSecondarySection[];
   secondaryActiveId?: string;
 }
 
@@ -39,6 +47,7 @@ export function Sidebar({
   secondary,
   secondaryTitle,
   secondaryItems,
+  secondarySections,
   secondaryActiveId,
   className,
   ...props
@@ -55,10 +64,12 @@ export function Sidebar({
                 aria-disabled={item.disabled || undefined}
                 className="fk-sidebar__item"
                 href={item.disabled ? undefined : item.href}
-                title={item.label}
               >
-                <FokunaIcon name={item.icon} />
+                <FokunaIcon name={item.icon} size={24} stroke={2} />
                 <span className="fk-sr-only">{item.label}</span>
+                <span aria-hidden="true" className="fk-sidebar__tooltip">
+                  {item.label}
+                </span>
                 {item.badge ? <span className="fk-sidebar__badge">{item.badge}</span> : null}
               </a>
             </li>
@@ -66,7 +77,7 @@ export function Sidebar({
         </ul>
         {footer ? <div className="fk-sidebar__footer">{footer}</div> : null}
       </div>
-      {secondary || secondaryItems ? (
+      {secondary || secondaryItems || secondarySections ? (
         <div className="fk-sidebar__secondary">
           {secondary ?? (
             <>
@@ -80,13 +91,47 @@ export function Sidebar({
                       aria-current={item.id === secondaryActiveId ? "page" : undefined}
                       href={item.href}
                     >
-                      {item.icon ? <FokunaIcon name={item.icon} /> : null}
+                      {item.icon ? <FokunaIcon name={item.icon} size={16} stroke={1.5} /> : null}
                       <span>{item.label}</span>
                       {item.badge ? <small>{item.badge}</small> : null}
                     </a>
                   </li>
                 ))}
               </ul>
+              {secondarySections?.map((section) => (
+                <section className="fk-sidebar__secondary-section" key={section.id}>
+                  <header>
+                    <strong>{section.label}</strong>
+                    <span>
+                      <button aria-label={`${section.label} hinzufügen`} type="button">
+                        <FokunaIcon name="add-small" />
+                      </button>
+                      <button aria-label={`${section.label} einklappen`} type="button">
+                        <FokunaIcon name="chevron-up-small" />
+                      </button>
+                    </span>
+                  </header>
+                  <ul className="fk-sidebar__secondary-list">
+                    {section.items.map((item) => (
+                      <li key={item.id}>
+                        <a href={item.href}>
+                          {item.color ? (
+                            <span
+                              aria-hidden="true"
+                              className="fk-sidebar__color"
+                              style={{ background: item.color }}
+                            />
+                          ) : item.icon ? (
+                            <FokunaIcon name={item.icon} size={16} stroke={1.5} />
+                          ) : null}
+                          <span>{item.label}</span>
+                          {item.badge ? <small>{item.badge}</small> : null}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
             </>
           )}
         </div>

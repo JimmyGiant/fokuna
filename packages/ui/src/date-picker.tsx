@@ -182,6 +182,7 @@ export function DatePicker({
           className={cn("fk-date-picker__trigger", className)}
           data-empty={!selectedAnchor || undefined}
           data-invalid={invalid || undefined}
+          data-mode={mode}
           data-size={controlSize}
           disabled={disabled}
           type="button"

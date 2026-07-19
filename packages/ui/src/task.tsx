@@ -21,7 +21,10 @@ export interface TaskListItemProps extends HTMLAttributes<HTMLDivElement> {
   tags?: string[];
   subtasks?: string;
   milestone?: boolean;
+  expandable?: boolean;
+  indentLevel?: 0 | 1;
   onCompletedChange?: (completed: boolean) => void;
+  onFavoriteChange?: (favorite: boolean) => void;
 }
 
 function SubtaskIcon() {
@@ -54,10 +57,18 @@ export function TaskListItem({
   tags = [],
   subtasks,
   milestone,
+  expandable,
+  indentLevel = 0,
   onCompletedChange,
+  onFavoriteChange,
   className,
   ...props
 }: TaskListItemProps) {
+  const [internalFavorite, setInternalFavorite] = useState(Boolean(favorite));
+  const isFavorite = onFavoriteChange ? Boolean(favorite) : internalFavorite;
+  const isExpandable = expandable ?? Boolean(subtasks);
+  const hasMeta = Boolean(description || subtasks || goal || due || tags.length);
+
   if (state === "placeholder") {
     return <div {...props} className={cn("fk-task-item fk-task-item--placeholder", className)} />;
   }
@@ -67,6 +78,8 @@ export function TaskListItem({
       {...props}
       aria-grabbed={state === "dragged" || undefined}
       className={cn("fk-task-item", className)}
+      data-has-meta={hasMeta || undefined}
+      data-indent={indentLevel || undefined}
       data-milestone={milestone || undefined}
       data-state={state}
       draggable
@@ -75,52 +88,63 @@ export function TaskListItem({
         <button aria-label="Aufgabe verschieben" className="fk-task-item__drag" type="button">
           <FokunaIcon name="drag-handle-grid" />
         </button>
+        {isExpandable ? (
+          <button
+            aria-label="Aufgabendetails einblenden"
+            className="fk-task-item__expand"
+            type="button"
+          >
+            <FokunaIcon name="chevron-down" size={16} stroke={1.5} />
+          </button>
+        ) : (
+          <span className="fk-task-item__expand-spacer" />
+        )}
         <span data-no-drag>
           <Checkbox
             checked={completed}
-            controlSize="lg"
+            controlSize="md"
             onCheckedChange={(next) => onCompletedChange?.(next === true)}
-            variant={milestone ? "milestone" : "default"}
+            variant="default"
           />
         </span>
-        <strong>{title}</strong>
+        <span className="fk-task-item__content">
+          <strong>{title}</strong>
+          {description ? <small>{description}</small> : null}
+          {hasMeta ? (
+            <span className="fk-task-item__meta">
+              {subtasks ? <Tag icon={<SubtaskIcon />}>{subtasks}</Tag> : null}
+              {goal ? (
+                <Tag icon="focus-target" tone="teal">
+                  {goal}
+                </Tag>
+              ) : null}
+              {due ? (
+                <Tag icon="calendar" tone="coral">
+                  {due}
+                </Tag>
+              ) : null}
+              {tags.map((tag) => (
+                <Tag icon="tag" key={tag}>
+                  {tag}
+                </Tag>
+              ))}
+            </span>
+          ) : null}
+        </span>
         <button
-          aria-label="Aufgabendetails einblenden"
-          className="fk-task-item__expand"
-          type="button"
-        >
-          <FokunaIcon name="chevron-down-small" />
-        </button>
-        <button
-          aria-label={favorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}
+          aria-label={isFavorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}
           className="fk-task-item__favorite"
-          data-favorite={favorite || undefined}
+          data-favorite={isFavorite || undefined}
+          onClick={() => {
+            const next = !isFavorite;
+            if (!onFavoriteChange) setInternalFavorite(next);
+            onFavoriteChange?.(next);
+          }}
           type="button"
         >
-          <FokunaIcon fill={favorite ? "on" : "off"} name="star" />
+          <FokunaIcon fill={isFavorite ? "on" : "off"} name="star" />
         </button>
       </div>
-      <span className="fk-task-item__content">
-        {description ? <small>{description}</small> : null}
-        <span className="fk-task-item__meta">
-          {subtasks ? <Tag icon={<SubtaskIcon />}>{subtasks}</Tag> : null}
-          {goal ? (
-            <Tag icon="focus-target" tone="teal">
-              {goal}
-            </Tag>
-          ) : null}
-          {due ? (
-            <Tag icon="calendar" tone="coral">
-              {due}
-            </Tag>
-          ) : null}
-          {tags.map((tag) => (
-            <Tag icon="tag" key={tag}>
-              {tag}
-            </Tag>
-          ))}
-        </span>
-      </span>
     </div>
   );
 }
@@ -156,7 +180,7 @@ export function TaskGroupHeader({
           <FokunaIcon name="drag-handle-grid" />
         </span>
       ) : null}
-      <FokunaIcon name={expanded ? "chevron-down-small" : "chevron-right-small"} />
+      <FokunaIcon name={expanded ? "chevron-down" : "chevron-right"} size={16} stroke={1.5} />
       <strong>{title}</strong>
       {count !== undefined ? <span>{count}</span> : null}
       <span className="fk-task-group__header-spacer" />
@@ -247,7 +271,7 @@ export function MilestoneTaskGroup({
             {stage.status === "completed" ? <FokunaIcon name="check-small" /> : null}
           </span>
           <div className="fk-milestone-group__heading">
-            <FokunaIcon name="chevron-down-small" />
+            <FokunaIcon name="chevron-down" size={16} stroke={1.5} />
             <strong>{stage.title}</strong>
             {stage.count ? <span>{stage.count}</span> : null}
           </div>
@@ -349,7 +373,10 @@ export function TaskModalHeader({
   ...props
 }: TaskModalHeaderProps) {
   const [internalEditing, setInternalEditing] = useState(defaultEditing);
+  const [internalFavorite, setInternalFavorite] = useState(Boolean(favorite));
+  const [internalDescription, setInternalDescription] = useState(description ?? "");
   const isEditing = editing ?? internalEditing;
+  const hasDescription = internalDescription.trim().length > 0;
 
   function setEditing(nextEditing: boolean) {
     if (editing === undefined) setInternalEditing(nextEditing);
@@ -373,18 +400,55 @@ export function TaskModalHeader({
     >
       <Checkbox checked={completed} controlSize="md" />
       <div className="fk-task-modal-header__content">
-        <span>
+        <div className="fk-task-modal-header__title-row">
           {isEditing ? <input aria-label="Aufgabenname" defaultValue={title} /> : <h2>{title}</h2>}
+          <button
+            aria-label={internalFavorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}
+            className="fk-task-modal-header__favorite"
+            data-favorite={internalFavorite || undefined}
+            onClick={() => setInternalFavorite((current) => !current)}
+            type="button"
+          >
+            <FokunaIcon fill={internalFavorite ? "on" : "off"} name="star" />
+          </button>
+        </div>
+        <div
+          className="fk-task-modal-header__description-row"
+          data-empty={!hasDescription || undefined}
+        >
+          {!hasDescription ? <FokunaIcon name="hamburger-menu" size={16} stroke={1.5} /> : null}
           {isEditing ? (
-            <textarea aria-label="Beschreibung" defaultValue={description} rows={2} />
-          ) : description ? (
-            <p>{description}</p>
-          ) : null}
-        </span>
-        <button aria-label="Favorit" className="fk-task-modal-header__favorite" type="button">
-          <FokunaIcon fill={favorite ? "on" : "off"} name="star" />
-        </button>
-        {actions ? <div className="fk-task-modal-header__actions">{actions}</div> : null}
+            <textarea
+              aria-label="Beschreibung"
+              className="fk-task-modal-header__description-input"
+              onChange={(event) => setInternalDescription(event.target.value)}
+              placeholder="Beschreibung"
+              rows={3}
+              value={internalDescription}
+            />
+          ) : (
+            <p>{hasDescription ? internalDescription : "Beschreibung"}</p>
+          )}
+        </div>
+        {isEditing ? (
+          <div className="fk-task-modal-header__actions">
+            {actions ?? (
+              <>
+                <Button
+                  buttonType="link"
+                  intent="tertiary"
+                  onClick={() => setEditing(false)}
+                  size="sm"
+                >
+                  Abbrechen
+                </Button>
+                <Button intent="secondary" onClick={() => setEditing(false)} size="sm">
+                  Speichern
+                </Button>
+              </>
+            )}
+          </div>
+        ) : null}
       </div>
     </header>
   );
@@ -421,6 +485,8 @@ export function TaskModalMenu({ items, className, ...props }: TaskModalMenuProps
 export interface TaskModalSlotProps extends HTMLAttributes<HTMLElement> {
   header: ReactNode;
   menu: ReactNode;
+  breadcrumb?: ReactNode;
+  deleteAction?: ReactNode;
   footer?: ReactNode;
   closeLabel?: string;
   onClose?: () => void;
@@ -429,6 +495,8 @@ export interface TaskModalSlotProps extends HTMLAttributes<HTMLElement> {
 export function TaskModalSlot({
   header,
   menu,
+  breadcrumb,
+  deleteAction,
   footer,
   closeLabel = "Schließen",
   onClose,
@@ -447,8 +515,10 @@ export function TaskModalSlot({
         <FokunaIcon name="close" />
       </button>
       <div className="fk-task-modal-slot__main">
+        {breadcrumb ? <div className="fk-task-modal-slot__breadcrumb">{breadcrumb}</div> : null}
         {header}
         <div className="fk-task-modal-slot__body">{children}</div>
+        {deleteAction ? <div className="fk-task-modal-slot__delete">{deleteAction}</div> : null}
         {footer ? <footer>{footer}</footer> : null}
       </div>
       {menu}

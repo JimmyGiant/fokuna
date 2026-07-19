@@ -40,6 +40,7 @@ import {
   type ControlSize,
 } from "@fokuna/ui";
 import { useState } from "react";
+import Image from "next/image";
 
 import styles from "./pattern-library.module.css";
 
@@ -76,6 +77,112 @@ function SizeSample({
       {children}
     </div>
   );
+}
+
+function AufgabenSidebar() {
+  return (
+    <Sidebar
+      activeId="tasks"
+      footer={
+        <>
+          <FokunaIcon name="settings-gear" />
+          <span className={styles.sidebarAvatar}>
+            <FokunaIcon name="user" />
+          </span>
+        </>
+      }
+      items={[
+        { id: "calendar", label: "Kalender", href: "#", icon: "calendar" },
+        { id: "tasks", label: "Aufgaben", href: "#", icon: "circle-check" },
+        { id: "journal", label: "Journal", href: "#", icon: "writing" },
+        { id: "goals", label: "Ziele", href: "#", icon: "focus-target" },
+        { id: "insights", label: "Insights", href: "#", icon: "trending" },
+      ]}
+      logo={
+        <Image
+          alt="Fokuna"
+          height={32}
+          priority
+          src="/branding/fokuna_logo_no-text.svg"
+          width={34}
+        />
+      }
+      secondaryActiveId="all"
+      secondaryItems={[
+        { id: "all", label: "Alle Aufgaben", href: "#", icon: "checklist" },
+        { id: "favorites", label: "Favoriten", href: "#", icon: "star" },
+        { id: "today", label: "Heute", href: "#", icon: "calendar-today" },
+        { id: "inbox", label: "Eingang", href: "#", icon: "inbox-empty", badge: "3" },
+      ]}
+      secondarySections={[
+        {
+          id: "categories",
+          label: "Kategorien",
+          items: [
+            {
+              id: "work",
+              label: "Arbeit",
+              href: "#",
+              badge: "12",
+              color: "var(--fk-color-category-teal)",
+            },
+            {
+              id: "private",
+              label: "Privat",
+              href: "#",
+              badge: "8",
+              color: "var(--fk-color-category-purple)",
+            },
+            {
+              id: "health",
+              label: "Gesundheit",
+              href: "#",
+              badge: "4",
+              color: "var(--fk-color-category-coral)",
+            },
+          ],
+        },
+        {
+          id: "goals",
+          label: "Ziele",
+          items: [
+            { id: "launch", label: "Website Launch", href: "#", icon: "focus-target", badge: "6" },
+            {
+              id: "marathon",
+              label: "Berlin Marathon",
+              href: "#",
+              icon: "focus-target",
+              badge: "4",
+            },
+          ],
+        },
+        {
+          id: "labels",
+          label: "Labels",
+          items: [
+            { id: "deep", label: "Deep Work", href: "#", icon: "tag", badge: "8" },
+            { id: "quick", label: "Quick Win", href: "#", icon: "tag", badge: "5" },
+          ],
+        },
+      ]}
+      secondaryTitle="Aufgaben"
+    />
+  );
+}
+
+function HeaderMetaMenu() {
+  return (
+    <MetaMenu
+      items={[
+        { label: "Ansicht anpassen", icon: "settings-sliders" },
+        { label: "Exportieren", icon: "external-link" },
+      ]}
+    />
+  );
+}
+
+function HeaderSearch() {
+  return <SearchField collapsedWidth={152} expandedWidth={240} placeholder="Suchen..." />;
 }
 
 function CalendarItemSpecimen({ kind }: { kind: "task" | "event" | "block" }) {
@@ -136,37 +243,49 @@ function TaskItems({ milestone = false }: { milestone?: boolean }) {
   );
 }
 
-function TaskModalComposition({ editing = false }: { editing?: boolean }) {
+function TaskModalComposition({
+  editing = false,
+  showBreadcrumb = true,
+}: {
+  editing?: boolean;
+  showBreadcrumb?: boolean;
+}) {
   return (
     <TaskModalSlot
-      footer={
-        <>
-          <Button buttonType="link">Aufgabe löschen</Button>
-          <Button intent="secondary">Speichern</Button>
-        </>
+      breadcrumb={
+        showBreadcrumb ? (
+          <Breadcrumb
+            items={[{ label: "Motoraufhängung bestellen", href: "#" }, { label: "Components" }]}
+          />
+        ) : undefined
+      }
+      deleteAction={
+        <Button buttonType="link" intent="primary" leadingIcon="delete" trailingIcon={null}>
+          Aufgabe löschen
+        </Button>
       }
       header={
         <TaskModalHeader
           defaultEditing={editing}
-          description="Pattern-Library-Komponenten final prüfen."
-          favorite
-          title="Übergabe vorbereiten"
+          description="Typischerweise wird der Motor mit einer Motorbrücke oder einem Heber abgestützt, während die Schrauben der Lager gelöst und die alten Einheiten entfernt werden."
+          title="Motoraufhängung bestellen"
         />
       }
       menu={
         <TaskModalMenu
           items={[
-            { label: "Priorität", value: "Hoch", content: <Tag tone="coral">Hoch</Tag> },
-            { label: "Fälligkeit", value: "Morgen" },
-            { label: "Zeitschätzung", value: "45 min" },
-            { label: "Tags", value: "2" },
+            { label: "Priorität", content: <Tag tone="coral">Hoch</Tag> },
+            { label: "Fälligkeit" },
+            { label: "Zeitschätzung" },
+            { label: "Tags" },
           ]}
         />
       }
     >
-      <TaskGroup count={2} title="Unteraufgaben">
-        <TaskListItem subtasks="1/2" title="Accessibility prüfen" />
-        <TaskListItem title="Responsive QA abschließen" />
+      <TaskGroup count={3} title="Unteraufgaben">
+        <TaskListItem due="Morgen" subtasks="0/2" title="Recherchieren" />
+        <TaskListItem title="Teile bestellen" />
+        <TaskListItem title="Unteraufgabenname" />
       </TaskGroup>
     </TaskModalSlot>
   );
@@ -177,6 +296,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
   const [toggle, setToggle] = useState("check-in");
   const [tabSelect, setTabSelect] = useState("ambient");
   const [dropdown, setDropdown] = useState("week");
+  const [showTaskModalBreadcrumb, setShowTaskModalBreadcrumb] = useState(true);
 
   switch (slug) {
     case "button":
@@ -487,7 +607,13 @@ export function PatternSpecimen({ slug }: { slug: string }) {
             <Breadcrumb
               items={[
                 { label: "Fokuna", href: "#" },
-                { label: "…", href: "#" },
+                {
+                  label: "…",
+                  menuItems: [
+                    { label: "Documentation", href: "#" },
+                    { label: "Building Your Application", href: "#" },
+                  ],
+                },
                 { label: "Aufgabe bearbeiten" },
               ]}
             />
@@ -669,25 +795,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
     case "sidebar":
       return (
         <div className={styles.sidebarSpecimen}>
-          <Sidebar
-            activeId="tasks"
-            footer={<FokunaIcon name="settings-gear" />}
-            items={[
-              { id: "journal", label: "Journal", href: "#", icon: "notes" },
-              { id: "calendar", label: "Kalender", href: "#", icon: "calendar" },
-              { id: "tasks", label: "Aufgaben", href: "#", icon: "checklist" },
-              { id: "goals", label: "Ziele", href: "#", icon: "focus-target" },
-            ]}
-            logo={<strong>F</strong>}
-            secondaryActiveId="all"
-            secondaryItems={[
-              { id: "all", label: "Alle Aufgaben", href: "#", icon: "checklist" },
-              { id: "today", label: "Heute", href: "#", icon: "calendar" },
-              { id: "upcoming", label: "Demnächst", href: "#", icon: "clock" },
-              { id: "completed", label: "Erledigt", href: "#", icon: "circle-check" },
-            ]}
-            secondaryTitle="Aufgaben"
-          />
+          <AufgabenSidebar />
         </div>
       );
 
@@ -835,75 +943,161 @@ export function PatternSpecimen({ slug }: { slug: string }) {
 
     case "page-header":
       return (
-        <Matrix>
-          <MatrixRow label="Content · full">
+        <div className={styles.pageHeaderVariants}>
+          <MatrixRow label="Journal">
             <PageHeader
               actions={
                 <>
-                  <SearchField />
-                  <Switcher size="md" value="20. – 26. Juli" />
-                  <Button intent="secondary">Neue Aufgabe</Button>
+                  <HeaderMetaMenu />
+                  <Switcher size="md" value="Do, 2. Juli 2026" />
                 </>
-              }
-              breadcrumb={
-                <Button aria-label="Zurück" buttonType="link" iconOnly leadingIcon="arrow-left">
-                  Zurück
-                </Button>
               }
               center={
                 <ToggleGroup
-                  aria-label="Ansicht"
-                  defaultValue="list"
+                  aria-label="Journalphase"
+                  defaultValue="check-in"
                   items={[
-                    { value: "list", label: "Liste" },
-                    { value: "board", label: "Board" },
+                    { value: "check-in", label: "Check-In" },
+                    { value: "check-out", label: "Check-Out" },
                   ]}
                 />
+              }
+              title="Journal"
+            />
+          </MatrixRow>
+          <MatrixRow label="Templates">
+            <PageHeader
+              actions={
+                <>
+                  <HeaderMetaMenu />
+                  <HeaderSearch />
+                  <Button leadingIcon="add-small" trailingIcon={null}>
+                    Neues Template
+                  </Button>
+                </>
+              }
+              title="Templates"
+            />
+          </MatrixRow>
+          <MatrixRow label="Alle Aufgaben">
+            <PageHeader
+              actions={
+                <>
+                  <HeaderMetaMenu />
+                  <HeaderSearch />
+                  <Button intent="secondary" leadingIcon="magic-eye" trailingIcon={null}>
+                    Fokus
+                  </Button>
+                  <Button
+                    aria-label="Seitenleiste umschalten"
+                    buttonType="outline"
+                    iconOnly
+                    intent="tertiary"
+                    leadingIcon="sidebar-left-arrow"
+                  >
+                    Seitenleiste umschalten
+                  </Button>
+                </>
               }
               title="Alle Aufgaben"
             />
           </MatrixRow>
-          <MatrixRow label="Content · reduced">
+          <MatrixRow label="Zeitblöcke">
             <PageHeader
-              actions={<Button intent="secondary">Neues Template</Button>}
-              title="Templates"
+              actions={
+                <>
+                  <HeaderMetaMenu />
+                  <HeaderSearch />
+                  <Button leadingIcon="add-small" trailingIcon={null}>
+                    Neuer Zeitblock
+                  </Button>
+                </>
+              }
+              title="Zeitblöcke"
             />
           </MatrixRow>
-          <MatrixRow label="Calendar">
+          <MatrixRow label="Ziele">
             <PageHeader
-              actions={<Button intent="secondary">Neuer Eintrag</Button>}
-              breadcrumb={<Switcher size="md" value="20. – 26. Juli" />}
+              actions={
+                <>
+                  <HeaderMetaMenu />
+                  <Button leadingIcon="add-small" trailingIcon={null}>
+                    Neues Ziel
+                  </Button>
+                </>
+              }
+              center={
+                <ToggleGroup
+                  aria-label="Zielansicht"
+                  defaultValue="all"
+                  items={[
+                    { value: "all", label: "Alle Ziele" },
+                    { value: "timeline", label: "Timeline" },
+                  ]}
+                />
+              }
+              title="Ziele"
+            />
+          </MatrixRow>
+          <MatrixRow label="Zieldetail">
+            <PageHeader
+              actions={
+                <>
+                  <HeaderMetaMenu />
+                  <HeaderSearch />
+                  <Button intent="secondary" leadingIcon="focus-target" trailingIcon={null}>
+                    Ziel bearbeiten
+                  </Button>
+                </>
+              }
+              breadcrumb={
+                <Button
+                  aria-label="Zurück"
+                  buttonType="outline"
+                  iconOnly
+                  intent="tertiary"
+                  leadingIcon="chevron-left-small"
+                >
+                  Zurück
+                </Button>
+              }
+              title="Berlin Marathon"
+            />
+          </MatrixRow>
+          <MatrixRow label="Ziel erstellen">
+            <PageHeader title="Ziel erstellen" />
+          </MatrixRow>
+          <MatrixRow label="Kalender">
+            <PageHeader
+              breadcrumb={<Switcher size="md" value="Heute" />}
+              center={
+                <ToggleGroup
+                  aria-label="Kalenderansicht"
+                  defaultValue="day"
+                  items={[
+                    { value: "day", label: "Tag" },
+                    { value: "week", label: "Woche" },
+                    { value: "month", label: "Monat" },
+                  ]}
+                />
+              }
               title="Kalender"
               variant="calendar"
             />
           </MatrixRow>
-        </Matrix>
+          <MatrixRow label="Insights">
+            <PageHeader title="Insights" />
+          </MatrixRow>
+          <MatrixRow label="Einstellungen">
+            <PageHeader title="Einstellungen" />
+          </MatrixRow>
+        </div>
       );
 
     case "ui-shell":
       return (
         <div className={styles.shellSpecimen}>
-          <UiShell
-            sidebar={
-              <Sidebar
-                activeId="tasks"
-                items={[
-                  { id: "journal", label: "Journal", href: "#", icon: "notes" },
-                  { id: "calendar", label: "Kalender", href: "#", icon: "calendar" },
-                  { id: "tasks", label: "Aufgaben", href: "#", icon: "checklist" },
-                  { id: "goals", label: "Ziele", href: "#", icon: "focus-target" },
-                ]}
-                logo={<strong>F</strong>}
-                secondaryActiveId="all"
-                secondaryItems={[
-                  { id: "all", label: "Alle Aufgaben", href: "#", icon: "checklist" },
-                  { id: "today", label: "Heute", href: "#", icon: "calendar" },
-                  { id: "upcoming", label: "Demnächst", href: "#", icon: "clock" },
-                ]}
-                secondaryTitle="Aufgaben"
-              />
-            }
-          >
+          <UiShell sidebar={<AufgabenSidebar />}>
             <PageHeader
               actions={<Button intent="secondary">Neue Aufgabe</Button>}
               subtitle="Desktop Shell"
@@ -979,7 +1173,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                 tags={["Design"]}
                 title="Komponenten prüfen"
               />
-              <TaskListItem favorite title="Pattern Library freigeben" />
+              <TaskListItem favorite indentLevel={1} title="Pattern Library freigeben – geplant" />
               <TaskListItem title="Responsive QA abschließen" />
             </TaskGroup>
           </MatrixRow>
@@ -1003,9 +1197,9 @@ export function PatternSpecimen({ slug }: { slug: string }) {
               status: "current",
               children: (
                 <>
-                  <TaskListItem milestone title="Konzept bestätigen" />
-                  <TaskListItem milestone title="Komponenten prüfen" />
-                  <TaskListItem milestone title="Übergabe vorbereiten" />
+                  <TaskListItem expandable={false} title="Konzept bestätigen" />
+                  <TaskListItem expandable={false} title="Komponenten prüfen" />
+                  <TaskListItem expandable={false} title="Übergabe vorbereiten" />
                 </>
               ),
             },
@@ -1013,21 +1207,29 @@ export function PatternSpecimen({ slug }: { slug: string }) {
               id: "b",
               title: "Meilenstein B",
               count: "0/1",
-              children: <TaskListItem milestone title="Produktion starten" />,
+              children: <TaskListItem expandable={false} title="Produktion starten" />,
             },
             { id: "c", title: "Meilenstein C", status: "completed" },
           ]}
         />
       );
 
-    case "task-modal-header":
-      return <TaskModalComposition editing />;
-
-    case "task-modal-menu":
-      return <TaskModalComposition />;
-
-    case "task-modal-slot":
-      return <TaskModalComposition />;
+    case "task-modal":
+      return (
+        <div className={styles.taskModalSpecimen}>
+          <ToggleGroup
+            aria-label="Breadcrumb-Darstellung"
+            items={[
+              { value: "with", label: "Mit Breadcrumb" },
+              { value: "without", label: "Ohne Breadcrumb" },
+            ]}
+            onValueChange={(value) => value && setShowTaskModalBreadcrumb(value === "with")}
+            size="md"
+            value={showTaskModalBreadcrumb ? "with" : "without"}
+          />
+          <TaskModalComposition showBreadcrumb={showTaskModalBreadcrumb} />
+        </div>
+      );
 
     default:
       return <p>Für dieses Pattern ist noch kein Live-Specimen hinterlegt.</p>;

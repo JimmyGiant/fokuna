@@ -220,8 +220,8 @@
 
 .principles h2,
 .patternIndex h2,
-.detailSection h2,
-.referenceSection h2 {
+.detailSection > header h2,
+.referenceSection > header h2 {
   color: var(--fk-color-text-primary);
   font-size: 24px;
   line-height: 32px;
@@ -509,11 +509,11 @@
 
 .hoverPreview :global(.fk-button),
 :global(.fk-button[data-preview-state="hover"]) {
-  background: var(--fk-color-surface-action-primary-hover);
+  --fk-button-surface: var(--fk-color-surface-action-primary-hover);
 }
 
 :global(.fk-button[data-preview-state="hover"])[data-intent="secondary"] {
-  background: var(--fk-color-surface-action-secondary-hover);
+  --fk-button-surface: var(--fk-color-surface-action-secondary-hover);
 }
 
 .hoverPreview :global(.fk-input),
@@ -838,7 +838,25 @@
 }
 
 .sidebarSpecimen {
-  width: 320px;
+  width: 328px;
+}
+
+.sidebarAvatar {
+  align-items: center;
+  background: var(--fk-color-surface-brand-secondary-25);
+  border-radius: 999px;
+  color: var(--fk-color-icon-action-secondary);
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.pageHeaderVariants {
+  display: grid;
+  gap: 1px;
+  min-width: 1040px;
+  width: 100%;
 }
 
 .sidebarSpecimen :global(.fk-sidebar),
@@ -1049,4 +1067,11 @@
   .cardModalSpecimen {
     grid-template-columns: 1fr;
   }
+}
+
+.taskModalSpecimen {
+  align-items: start;
+  display: grid;
+  gap: 24px;
+  justify-items: start;
 }

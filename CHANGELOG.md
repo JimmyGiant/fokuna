@@ -15,7 +15,7 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
   Kalender- und Aufgabenmustern umgesetzt.
 - Date Picker für Einzel- und Zeitraumwahl mit Monatsnavigation, vier Control-Größen und
   Tastatursteuerung ergänzt; `date-fns` wird gemäß PRD für Datumsoperationen genutzt.
-- Desktop UI Shell mit fester 64px-Navigation und optionalem Level 2 im Abnahmekatalog ergänzt.
+- Desktop UI Shell mit fester 72px-Navigation und optionalem Level 2 im Abnahmekatalog ergänzt.
 - Switcher, Tab Select, Search-Varianten, Meilensteine und Task-Modal-Komposition als eigenständige
   Pattern-Verträge ergänzt.
 - Technische Übergabe für den Folge-Agenten und Komponentenregeln im Repository dokumentiert.
@@ -31,6 +31,15 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
 - Zweite pixelgenaue Korrekturrunde für alle 35 Pattern-Seiten abgeschlossen: Kalender-Zeitraster,
   Task- und Milestone-Zustände, vollständige Task-Modals, echte Switcher-/Filter-Kompositionen,
   animierte Tab-Indikatoren sowie getrennte Callout-Varianten an Figma angeglichen.
+- Dritte Figma-Korrekturrunde ergänzt: exakte vertikale Element-Strokes, stabile Date-Range- und
+  Radiobox-Geometrien, ausgerichtete Step-Slider-Skala und interaktives Breadcrumb-Popover.
+- Sidebar Combined mit echtem Markenlogo, heller 72px-Rail und vollständiger Aufgabenhierarchie
+  aufgebaut; Task- und Milestone-Zeilen sowie alle gemappten Page-Header-Varianten neu strukturiert.
+- Vierte Abnahmerunde stabilisiert Auswahlgeometrien und Task-Checkboxen, vervollständigt Sidebar-
+  States und Kalender-Drag-Zustände und führt die Aufgaben-Modal-Patterns in eine Figma-nahe,
+  überlauffreie Komposition mit lokalem Bearbeitungsmodus zusammen.
+- Aufgabenlisten leiten Höhe, Meta-Zeile und Chevron nun aus dem tatsächlichen Inhalt ab; Drag-
+  Shadow, eingerückte Unteraufgaben und die umschaltbare Breadcrumb-Variante des Modals wurden ergänzt.
 
 ### Decisions
 
@@ -61,3 +70,7 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
 - Mehrere visuell ähnliche Semantik-Tokens waren nicht austauschbar: neutrale Tertiärwerte hatten
   Aktionsfarben ersetzt. Die betroffenen Controls verwenden nun wieder ihre expliziten Surface-,
   Border-, Text- und Icon-Verträge.
+- Wechselnde Border-Breiten erzeugten bei Radioboxen sichtbare Layoutsprünge. Der ausgewählte
+  2px-Eindruck wird nun über einen inneren Stroke bei unveränderter Außenbox erzeugt.
+- Titel und Metadaten der Aufgabenzeilen lagen in getrennten Gridspalten. Beide Inhalte teilen nun
+  dieselbe Contentspalte; Drag-Slot, Chevron, 16px-Checkbox und Favorit folgen der Figma-Reihenfolge.

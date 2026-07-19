@@ -48,7 +48,7 @@ export function Checkbox({
           </span>
         </>
       ) : (
-        <CheckboxPrimitive.Indicator className="fk-checkbox__indicator">
+        <CheckboxPrimitive.Indicator className="fk-checkbox__indicator" forceMount>
           <span className="fk-checkbox__check">
             <FokunaIcon name="check-small" size={16} />
           </span>
@@ -83,7 +83,7 @@ export function Radio({ controlSize = "md", label, className, id, ...props }: Ra
       data-size={controlSize}
       id={id}
     >
-      <RadioGroup.Indicator className="fk-radio__indicator" />
+      <RadioGroup.Indicator className="fk-radio__indicator" forceMount />
     </RadioGroup.Item>
   );
 
