@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@import "@fokuna/tokens/theme.css";
+@import "@fokuna/tokens/tailwind.css";
+@import "@fokuna/tokens/typography.css";
+@import "@fokuna/ui/styles.css";
+
+:root {
+  --fk-type-font-font-family-accent-primary: var(--font-roboto-serif);
+  --fk-type-font-font-family-body-primary: var(--font-geist);
+  --fk-type-font-font-family-heading-primary: var(--font-geist);
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    background: var(--fk-color-surface-subtle);
+    color: var(--fk-color-text-primary);
+    font-family: var(--fk-type-font-font-family-body-primary), sans-serif;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  ::selection {
+    background: var(--fk-color-surface-brand-secondary-25);
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@fokuna/config",
+  "version": "0.1.0",
+  "private": true,
+  "files": [
+    "eslint",
+    "typescript"
+  ],
+  "exports": {
+    "./typescript/base.json": "./typescript/base.json"
+  }
+}

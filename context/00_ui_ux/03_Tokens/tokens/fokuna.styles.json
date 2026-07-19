@@ -1,0 +1,578 @@
+{
+  "meta": {
+    "name": "Fokuna Design Tokens",
+    "source": "UI Design | Fokuna",
+    "fileKey": "ltQMlboZomvr70Z4m0aLQj",
+    "exportedAt": "2026-07-19T05:26:59.465Z",
+    "counts": {
+      "collections": [
+        {
+          "name": "Fokuna / Color Primitives",
+          "modes": [
+            "Value"
+          ],
+          "variables": 90
+        },
+        {
+          "name": "Fokuna / Typography",
+          "modes": [
+            "Desktop",
+            "Mobile",
+            "Tablet"
+          ],
+          "variables": 73
+        },
+        {
+          "name": "Fokuna / Scale",
+          "modes": [
+            "Value"
+          ],
+          "variables": 33
+        },
+        {
+          "name": "Fokuna / Color",
+          "modes": [
+            "Light",
+            "Dark"
+          ],
+          "variables": 119
+        }
+      ],
+      "textStyles": 30,
+      "effectStyles": 4,
+      "paintStyles": 2
+    }
+  },
+  "styles": {
+    "text": [
+      {
+        "name": "Body/2XL",
+        "slug": "body-2-xl",
+        "family": "Geist",
+        "style": "Regular",
+        "weight": 400,
+        "size": 24,
+        "lineHeight": 32,
+        "lineHeightCss": "32px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Body/LG",
+        "slug": "body-lg",
+        "family": "Geist",
+        "style": "Regular",
+        "weight": 400,
+        "size": 16,
+        "lineHeight": 22,
+        "lineHeightCss": "22px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Body/MD",
+        "slug": "body-md",
+        "family": "Geist",
+        "style": "Regular",
+        "weight": 400,
+        "size": 14,
+        "lineHeight": 20,
+        "lineHeightCss": "20px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Body/SM",
+        "slug": "body-sm",
+        "family": "Geist",
+        "style": "Regular",
+        "weight": 400,
+        "size": 12,
+        "lineHeight": 16,
+        "lineHeightCss": "16px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Body/XL",
+        "slug": "body-xl",
+        "family": "Geist",
+        "style": "Regular",
+        "weight": 400,
+        "size": 20,
+        "lineHeight": 28,
+        "lineHeightCss": "28px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Headline/2XL",
+        "slug": "headline-2-xl",
+        "family": "Geist",
+        "style": "Bold",
+        "weight": 700,
+        "size": 48,
+        "lineHeight": 56,
+        "lineHeightCss": "56px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Headline/3XL",
+        "slug": "headline-3-xl",
+        "family": "Geist",
+        "style": "Bold",
+        "weight": 700,
+        "size": 64,
+        "lineHeight": 64,
+        "lineHeightCss": "64px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Headline/LG",
+        "slug": "headline-lg",
+        "family": "Geist",
+        "style": "Bold",
+        "weight": 700,
+        "size": 32,
+        "lineHeight": 40,
+        "lineHeightCss": "40px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Headline/MD",
+        "slug": "headline-md",
+        "family": "Geist",
+        "style": "Bold",
+        "weight": 700,
+        "size": 24,
+        "lineHeight": 32,
+        "lineHeightCss": "32px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Headline/MD-SM",
+        "slug": "headline-md-sm",
+        "family": "Geist",
+        "style": "Bold",
+        "weight": 700,
+        "size": 20,
+        "lineHeight": 24,
+        "lineHeightCss": "24px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Headline/SM",
+        "slug": "headline-sm",
+        "family": "Geist",
+        "style": "Bold",
+        "weight": 700,
+        "size": 16,
+        "lineHeight": 24,
+        "lineHeightCss": "24px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Headline/XL",
+        "slug": "headline-xl",
+        "family": "Geist",
+        "style": "Bold",
+        "weight": 700,
+        "size": 40,
+        "lineHeight": 48,
+        "lineHeightCss": "48px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Headline/XS",
+        "slug": "headline-xs",
+        "family": "Geist",
+        "style": "Bold",
+        "weight": 700,
+        "size": 14,
+        "lineHeight": 16,
+        "lineHeightCss": "16px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Label/2XL",
+        "slug": "label-2-xl",
+        "family": "Geist",
+        "style": "SemiBold",
+        "weight": 600,
+        "size": 24,
+        "lineHeight": 32,
+        "lineHeightCss": "32px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Label/LG",
+        "slug": "label-lg",
+        "family": "Geist",
+        "style": "SemiBold",
+        "weight": 600,
+        "size": 16,
+        "lineHeight": 22,
+        "lineHeightCss": "22px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Label/MD",
+        "slug": "label-md",
+        "family": "Geist",
+        "style": "SemiBold",
+        "weight": 600,
+        "size": 14,
+        "lineHeight": 20,
+        "lineHeightCss": "20px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Label/SM",
+        "slug": "label-sm",
+        "family": "Geist",
+        "style": "SemiBold",
+        "weight": 600,
+        "size": 12,
+        "lineHeight": 16,
+        "lineHeightCss": "16px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Label/XL",
+        "slug": "label-xl",
+        "family": "Geist",
+        "style": "SemiBold",
+        "weight": 600,
+        "size": 20,
+        "lineHeight": 28,
+        "lineHeightCss": "28px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Link/2XL",
+        "slug": "link-2-xl",
+        "family": "Geist",
+        "style": "SemiBold",
+        "weight": 600,
+        "size": 24,
+        "lineHeight": 32,
+        "lineHeightCss": "32px",
+        "letterSpacingCss": "0px",
+        "decoration": "UNDERLINE"
+      },
+      {
+        "name": "Link/LG",
+        "slug": "link-lg",
+        "family": "Geist",
+        "style": "SemiBold",
+        "weight": 600,
+        "size": 16,
+        "lineHeight": 22,
+        "lineHeightCss": "22px",
+        "letterSpacingCss": "0px",
+        "decoration": "UNDERLINE"
+      },
+      {
+        "name": "Link/MD",
+        "slug": "link-md",
+        "family": "Geist",
+        "style": "SemiBold",
+        "weight": 600,
+        "size": 14,
+        "lineHeight": 20,
+        "lineHeightCss": "20px",
+        "letterSpacingCss": "0px",
+        "decoration": "UNDERLINE"
+      },
+      {
+        "name": "Link/SM",
+        "slug": "link-sm",
+        "family": "Geist",
+        "style": "SemiBold",
+        "weight": 600,
+        "size": 12,
+        "lineHeight": 16,
+        "lineHeightCss": "16px",
+        "letterSpacingCss": "0px",
+        "decoration": "UNDERLINE"
+      },
+      {
+        "name": "Link/XL",
+        "slug": "link-xl",
+        "family": "Geist",
+        "style": "SemiBold",
+        "weight": 600,
+        "size": 20,
+        "lineHeight": 28,
+        "lineHeightCss": "28px",
+        "letterSpacingCss": "0px",
+        "decoration": "UNDERLINE"
+      },
+      {
+        "name": "Schmuckzeile/2XL",
+        "slug": "schmuckzeile-2-xl",
+        "family": "Roboto Serif",
+        "style": "Medium Italic",
+        "weight": 500,
+        "size": 24,
+        "lineHeight": 32,
+        "lineHeightCss": "32px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Schmuckzeile/3XL",
+        "slug": "schmuckzeile-3-xl",
+        "family": "Roboto Serif",
+        "style": "Medium Italic",
+        "weight": 500,
+        "size": 32,
+        "lineHeight": 40,
+        "lineHeightCss": "40px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Schmuckzeile/4XL",
+        "slug": "schmuckzeile-4-xl",
+        "family": "Roboto Serif",
+        "style": "Medium Italic",
+        "weight": 500,
+        "size": 40,
+        "lineHeight": 48,
+        "lineHeightCss": "48px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Schmuckzeile/LG",
+        "slug": "schmuckzeile-lg",
+        "family": "Roboto Serif",
+        "style": "Medium Italic",
+        "weight": 500,
+        "size": 16,
+        "lineHeight": 22,
+        "lineHeightCss": "22px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Schmuckzeile/MD",
+        "slug": "schmuckzeile-md",
+        "family": "Roboto Serif",
+        "style": "Medium Italic",
+        "weight": 500,
+        "size": 14,
+        "lineHeight": 20,
+        "lineHeightCss": "20px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Schmuckzeile/SM",
+        "slug": "schmuckzeile-sm",
+        "family": "Roboto Serif",
+        "style": "Medium Italic",
+        "weight": 500,
+        "size": 12,
+        "lineHeight": 16,
+        "lineHeightCss": "16px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      },
+      {
+        "name": "Schmuckzeile/XL",
+        "slug": "schmuckzeile-xl",
+        "family": "Roboto Serif",
+        "style": "Medium Italic",
+        "weight": 500,
+        "size": 20,
+        "lineHeight": 24,
+        "lineHeightCss": "24px",
+        "letterSpacingCss": "0px",
+        "decoration": "NONE"
+      }
+    ],
+    "effects": [
+      {
+        "name": "Dropshadow Highlight Card",
+        "slug": "dropshadow-highlight-card",
+        "boxShadow": "0px 2px 4px -2px rgba(9, 25, 49, 0.06), 0px 10px 24px -8px rgba(9, 25, 49, 0.08), 0px 24px 56px -18px rgba(9, 25, 49, 0.1), 0px 40px 96px -32px rgba(9, 25, 49, 0.06)",
+        "layers": [
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 2,
+            "blur": 4,
+            "spread": -2,
+            "color": "rgba(9, 25, 49, 0.06)"
+          },
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 10,
+            "blur": 24,
+            "spread": -8,
+            "color": "rgba(9, 25, 49, 0.08)"
+          },
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 24,
+            "blur": 56,
+            "spread": -18,
+            "color": "rgba(9, 25, 49, 0.1)"
+          },
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 40,
+            "blur": 96,
+            "spread": -32,
+            "color": "rgba(9, 25, 49, 0.06)"
+          }
+        ]
+      },
+      {
+        "name": "Dropshadow Medium Card",
+        "slug": "dropshadow-medium-card",
+        "boxShadow": "0px 1px 2px -1px rgba(9, 25, 49, 0.05), 0px 6px 16px -6px rgba(9, 25, 49, 0.07), 0px 16px 32px -14px rgba(9, 25, 49, 0.08)",
+        "layers": [
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": -1,
+            "color": "rgba(9, 25, 49, 0.05)"
+          },
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 6,
+            "blur": 16,
+            "spread": -6,
+            "color": "rgba(9, 25, 49, 0.07)"
+          },
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 16,
+            "blur": 32,
+            "spread": -14,
+            "color": "rgba(9, 25, 49, 0.08)"
+          }
+        ]
+      },
+      {
+        "name": "Dropshadow Micro Element",
+        "slug": "dropshadow-micro-element",
+        "boxShadow": "0px 1px 1px 0px rgba(9, 25, 49, 0.04), 0px 2px 6px -3px rgba(9, 25, 49, 0.035)",
+        "layers": [
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 1,
+            "blur": 1,
+            "spread": 0,
+            "color": "rgba(9, 25, 49, 0.04)"
+          },
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 2,
+            "blur": 6,
+            "spread": -3,
+            "color": "rgba(9, 25, 49, 0.035)"
+          }
+        ]
+      },
+      {
+        "name": "Dropshadow Subtle Element",
+        "slug": "dropshadow-subtle-element",
+        "boxShadow": "0px 1px 2px -1px rgba(9, 25, 49, 0.04), 0px 3px 8px -4px rgba(9, 25, 49, 0.05), 0px 8px 16px -10px rgba(9, 25, 49, 0.04)",
+        "layers": [
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 1,
+            "blur": 2,
+            "spread": -1,
+            "color": "rgba(9, 25, 49, 0.04)"
+          },
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 3,
+            "blur": 8,
+            "spread": -4,
+            "color": "rgba(9, 25, 49, 0.05)"
+          },
+          {
+            "type": "DROP_SHADOW",
+            "x": 0,
+            "y": 8,
+            "blur": 16,
+            "spread": -10,
+            "color": "rgba(9, 25, 49, 0.04)"
+          }
+        ]
+      }
+    ],
+    "paints": [
+      {
+        "name": "Element-Background-Stroke",
+        "slug": "element-background-stroke",
+        "paints": [
+          {
+            "type": "GRADIENT_LINEAR",
+            "opacity": 0.05,
+            "gradientStops": [
+              {
+                "position": 0,
+                "color": "rgba(0, 0, 0, 1)"
+              },
+              {
+                "position": 1,
+                "color": "rgba(255, 255, 255, 1)"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Element-Forground-Stroke",
+        "slug": "element-forground-stroke",
+        "paints": [
+          {
+            "type": "GRADIENT_LINEAR",
+            "opacity": 0.4,
+            "gradientStops": [
+              {
+                "position": 0,
+                "color": "rgba(255, 255, 255, 0.4)"
+              },
+              {
+                "position": 1,
+                "color": "rgba(0, 0, 0, 0.1)"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

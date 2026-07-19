@@ -1,0 +1,25 @@
+{
+  "name": "fokuna",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.15.4",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "dev": "corepack pnpm --filter @fokuna/web dev",
+    "build": "corepack pnpm -r --if-present build",
+    "lint": "corepack pnpm -r --if-present lint",
+    "typecheck": "corepack pnpm -r --if-present typecheck",
+    "test": "corepack pnpm -r --if-present test",
+    "test:watch": "corepack pnpm --filter @fokuna/ui test:watch",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "corepack pnpm format:check && corepack pnpm lint && corepack pnpm typecheck && corepack pnpm test && corepack pnpm build",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "prettier": "3.9.5"
+  }
+}

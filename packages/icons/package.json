@@ -1,0 +1,25 @@
+{
+  "name": "@fokuna/icons",
+  "version": "0.1.0",
+  "private": true,
+  "files": [
+    "src"
+  ],
+  "exports": {
+    ".": "./src/index.tsx"
+  },
+  "scripts": {
+    "build": "node scripts/build-icons.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@fokuna/config": "workspace:*",
+    "@types/react": "19.2.17",
+    "prettier": "3.9.5",
+    "react": "19.2.7",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,253 @@
+/* Fokuna text style utilities generated from Figma text styles. */
+
+.fk-body-2-xl {
+  font-family: Geist, sans-serif;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+
+.fk-body-lg {
+  font-family: Geist, sans-serif;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+
+.fk-body-md {
+  font-family: Geist, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+
+.fk-body-sm {
+  font-family: Geist, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+
+.fk-body-xl {
+  font-family: Geist, sans-serif;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 400;
+  letter-spacing: 0px;
+}
+
+.fk-headline-2-xl {
+  font-family: Geist, sans-serif;
+  font-size: 48px;
+  line-height: 56px;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+
+.fk-headline-3-xl {
+  font-family: Geist, sans-serif;
+  font-size: 64px;
+  line-height: 64px;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+
+.fk-headline-lg {
+  font-family: Geist, sans-serif;
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+
+.fk-headline-md {
+  font-family: Geist, sans-serif;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+
+.fk-headline-md-sm {
+  font-family: Geist, sans-serif;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+
+.fk-headline-sm {
+  font-family: Geist, sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+
+.fk-headline-xl {
+  font-family: Geist, sans-serif;
+  font-size: 40px;
+  line-height: 48px;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+
+.fk-headline-xs {
+  font-family: Geist, sans-serif;
+  font-size: 14px;
+  line-height: 16px;
+  font-weight: 700;
+  letter-spacing: 0px;
+}
+
+.fk-label-2-xl {
+  font-family: Geist, sans-serif;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: 0px;
+}
+
+.fk-label-lg {
+  font-family: Geist, sans-serif;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: 0px;
+}
+
+.fk-label-md {
+  font-family: Geist, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0px;
+}
+
+.fk-label-sm {
+  font-family: Geist, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0px;
+}
+
+.fk-label-xl {
+  font-family: Geist, sans-serif;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: 0px;
+}
+
+.fk-link-2-xl {
+  font-family: Geist, sans-serif;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 600;
+  letter-spacing: 0px;
+  text-decoration-line: underline;
+}
+
+.fk-link-lg {
+  font-family: Geist, sans-serif;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 600;
+  letter-spacing: 0px;
+  text-decoration-line: underline;
+}
+
+.fk-link-md {
+  font-family: Geist, sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 600;
+  letter-spacing: 0px;
+  text-decoration-line: underline;
+}
+
+.fk-link-sm {
+  font-family: Geist, sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0px;
+  text-decoration-line: underline;
+}
+
+.fk-link-xl {
+  font-family: Geist, sans-serif;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  letter-spacing: 0px;
+  text-decoration-line: underline;
+}
+
+.fk-schmuckzeile-2-xl {
+  font-family: "Roboto Serif", serif;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 500;
+  letter-spacing: 0px;
+  font-style: italic;
+}
+
+.fk-schmuckzeile-3-xl {
+  font-family: "Roboto Serif", serif;
+  font-size: 32px;
+  line-height: 40px;
+  font-weight: 500;
+  letter-spacing: 0px;
+  font-style: italic;
+}
+
+.fk-schmuckzeile-4-xl {
+  font-family: "Roboto Serif", serif;
+  font-size: 40px;
+  line-height: 48px;
+  font-weight: 500;
+  letter-spacing: 0px;
+  font-style: italic;
+}
+
+.fk-schmuckzeile-lg {
+  font-family: "Roboto Serif", serif;
+  font-size: 16px;
+  line-height: 22px;
+  font-weight: 500;
+  letter-spacing: 0px;
+  font-style: italic;
+}
+
+.fk-schmuckzeile-md {
+  font-family: "Roboto Serif", serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+  letter-spacing: 0px;
+  font-style: italic;
+}
+
+.fk-schmuckzeile-sm {
+  font-family: "Roboto Serif", serif;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0px;
+  font-style: italic;
+}
+
+.fk-schmuckzeile-xl {
+  font-family: "Roboto Serif", serif;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 500;
+  letter-spacing: 0px;
+  font-style: italic;
+}

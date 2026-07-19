@@ -1,0 +1,4 @@
+{
+  "extends": "@fokuna/config/typescript/base.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
+}
