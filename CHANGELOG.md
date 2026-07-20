@@ -40,6 +40,12 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
   überlauffreie Komposition mit lokalem Bearbeitungsmodus zusammen.
 - Aufgabenlisten leiten Höhe, Meta-Zeile und Chevron nun aus dem tatsächlichen Inhalt ab; Drag-
   Shadow, eingerückte Unteraufgaben und die umschaltbare Breadcrumb-Variante des Modals wurden ergänzt.
+- Aufgaben-, Unteraufgaben- und Meilensteinachsen folgen nun exakt der Figma-Hierarchie; das
+  Aufgabenmodal wahrt mit und ohne Breadcrumb seinen 40px-Rahmen und stabile Edit-Geometrien.
+- Checkbox- und Milestone-Hover, interaktive Add- und Gruppen-Zustände sowie die 0/24/16px-Achsen
+  der Modal-Unteraufgaben wurden gegen Figma korrigiert und browserbasiert verifiziert.
+- Task- und Milestone-Chevrons simulieren ihre Hierarchien nun lokal; Modal-Schließen, Timeline-
+  Schichtung, Chevron-Versatz, Drag-Handles und Add-Achsen bleiben dabei über alle Varianten stabil.
 
 ### Decisions
 

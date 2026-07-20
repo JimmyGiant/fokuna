@@ -21,9 +21,13 @@ export interface TaskListItemProps extends HTMLAttributes<HTMLDivElement> {
   tags?: string[];
   subtasks?: string;
   milestone?: boolean;
+  milestoneTask?: boolean;
   expandable?: boolean;
+  expanded?: boolean;
+  defaultExpanded?: boolean;
   indentLevel?: 0 | 1;
   onCompletedChange?: (completed: boolean) => void;
+  onExpandedChange?: (expanded: boolean) => void;
   onFavoriteChange?: (favorite: boolean) => void;
 }
 
@@ -57,23 +61,36 @@ export function TaskListItem({
   tags = [],
   subtasks,
   milestone,
+  milestoneTask,
   expandable,
+  expanded: expandedProp,
+  defaultExpanded = true,
   indentLevel = 0,
   onCompletedChange,
+  onExpandedChange,
   onFavoriteChange,
   className,
+  children,
   ...props
 }: TaskListItemProps) {
   const [internalFavorite, setInternalFavorite] = useState(Boolean(favorite));
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const isFavorite = onFavoriteChange ? Boolean(favorite) : internalFavorite;
-  const isExpandable = expandable ?? Boolean(subtasks);
-  const hasMeta = Boolean(description || subtasks || goal || due || tags.length);
+  const resolvedGoal = goal ?? (milestone || milestoneTask ? "Mein Ziel" : undefined);
+  const isExpandable = milestoneTask ? false : (expandable ?? Boolean(subtasks));
+  const isExpanded = expandedProp ?? internalExpanded;
+  const hasMeta = Boolean(description || subtasks || resolvedGoal || due || tags.length);
+
+  function setExpanded(nextExpanded: boolean) {
+    if (expandedProp === undefined) setInternalExpanded(nextExpanded);
+    onExpandedChange?.(nextExpanded);
+  }
 
   if (state === "placeholder") {
     return <div {...props} className={cn("fk-task-item fk-task-item--placeholder", className)} />;
   }
 
-  return (
+  const item = (
     <div
       {...props}
       aria-grabbed={state === "dragged" || undefined}
@@ -81,6 +98,8 @@ export function TaskListItem({
       data-has-meta={hasMeta || undefined}
       data-indent={indentLevel || undefined}
       data-milestone={milestone || undefined}
+      data-milestone-task={milestoneTask || undefined}
+      data-expanded={isExpandable ? isExpanded : undefined}
       data-state={state}
       draggable
     >
@@ -90,11 +109,17 @@ export function TaskListItem({
         </button>
         {isExpandable ? (
           <button
-            aria-label="Aufgabendetails einblenden"
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? "Aufgabendetails ausblenden" : "Aufgabendetails einblenden"}
             className="fk-task-item__expand"
+            onClick={() => setExpanded(!isExpanded)}
             type="button"
           >
-            <FokunaIcon name="chevron-down" size={16} stroke={1.5} />
+            <FokunaIcon
+              name={isExpanded ? "chevron-down" : "chevron-right"}
+              size={16}
+              stroke={1.5}
+            />
           </button>
         ) : (
           <span className="fk-task-item__expand-spacer" />
@@ -104,7 +129,7 @@ export function TaskListItem({
             checked={completed}
             controlSize="md"
             onCheckedChange={(next) => onCompletedChange?.(next === true)}
-            variant="default"
+            variant={milestone ? "milestone" : "default"}
           />
         </span>
         <span className="fk-task-item__content">
@@ -113,9 +138,9 @@ export function TaskListItem({
           {hasMeta ? (
             <span className="fk-task-item__meta">
               {subtasks ? <Tag icon={<SubtaskIcon />}>{subtasks}</Tag> : null}
-              {goal ? (
+              {resolvedGoal ? (
                 <Tag icon="focus-target" tone="teal">
-                  {goal}
+                  {resolvedGoal}
                 </Tag>
               ) : null}
               {due ? (
@@ -147,6 +172,15 @@ export function TaskListItem({
       </div>
     </div>
   );
+
+  if (!children) return item;
+
+  return (
+    <div className="fk-task-item-tree" data-expanded={isExpanded}>
+      {item}
+      {isExpanded ? <div className="fk-task-item-tree__children">{children}</div> : null}
+    </div>
+  );
 }
 
 export interface TaskGroupHeaderProps extends HTMLAttributes<HTMLDivElement> {
@@ -156,6 +190,7 @@ export interface TaskGroupHeaderProps extends HTMLAttributes<HTMLDivElement> {
   draggable?: boolean;
   actions?: ReactNode;
   milestone?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export function TaskGroupHeader({
@@ -165,6 +200,7 @@ export function TaskGroupHeader({
   draggable,
   actions,
   milestone,
+  onExpandedChange,
   className,
   ...props
 }: TaskGroupHeaderProps) {
@@ -180,9 +216,17 @@ export function TaskGroupHeader({
           <FokunaIcon name="drag-handle-grid" />
         </span>
       ) : null}
-      <FokunaIcon name={expanded ? "chevron-down" : "chevron-right"} size={16} stroke={1.5} />
+      <button
+        aria-expanded={expanded}
+        aria-label={expanded ? "Gruppe einklappen" : "Gruppe ausklappen"}
+        className="fk-task-group__toggle"
+        onClick={() => onExpandedChange?.(!expanded)}
+        type="button"
+      >
+        <FokunaIcon name={expanded ? "chevron-down" : "chevron-right"} size={16} stroke={1.5} />
+      </button>
       <strong>{title}</strong>
-      {count !== undefined ? <span>{count}</span> : null}
+      {count !== undefined ? <span className="fk-task-group__count">{count}</span> : null}
       <span className="fk-task-group__header-spacer" />
       {actions}
     </div>
@@ -193,24 +237,36 @@ export interface TaskGroupProps extends HTMLAttributes<HTMLElement> {
   title: string;
   count?: number;
   expanded?: boolean;
+  defaultExpanded?: boolean;
   draggable?: boolean;
   addLabel?: string;
   milestone?: boolean;
   actions?: ReactNode;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export function TaskGroup({
   title,
   count,
-  expanded = true,
+  expanded: expandedProp,
+  defaultExpanded = true,
   draggable,
   addLabel = "Aufgabe hinzufügen",
   milestone,
   actions,
+  onExpandedChange,
   className,
   children,
   ...props
 }: TaskGroupProps) {
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const expanded = expandedProp ?? internalExpanded;
+
+  function setExpanded(nextExpanded: boolean) {
+    if (expandedProp === undefined) setInternalExpanded(nextExpanded);
+    onExpandedChange?.(nextExpanded);
+  }
+
   return (
     <section
       {...props}
@@ -224,13 +280,14 @@ export function TaskGroup({
         draggable={draggable}
         expanded={expanded}
         milestone={milestone}
+        onExpandedChange={setExpanded}
         title={title}
       />
       {expanded ? (
         <div className="fk-task-group__items">
           {children}
           <button className="fk-task-group__add" type="button">
-            <FokunaIcon name="add-small" />
+            <FokunaIcon name="add-small" size={24} />
             {addLabel}
           </button>
         </div>
@@ -243,46 +300,74 @@ export interface MilestoneStage {
   id: string;
   title: string;
   count?: string;
+  goal?: string;
+  due?: string;
+  tags?: string[];
+  favorite?: boolean;
   meta?: ReactNode;
   status?: "upcoming" | "current" | "completed";
+  defaultExpanded?: boolean;
   children?: ReactNode;
 }
 
 export interface MilestoneTaskGroupProps extends HTMLAttributes<HTMLElement> {
   stages: MilestoneStage[];
   addLabel?: string;
+  onStageExpandedChange?: (stageId: string, expanded: boolean) => void;
 }
 
 export function MilestoneTaskGroup({
   stages,
   addLabel = "Meilenstein hinzufügen",
+  onStageExpandedChange,
   className,
   ...props
 }: MilestoneTaskGroupProps) {
+  const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(stages.map((stage) => [stage.id, stage.defaultExpanded ?? true])),
+  );
+
+  function setStageExpanded(stageId: string, expanded: boolean) {
+    setExpandedStages((current) => ({ ...current, [stageId]: expanded }));
+    onStageExpandedChange?.(stageId, expanded);
+  }
+
   return (
     <section {...props} className={cn("fk-milestone-group", className)}>
-      {stages.map((stage) => (
-        <div
-          className="fk-milestone-group__stage"
-          data-status={stage.status ?? "upcoming"}
-          key={stage.id}
-        >
-          <span aria-hidden="true" className="fk-milestone-group__node">
-            {stage.status === "completed" ? <FokunaIcon name="check-small" /> : null}
-          </span>
-          <div className="fk-milestone-group__heading">
-            <FokunaIcon name="chevron-down" size={16} stroke={1.5} />
-            <strong>{stage.title}</strong>
-            {stage.count ? <span>{stage.count}</span> : null}
+      {stages.map((stage) => {
+        const isExpanded = expandedStages[stage.id] ?? true;
+
+        return (
+          <div
+            className="fk-milestone-group__stage"
+            data-expanded={isExpanded}
+            data-status={stage.status ?? "upcoming"}
+            key={stage.id}
+          >
+            <TaskListItem
+              completed={stage.status === "completed"}
+              due={stage.due}
+              expandable
+              expanded={isExpanded}
+              favorite={stage.favorite}
+              goal={stage.goal}
+              milestone
+              onExpandedChange={(nextExpanded) => setStageExpanded(stage.id, nextExpanded)}
+              subtasks={stage.count}
+              tags={stage.tags}
+              title={stage.title}
+            />
+            {isExpanded && stage.meta ? (
+              <div className="fk-milestone-group__meta">{stage.meta}</div>
+            ) : null}
+            {isExpanded && stage.children ? (
+              <div className="fk-milestone-group__items">{stage.children}</div>
+            ) : null}
           </div>
-          {stage.meta ? <div className="fk-milestone-group__meta">{stage.meta}</div> : null}
-          {stage.children ? (
-            <div className="fk-milestone-group__items">{stage.children}</div>
-          ) : null}
-        </div>
-      ))}
+        );
+      })}
       <button className="fk-milestone-group__add" type="button">
-        <FokunaIcon name="add-small" />
+        <FokunaIcon name="add-small" size={24} />
         {addLabel}
       </button>
     </section>
@@ -291,37 +376,57 @@ export function MilestoneTaskGroup({
 
 export interface AddTaskProps extends HTMLAttributes<HTMLDivElement> {
   expanded?: boolean;
+  defaultExpanded?: boolean;
   actions?: ReactNode;
   focusOnExpand?: boolean;
-  subtask?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export function AddTask({
-  expanded,
+  expanded: expandedProp,
+  defaultExpanded = false,
   actions,
   focusOnExpand = true,
-  subtask = false,
+  onExpandedChange,
   className,
   ...props
 }: AddTaskProps) {
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const [description, setDescription] = useState("");
+  const expanded = expandedProp ?? internalExpanded;
+
+  function setExpanded(nextExpanded: boolean) {
+    if (expandedProp === undefined) setInternalExpanded(nextExpanded);
+    onExpandedChange?.(nextExpanded);
+  }
+
   if (!expanded) {
     return (
       <button
         className={cn("fk-add-task__trigger", className)}
-        data-subtask={subtask || undefined}
+        onClick={() => setExpanded(true)}
         type="button"
       >
-        <FokunaIcon name="add-small" />
-        Aufgabe hinzufügen
+        <FokunaIcon name="add-small" size={24} />
+        <span>Aufgabe hinzufügen</span>
       </button>
     );
   }
 
   return (
-    <div {...props} className={cn("fk-add-task", className)} data-subtask={subtask || undefined}>
+    <div {...props} className={cn("fk-add-task", className)}>
       <div className="fk-add-task__fields">
         <input aria-label="Aufgabenname" autoFocus={focusOnExpand} placeholder="Aufgabenname" />
-        <textarea aria-label="Beschreibung" placeholder="Beschreibung" rows={2} />
+        <div className="fk-add-task__description-row" data-empty={!description || undefined}>
+          {!description ? <FokunaIcon name="hamburger-menu" size={16} stroke={1.5} /> : null}
+          <textarea
+            aria-label="Beschreibung"
+            onChange={(event) => setDescription(event.target.value)}
+            placeholder="Beschreibung"
+            rows={2}
+            value={description}
+          />
+        </div>
       </div>
       <div className="fk-add-task__footer">
         <div className="fk-add-task__meta-actions">
@@ -335,11 +440,11 @@ export function AddTask({
           </button>
         </div>
         <div className="fk-add-task__submit-actions">
-          <Button buttonType="link" intent="tertiary" size="sm">
+          <Button buttonType="link" intent="tertiary" onClick={() => setExpanded(false)} size="sm">
             Abbrechen
           </Button>
           {actions ?? (
-            <Button intent="secondary" size="sm">
+            <Button intent="secondary" onClick={() => setExpanded(false)} size="sm">
               Aufgabe hinzufügen
             </Button>
           )}
@@ -505,7 +610,11 @@ export function TaskModalSlot({
   ...props
 }: TaskModalSlotProps) {
   return (
-    <section {...props} className={cn("fk-task-modal-slot", className)}>
+    <section
+      {...props}
+      className={cn("fk-task-modal-slot", className)}
+      data-breadcrumb={breadcrumb ? "true" : "false"}
+    >
       <button
         aria-label={closeLabel}
         className="fk-task-modal-slot__close"

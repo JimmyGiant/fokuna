@@ -210,34 +210,63 @@ function CalendarItemSpecimen({ kind }: { kind: "task" | "event" | "block" }) {
   );
 }
 
-function TaskItems({ milestone = false }: { milestone?: boolean }) {
+function TaskItems({
+  variant = "task",
+}: {
+  variant?: "task" | "milestone-header" | "milestone-task";
+}) {
+  const isMilestoneHeader = variant === "milestone-header";
+  const isMilestoneTask = variant === "milestone-task";
+  const sharedMilestoneProps = isMilestoneHeader
+    ? { milestone: true }
+    : isMilestoneTask
+      ? { milestoneTask: true }
+      : {};
+  const milestoneGoal = isMilestoneHeader || isMilestoneTask ? "Mein Ziel" : undefined;
+
   return (
     <Matrix>
       <MatrixRow label="Default">
         <TaskListItem
           due="Morgen"
-          goal="Website Launch"
-          milestone={milestone}
+          goal={isMilestoneHeader || isMilestoneTask ? "Mein Ziel" : "Website Launch"}
           subtasks="1/3"
           tags={["Design"]}
-          title={milestone ? "Meilenstein freigeben" : "Komponenten prüfen"}
+          title={isMilestoneHeader ? "Meilenstein A" : "Komponenten prüfen"}
+          {...sharedMilestoneProps}
         />
       </MatrixRow>
       <MatrixRow label="Favorite">
         <TaskListItem
           favorite
-          milestone={milestone}
-          title={milestone ? "Konzept bestätigt" : "Pattern Library freigeben"}
+          goal={milestoneGoal}
+          title={isMilestoneHeader ? "Meilenstein B" : "Pattern Library freigeben"}
+          {...sharedMilestoneProps}
         />
       </MatrixRow>
       <MatrixRow label="Selected">
-        <TaskListItem milestone={milestone} state="selected" title="Ausgewählter Eintrag" />
+        <TaskListItem
+          goal={milestoneGoal}
+          state="selected"
+          title="Ausgewählter Eintrag"
+          {...sharedMilestoneProps}
+        />
       </MatrixRow>
       <MatrixRow label="Dragged">
-        <TaskListItem milestone={milestone} state="dragged" title="Gezogener Eintrag" />
+        <TaskListItem
+          goal={milestoneGoal}
+          state="dragged"
+          title="Gezogener Eintrag"
+          {...sharedMilestoneProps}
+        />
       </MatrixRow>
       <MatrixRow label="Placeholder">
-        <TaskListItem milestone={milestone} state="placeholder" title="Placeholder" />
+        <TaskListItem
+          goal={milestoneGoal}
+          state="placeholder"
+          title="Placeholder"
+          {...sharedMilestoneProps}
+        />
       </MatrixRow>
     </Matrix>
   );
@@ -282,7 +311,7 @@ function TaskModalComposition({
         />
       }
     >
-      <TaskGroup count={3} title="Unteraufgaben">
+      <TaskGroup addLabel="Unteraufgabe hinzufügen" count={3} title="Unteraufgaben">
         <TaskListItem due="Morgen" subtasks="0/2" title="Recherchieren" />
         <TaskListItem title="Teile bestellen" />
         <TaskListItem title="Unteraufgabenname" />
@@ -1122,10 +1151,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
             <AddTask />
           </MatrixRow>
           <MatrixRow label="Active">
-            <AddTask expanded focusOnExpand={false} />
-          </MatrixRow>
-          <MatrixRow label="Subtask">
-            <AddTask subtask />
+            <AddTask defaultExpanded focusOnExpand={false} />
           </MatrixRow>
         </Matrix>
       );
@@ -1145,18 +1171,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
       );
 
     case "milestone-group-header":
-      return (
-        <Matrix>
-          <MatrixRow label="Default">
-            <TaskGroupHeader count={2} milestone title="Meilenstein A" />
-          </MatrixRow>
-          <MatrixRow label="Hover preview">
-            <span className={styles.hoverPreview}>
-              <TaskGroupHeader count={2} milestone title="Meilenstein A" />
-            </span>
-          </MatrixRow>
-        </Matrix>
-      );
+      return <TaskItems variant="milestone-header" />;
 
     case "task-list-item":
       return <TaskItems />;
@@ -1172,19 +1187,24 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                 subtasks="1/3"
                 tags={["Design"]}
                 title="Komponenten prüfen"
-              />
-              <TaskListItem favorite indentLevel={1} title="Pattern Library freigeben – geplant" />
+              >
+                <TaskListItem
+                  favorite
+                  indentLevel={1}
+                  title="Pattern Library freigeben – geplant"
+                />
+              </TaskListItem>
               <TaskListItem title="Responsive QA abschließen" />
             </TaskGroup>
           </MatrixRow>
           <MatrixRow label="Collapsed">
-            <TaskGroup count={3} expanded={false} title="Abschnitt 3" />
+            <TaskGroup count={3} defaultExpanded={false} title="Abschnitt 3" />
           </MatrixRow>
         </Matrix>
       );
 
     case "milestone-list-item":
-      return <TaskItems milestone />;
+      return <TaskItems variant="milestone-task" />;
 
     case "milestone-task-group":
       return (
@@ -1194,12 +1214,20 @@ export function PatternSpecimen({ slug }: { slug: string }) {
               id: "a",
               title: "Meilenstein A",
               count: "0/3",
+              goal: "Mein Ziel",
+              due: "Morgen",
+              tags: ["Design", "Launch"],
               status: "current",
               children: (
                 <>
-                  <TaskListItem expandable={false} title="Konzept bestätigen" />
-                  <TaskListItem expandable={false} title="Komponenten prüfen" />
-                  <TaskListItem expandable={false} title="Übergabe vorbereiten" />
+                  <TaskListItem goal="Mein Ziel" milestoneTask title="Konzept bestätigen" />
+                  <TaskListItem
+                    goal="Mein Ziel"
+                    milestoneTask
+                    subtasks="0/2"
+                    title="Komponenten prüfen"
+                  />
+                  <TaskListItem goal="Mein Ziel" milestoneTask title="Übergabe vorbereiten" />
                 </>
               ),
             },
@@ -1207,7 +1235,9 @@ export function PatternSpecimen({ slug }: { slug: string }) {
               id: "b",
               title: "Meilenstein B",
               count: "0/1",
-              children: <TaskListItem expandable={false} title="Produktion starten" />,
+              goal: "Mein Ziel",
+              due: "Morgen",
+              children: <TaskListItem goal="Mein Ziel" milestoneTask title="Produktion starten" />,
             },
             { id: "c", title: "Meilenstein C", status: "completed" },
           ]}
