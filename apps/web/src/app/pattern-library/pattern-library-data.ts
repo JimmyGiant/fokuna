@@ -7,7 +7,7 @@ export type PatternCategory =
   | "Data display"
   | "Layout"
   | "Calendar"
-  | "Goals"
+  | "Cards"
   | "Tasks";
 
 export interface PatternEntry {
@@ -303,7 +303,7 @@ export const patternEntries: PatternEntry[] = [
   {
     number: 24,
     slug: "calendar-item-imported",
-    title: "Calendar Item Imported Calendar",
+    title: "Calendar Item Imported",
     figmaName: ".calendar item - importet calendar",
     figmaNodeId: "18093:8135",
     category: "Calendar",
@@ -349,18 +349,6 @@ export const patternEntries: PatternEntry[] = [
     variantSummary: "Default and hover",
   },
   {
-    number: 28,
-    slug: "milestone-group-header",
-    title: "Milestone Header Item",
-    figmaName: "C - Desktop - Milestone List Item",
-    figmaNodeId: "18595:20165",
-    category: "Tasks",
-    implementation: "TaskListItem milestone",
-    screenshot: "31_Milestone_List_Item.png",
-    dimensions: ["640 × 63–77 px"],
-    variantSummary: "Expandable milestone · metadata · default, hover, dragged and favorite",
-  },
-  {
     number: 29,
     slug: "task-list-item",
     title: "Task List Item",
@@ -385,6 +373,18 @@ export const patternEntries: PatternEntry[] = [
     variantSummary: "Default, dragged and placeholder",
   },
   {
+    number: 28,
+    slug: "milestone-group-header",
+    title: "Milestone Header Item",
+    figmaName: "C - Desktop - Milestone List Item",
+    figmaNodeId: "18595:20165",
+    category: "Tasks",
+    implementation: "TaskListItem milestone",
+    screenshot: "31_Milestone_List_Item.png",
+    dimensions: ["640 × 63–77 px"],
+    variantSummary: "Expandable milestone · metadata · default, hover, dragged and favorite",
+  },
+  {
     number: 31,
     slug: "milestone-list-item",
     title: "Milestone List Item",
@@ -399,7 +399,7 @@ export const patternEntries: PatternEntry[] = [
   {
     number: 32,
     slug: "milestone-task-group",
-    title: "Milestone Group Task Group",
+    title: "Milestone Task Group",
     figmaName: "C - Desktop - Milestone GroupTask Group",
     figmaNodeId: "18595:20499",
     category: "Tasks",
@@ -423,7 +423,7 @@ export const patternEntries: PatternEntry[] = [
   {
     number: 36,
     slug: "block-rail",
-    title: "Block Timeline & Edit Rail",
+    title: "Block Bar & Rail",
     figmaName: "C - Desktop - Blocks",
     figmaNodeId: "18535:26171",
     category: "Navigation",
@@ -438,7 +438,7 @@ export const patternEntries: PatternEntry[] = [
     title: "Goal Card",
     figmaName: "C - Desktop - Goal Card",
     figmaNodeId: "18414:6214",
-    category: "Goals",
+    category: "Cards",
     implementation: "GoalCard",
     screenshot: "37_Goal_Card.png",
     dimensions: ["274 × 396 px", "144 px media", "48 px progress"],
@@ -451,7 +451,7 @@ export const patternEntries: PatternEntry[] = [
     title: "Insight Dashboard Cards",
     figmaName: "C - Desktop - Cards",
     figmaNodeId: "19429:34128",
-    category: "Data display",
+    category: "Cards",
     implementation: "InsightCard · InsightActivityCard · InsightQuoteCard · InsightPlaceCard",
     screenshot: "38_Insight_Dashboard_Cards.png",
     dimensions: ["214 × 216 px", "452 × 216 px", "452 × 456 px"],
@@ -464,7 +464,7 @@ export const patternEntries: PatternEntry[] = [
     title: "Block Card",
     figmaName: "C - Desktop - Card - Time Blocks",
     figmaNodeId: "19436:34891",
-    category: "Data display",
+    category: "Cards",
     implementation: "BlockCard",
     screenshot: "39_Block_Card.png",
     dimensions: ["334 × 240 px"],
@@ -476,7 +476,7 @@ export const patternEntries: PatternEntry[] = [
     title: "Template Card",
     figmaName: "C - Desktop - Card - Template",
     figmaNodeId: "19436:34935",
-    category: "Data display",
+    category: "Cards",
     implementation: "TemplateCard",
     screenshot: "40_Template_Card.png",
     dimensions: ["374 × 240 px"],
@@ -504,8 +504,8 @@ export const patternCategories: PatternCategory[] = [
   "Feedback",
   "Data display",
   "Calendar",
-  "Goals",
   "Tasks",
+  "Cards",
   "Layout",
 ];
 

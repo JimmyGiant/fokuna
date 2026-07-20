@@ -750,7 +750,7 @@ Wichtig fuer Umsetzung:
 - Die Checkbox bleibt ein eigener interaktiver Bereich und darf Drag-Start nicht ungewollt ausloesen.
 - Bei Tastaturbedienung sollte Reordering auch ohne Pointer moeglich sein.
 
-### 24 Calendar Item Imported Calendar
+### 24 Calendar Item Imported
 
 Screenshot: [24_Calendar_Item_Imported_Calendar.png](24_Calendar_Item_Imported_Calendar.png)
 
@@ -861,7 +861,7 @@ Wichtig fuer Umsetzung:
 - Gruppentitel kann spaeter editierbar werden, sollte aber nicht mit dem ganzen Header-Klick kollidieren.
 - Hover darf keine Hoehenspruenge erzeugen.
 
-### 28 Milestone Group Header List Item
+### 28 Milestone Header Item
 
 Screenshot: [28_Milestone_Group_Header_List_Item.png](28_Milestone_Group_Header_List_Item.png)
 
@@ -980,7 +980,7 @@ Wichtig fuer Umsetzung:
 - Fortschrittswerte duerfen nicht hart im UI stehen, sondern muessen aus Tasks/Zielen ableitbar sein.
 - Drag-and-Drop sollte Abhaengigkeiten zu enthaltenen Aufgaben beachten.
 
-### 32 Milestone Group Task Group
+### 32 Milestone Task Group
 
 Screenshot: [32_Milestone_GroupTask_Group.png](32_Milestone_GroupTask_Group.png)
 
@@ -1099,7 +1099,7 @@ Wichtig fuer Umsetzung:
 - Loeschen ist destruktiv und braucht bestaetigende UX.
 - Breadcrumb, Header und rechte Property-Leiste muessen mit den entsprechenden Pattern-Library-Komponenten verbunden bleiben.
 
-### 36 Block Timeline & Edit Rail
+### 36 Block Bar & Rail
 
 Screenshot: [36_Block_Timeline_Edit_Rail.png](36_Block_Timeline_Edit_Rail.png)
 
@@ -1201,7 +1201,7 @@ Wichtig fuer Umsetzung:
 
 Screenshot: [39_Block_Card.png](39_Block_Card.png)
 
-`C - Desktop - Card - Time Blocks` ist die Auswahl- und Vorschaukarte fuer einen Time Block (z. B. Meditation). Sie sitzt auf dem generischen Card-Slot (`03`) und kombiniert Kategorie-Kachel, Dauer, Kurzbeschreibung und Metadaten wie Pomodoro oder Sound. Verwandt mit Block Timeline & Edit Rail (`36`); die Kachel teilt sich die visuelle Sprache mit `BlockTile`.
+`C - Desktop - Card - Time Blocks` ist die Auswahl- und Vorschaukarte fuer einen Time Block (z. B. Meditation). Sie sitzt auf dem generischen Card-Slot (`03`) und kombiniert Kategorie-Kachel, Dauer, Kurzbeschreibung und Metadaten wie Pomodoro oder Sound. Verwandt mit Block Bar & Rail (`36`); die Kachel teilt sich die visuelle Sprache mit `BlockTile`.
 
 Varianten und Properties:
 
