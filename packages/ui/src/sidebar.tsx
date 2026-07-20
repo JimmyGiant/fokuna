@@ -29,6 +29,7 @@ export interface SidebarSecondarySection {
 
 export interface SidebarProps extends HTMLAttributes<HTMLElement> {
   items: SidebarItem[];
+  footerItems?: SidebarItem[];
   activeId?: string;
   logo?: ReactNode;
   footer?: ReactNode;
@@ -39,8 +40,29 @@ export interface SidebarProps extends HTMLAttributes<HTMLElement> {
   secondaryActiveId?: string;
 }
 
+function SidebarRailItem({ item, activeId }: { item: SidebarItem; activeId?: string }) {
+  return (
+    <li>
+      <a
+        aria-current={item.id === activeId ? "page" : undefined}
+        aria-disabled={item.disabled || undefined}
+        className="fk-sidebar__item"
+        href={item.disabled ? undefined : item.href}
+      >
+        <FokunaIcon name={item.icon} size={24} stroke={2} />
+        <span className="fk-sr-only">{item.label}</span>
+        <span aria-hidden="true" className="fk-sidebar__tooltip">
+          {item.label}
+        </span>
+        {item.badge ? <span className="fk-sidebar__badge">{item.badge}</span> : null}
+      </a>
+    </li>
+  );
+}
+
 export function Sidebar({
   items,
+  footerItems,
   activeId,
   logo,
   footer,
@@ -58,24 +80,21 @@ export function Sidebar({
         {logo ? <div className="fk-sidebar__logo">{logo}</div> : null}
         <ul>
           {items.map((item) => (
-            <li key={item.id}>
-              <a
-                aria-current={item.id === activeId ? "page" : undefined}
-                aria-disabled={item.disabled || undefined}
-                className="fk-sidebar__item"
-                href={item.disabled ? undefined : item.href}
-              >
-                <FokunaIcon name={item.icon} size={24} stroke={2} />
-                <span className="fk-sr-only">{item.label}</span>
-                <span aria-hidden="true" className="fk-sidebar__tooltip">
-                  {item.label}
-                </span>
-                {item.badge ? <span className="fk-sidebar__badge">{item.badge}</span> : null}
-              </a>
-            </li>
+            <SidebarRailItem activeId={activeId} item={item} key={item.id} />
           ))}
         </ul>
-        {footer ? <div className="fk-sidebar__footer">{footer}</div> : null}
+        {footerItems?.length || footer ? (
+          <div className="fk-sidebar__footer">
+            {footerItems?.length ? (
+              <ul>
+                {footerItems.map((item) => (
+                  <SidebarRailItem activeId={activeId} item={item} key={item.id} />
+                ))}
+              </ul>
+            ) : null}
+            {footer}
+          </div>
+        ) : null}
       </div>
       {secondary || secondaryItems || secondarySections ? (
         <div className="fk-sidebar__secondary">

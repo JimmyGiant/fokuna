@@ -34,7 +34,7 @@ export function Tag({
       <span>{children}</span>
       {removable ? (
         <button aria-label={`${String(children)} entfernen`} onClick={onRemove} type="button">
-          <FokunaIcon name="close" />
+          <FokunaIcon className="fk-tag__remove-icon" name="close" />
         </button>
       ) : null}
     </span>

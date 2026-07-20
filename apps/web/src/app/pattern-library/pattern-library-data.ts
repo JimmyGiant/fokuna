@@ -419,6 +419,18 @@ export const patternEntries: PatternEntry[] = [
     dimensions: ["848 × 566 px"],
     variantSummary: "Unfocused and inline-edit header · subtasks · properties · delete action",
   },
+  {
+    number: 36,
+    slug: "block-rail",
+    title: "Block Timeline & Edit Rail",
+    figmaName: "C - Desktop - Blocks",
+    figmaNodeId: "18535:26171",
+    category: "Navigation",
+    implementation: "BlockTile · BlockRail",
+    screenshot: "36_Block_Timeline_Edit_Rail.png",
+    dimensions: ["40 × 40 px tile", "72 × 840 px timeline", "72 × 645 px edit rail"],
+    variantSummary: "Reusable block tile · timeline and editable rail · empty slots · badge",
+  },
 ];
 
 export const patternCategories: PatternCategory[] = [

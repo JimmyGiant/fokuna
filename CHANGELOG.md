@@ -6,6 +6,8 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
 
 ### Added
 
+- Block-Timeline und Edit-Rail aus `C - Desktop - Blocks` als tokenisierte Pattern-Komponenten mit wiederverwendbarem BlockTile, Category-Farben, Badge und freien Edit-Slots ergänzt.
+- Sidebar: Einstellungen ist nun ein vollwertiger, unten positionierter Level-1-Navigationseintrag mit identischer 48-px-Geometrie, 24-px-Icon-Darstellung sowie denselben Hover-, Fokus- und Tooltip-States wie die übrigen Rail-Items.
 - Produktions-Workspace für App, Design-Tokens, Icons und UI-Komponenten vorbereitet.
 - Reproduzierbare Token-Normalisierung für CSS, Tailwind und TypeScript ergänzt.
 - 301 freigegebene SVG-Assets als typisierte, variantenfähige React-Icon-Registry integriert.
@@ -46,6 +48,18 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
   der Modal-Unteraufgaben wurden gegen Figma korrigiert und browserbasiert verifiziert.
 - Task- und Milestone-Chevrons simulieren ihre Hierarchien nun lokal; Modal-Schließen, Timeline-
   Schichtung, Chevron-Versatz, Drag-Handles und Add-Achsen bleiben dabei über alle Varianten stabil.
+- Aufgaben-, Meilenstein- und Modalgruppen öffnen ihre kontextuell beschrifteten Add-Formulare nun
+  direkt am jeweiligen Einfügepunkt und kehren nach Abbrechen oder Hinzufügen zum Trigger zurück.
+- Die linke Aufgabenmodal-Spalte scrollt bei Überlauf nun als geschlossene Inhaltsfläche innerhalb
+  der 8px-Schmucklinie; kurze Inhalte behalten weiterhin eine scrollbarfreie Darstellung.
+- Aktive Aufgaben-, Unteraufgaben- und Meilenstein-Editoren folgen nun der Plus-Achse ihres
+  Triggers, enden bündig rechts und lösen den letzten Listentrenner während der Eingabe ab.
+- Die Aufgabenmodal-Eigenschaften öffnen nun verankerte, komponentenbasierte Popovers; Property-
+  Rail, Checkmarks, Callout-Icons sowie aktive Tab- und Toggle-Hoverzustände wurden an Figma angeglichen.
+- Die Aufgabenmodal-Rail zeigt Werte nun unterhalb ihrer Labels, unterstützt Multi-Tag-Auswahl,
+  Schnellwerte für Zeitschätzungen und ein separates Löschmenü; Einzeldaten schließen nach Auswahl.
+- Task-Group-Header verwenden nun die definierten Label-Typografie-Tokens; kompakte Tag-Schließen-
+  Icons und automatisch schließende Einzelwahl-Popovers wurden ergänzt.
 
 ### Decisions
 
@@ -80,3 +94,6 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
   2px-Eindruck wird nun über einen inneren Stroke bei unveränderter Außenbox erzeugt.
 - Titel und Metadaten der Aufgabenzeilen lagen in getrennten Gridspalten. Beide Inhalte teilen nun
   dieselbe Contentspalte; Drag-Slot, Chevron, 16px-Checkbox und Favorit folgen der Figma-Reihenfolge.
+- Der Add-Editor ließ die Header-Zeile des Aufgabenmodals schrumpfen und verschob dadurch die
+  Unteraufgaben. Inhaltsbasierte Grid-Zeilen halten nun den Abstand stabil; kollabierte Gruppen
+  verzichten auf Elevation.

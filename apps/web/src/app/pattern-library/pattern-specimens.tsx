@@ -3,6 +3,8 @@
 import { FokunaIcon } from "@fokuna/icons";
 import {
   AddTask,
+  BlockRail,
+  BlockTile,
   Breadcrumb,
   Button,
   CalendarDrawer,
@@ -38,6 +40,7 @@ import {
   ToggleGroup,
   UiShell,
   type ControlSize,
+  type BlockRailItem,
 } from "@fokuna/ui";
 import { useState } from "react";
 import Image from "next/image";
@@ -46,6 +49,15 @@ import styles from "./pattern-library.module.css";
 
 const sizes: ControlSize[] = ["sm", "md", "lg", "xl"];
 const sizeHeights: Record<ControlSize, number> = { sm: 28, md: 32, lg: 40, xl: 48 };
+
+const blockRailItems: BlockRailItem[] = [
+  { id: "reading", label: "Lesen", icon: "newspaper", tone: "coral" },
+  { id: "lunch", label: "Mittagessen", icon: "fork-spoon", tone: "purple" },
+  { id: "training", label: "Training", icon: "tennis", tone: "gold" },
+  { id: "movement", label: "Bewegung", icon: "tennis", tone: "blue" },
+  { id: "recovery", label: "Regeneration", icon: "tennis", tone: "pink" },
+  { id: "focus", label: "Fokus", icon: "focus-target", tone: "teal", badge: 3 },
+];
 
 function Matrix({ children }: { children: React.ReactNode }) {
   return <div className={styles.specimenMatrix}>{children}</div>;
@@ -84,13 +96,11 @@ function AufgabenSidebar() {
     <Sidebar
       activeId="tasks"
       footer={
-        <>
-          <FokunaIcon name="settings-gear" />
-          <span className={styles.sidebarAvatar}>
-            <FokunaIcon name="user" />
-          </span>
-        </>
+        <span className={styles.sidebarAvatar}>
+          <FokunaIcon name="user" />
+        </span>
       }
+      footerItems={[{ id: "settings", label: "Einstellungen", href: "#", icon: "settings-gear" }]}
       items={[
         { id: "calendar", label: "Kalender", href: "#", icon: "calendar" },
         { id: "tasks", label: "Aufgaben", href: "#", icon: "circle-check" },
@@ -279,19 +289,97 @@ function TaskModalComposition({
   editing?: boolean;
   showBreadcrumb?: boolean;
 }) {
+  const [priority, setPriority] = useState("none");
+  const [dueDate, setDueDate] = useState<Date>();
+  const [estimate, setEstimate] = useState("");
+  const [openProperty, setOpenProperty] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([
+    "Admin",
+    "Communication",
+    "Recovery",
+  ]);
+  const priorityOptions = [
+    { value: "urgent", label: "Hoch", color: "var(--fk-color-task-priority-urgent)" },
+    { value: "medium", label: "Mittel", color: "var(--fk-color-task-priority-medium)" },
+    { value: "low", label: "Niedrig", color: "var(--fk-color-task-priority-low)" },
+    { value: "none", label: "Keine", color: "var(--fk-color-icon-tertiary)" },
+  ];
+  const priorityOption = priorityOptions.find((option) => option.value === priority);
+  const estimateMinutes = [60, 75, 90, 105, 120, 135, 150, 165, 180, 240, 300, 360];
+  const estimateOptions = estimateMinutes.map((minutes) => {
+    const hours = Math.floor(minutes / 60);
+    const remainder = minutes % 60;
+    return {
+      value: String(minutes),
+      label: minutes < 180 ? `${hours}:${String(remainder).padStart(2, "0")} Std` : `${hours} Std`,
+    };
+  });
+  const estimateLabel =
+    estimate === "30"
+      ? "30 Min"
+      : estimateOptions.find((option) => option.value === estimate)?.label;
+  const tags = [
+    {
+      label: "Admin",
+      color: "var(--fk-color-category-teal)",
+      surface: "var(--fk-color-category-teal-10)",
+      tone: "teal" as const,
+    },
+    {
+      label: "Communication",
+      color: "var(--fk-color-category-blue)",
+      surface: "var(--fk-color-category-blue-10)",
+      tone: "blue" as const,
+    },
+    {
+      label: "Planning",
+      color: "var(--fk-color-category-gold)",
+      surface: "var(--fk-color-category-gold-10)",
+      tone: "gold" as const,
+    },
+    {
+      label: "Recovery",
+      color: "var(--fk-color-category-purple)",
+      surface: "var(--fk-color-category-purple-10)",
+      tone: "purple" as const,
+    },
+    {
+      label: "Research",
+      color: "var(--fk-color-category-pink)",
+      surface: "var(--fk-color-category-pink-10)",
+      tone: "pink" as const,
+    },
+  ];
+  const dueDateLabel = dueDate
+    ? new Intl.DateTimeFormat("de-DE", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+      }).format(dueDate)
+    : undefined;
   return (
     <TaskModalSlot
+      actions={
+        <MetaMenu
+          items={[{ label: "Aufgabe löschen", icon: "delete", destructive: true }]}
+          label="Weitere Aufgabenaktionen"
+          trigger={
+            <button
+              aria-label="Weitere Aufgabenaktionen"
+              className={styles.taskModalOverflowTrigger}
+              type="button"
+            >
+              <FokunaIcon name="more-horizontal" size={16} stroke={1.5} />
+            </button>
+          }
+        />
+      }
       breadcrumb={
         showBreadcrumb ? (
           <Breadcrumb
             items={[{ label: "Motoraufhängung bestellen", href: "#" }, { label: "Components" }]}
           />
         ) : undefined
-      }
-      deleteAction={
-        <Button buttonType="link" intent="primary" leadingIcon="delete" trailingIcon={null}>
-          Aufgabe löschen
-        </Button>
       }
       header={
         <TaskModalHeader
@@ -303,15 +391,201 @@ function TaskModalComposition({
       menu={
         <TaskModalMenu
           items={[
-            { label: "Priorität", content: <Tag tone="coral">Hoch</Tag> },
-            { label: "Fälligkeit" },
-            { label: "Zeitschätzung" },
-            { label: "Tags" },
+            {
+              label: "Priorität",
+              onOpenChange: (open) => setOpenProperty(open ? "priority" : null),
+              open: openProperty === "priority",
+              value:
+                priorityOption && priorityOption.value !== "none" ? (
+                  <span className={styles.taskRailPreview}>
+                    <FokunaIcon
+                      fill="on"
+                      name="flag"
+                      size={16}
+                      stroke={1.5}
+                      style={{ color: priorityOption.color }}
+                    />
+                    <span>{priorityOption.label}</span>
+                  </span>
+                ) : undefined,
+              content: (
+                <div aria-label="Priorität auswählen" className={styles.taskPriorityMenu}>
+                  {priorityOptions.map((option) => (
+                    <button
+                      aria-pressed={priority === option.value}
+                      data-selected={priority === option.value || undefined}
+                      key={option.value}
+                      onClick={() => {
+                        setPriority(option.value);
+                        setOpenProperty(null);
+                      }}
+                      type="button"
+                    >
+                      <FokunaIcon
+                        fill={option.value === "none" ? "off" : "on"}
+                        name="flag"
+                        size={16}
+                        stroke={1.5}
+                        style={{ color: option.color }}
+                      />
+                      <span>{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              ),
+            },
+            {
+              label: "Fälligkeit",
+              onOpenChange: (open) => setOpenProperty(open ? "due-date" : null),
+              open: openProperty === "due-date",
+              value: dueDateLabel ? (
+                <span className={styles.taskRailPreview}>
+                  <FokunaIcon name="calendar" size={16} stroke={1.5} />
+                  <span>{dueDateLabel}</span>
+                </span>
+              ) : undefined,
+              content: (
+                <div className={styles.taskPropertyDate}>
+                  <DatePicker
+                    aria-label="Fälligkeit auswählen"
+                    inline
+                    onValueChange={(nextValue) => {
+                      setDueDate(nextValue instanceof Date ? nextValue : undefined);
+                      if (nextValue instanceof Date) setOpenProperty(null);
+                    }}
+                    value={dueDate}
+                  />
+                </div>
+              ),
+            },
+            {
+              label: "Zeitschätzung",
+              onOpenChange: (open) => setOpenProperty(open ? "estimate" : null),
+              open: openProperty === "estimate",
+              value: estimateLabel ? (
+                <span className={styles.taskRailPreview}>
+                  <FokunaIcon name="clock" size={16} stroke={1.5} />
+                  <span>{estimateLabel}</span>
+                </span>
+              ) : undefined,
+              content: (
+                <div className={styles.taskEstimateMenu}>
+                  <div className={styles.taskEstimateQuickSelect}>
+                    {([
+                      ["30", "30 Min"],
+                      ["60", "1 Std"],
+                      ["120", "2 Std"],
+                    ] as const).map(([value, label]) => (
+                      <button
+                        aria-pressed={estimate === value}
+                        data-selected={estimate === value || undefined}
+                        key={value}
+                        onClick={() => {
+                          setEstimate(value);
+                          setOpenProperty(null);
+                        }}
+                        type="button"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <Dropdown
+                    aria-label="Zeitschätzung auswählen"
+                    controlSize="md"
+                    onValueChange={(value) => {
+                      setEstimate(value);
+                      setOpenProperty(null);
+                    }}
+                    options={estimateOptions}
+                    placeholder="Dauer wählen"
+                    value={estimate}
+                  />
+                </div>
+              ),
+            },
+            {
+              label: "Tags",
+              onOpenChange: (open) => setOpenProperty(open ? "tags" : null),
+              open: openProperty === "tags",
+              value: selectedTags.length ? (
+                <div aria-label="Ausgewählte Etiketten" className={styles.taskRailTags}>
+                  {tags
+                    .filter((tag) => selectedTags.includes(tag.label))
+                    .map((tag) => (
+                      <Tag
+                        icon="tag"
+                        key={tag.label}
+                        onRemove={() =>
+                          setSelectedTags((current) =>
+                            current.filter((label) => label !== tag.label),
+                          )
+                        }
+                        removable
+                        size="sm"
+                        tone={tag.tone}
+                      >
+                        {tag.label}
+                      </Tag>
+                    ))}
+                </div>
+              ) : undefined,
+              content: (
+                <div className={styles.taskTagManager}>
+                  <SearchField
+                    aria-label="Tags durchsuchen"
+                    collapsedWidth={278}
+                    controlSize="sm"
+                    expandedWidth={278}
+                    placeholder="Etikett suchen oder erstellen ..."
+                  />
+                  <div aria-label="Etiketten" className={styles.taskTagManagerList}>
+                    {tags.map((tag) => (
+                      <button
+                        aria-pressed={selectedTags.includes(tag.label)}
+                        data-selected={selectedTags.includes(tag.label) || undefined}
+                        key={tag.label}
+                        onClick={() =>
+                          setSelectedTags((current) =>
+                            current.includes(tag.label)
+                              ? current.filter((label) => label !== tag.label)
+                              : [...current, tag.label],
+                          )
+                        }
+                        style={{ "--task-tag-surface": tag.surface } as React.CSSProperties}
+                        type="button"
+                      >
+                        <FokunaIcon
+                          className={styles.taskTagIcon}
+                          name="tag"
+                          size={16}
+                          style={{ color: tag.color }}
+                        />
+                        <span>{tag.label}</span>
+                        {selectedTags.includes(tag.label) ? (
+                          <FokunaIcon
+                            className={styles.taskTagCheck}
+                            name="check-small"
+                            size={16}
+                            stroke={2}
+                          />
+                        ) : null}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ),
+            },
           ]}
         />
       }
     >
-      <TaskGroup addLabel="Unteraufgabe hinzufügen" count={3} title="Unteraufgaben">
+      <TaskGroup
+        addLabel="Unteraufgabe hinzufügen"
+        addNamePlaceholder="Unteraufgabenname"
+        count={3}
+        title="Unteraufgaben"
+      >
         <TaskListItem due="Morgen" subtasks="0/2" title="Recherchieren" />
         <TaskListItem title="Teile bestellen" />
         <TaskListItem title="Unteraufgabenname" />
@@ -325,6 +599,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
   const [toggle, setToggle] = useState("check-in");
   const [tabSelect, setTabSelect] = useState("ambient");
   const [dropdown, setDropdown] = useState("week");
+  const [activeBlock, setActiveBlock] = useState("focus");
   const [showTaskModalBreadcrumb, setShowTaskModalBreadcrumb] = useState(true);
 
   switch (slug) {
@@ -825,6 +1100,45 @@ export function PatternSpecimen({ slug }: { slug: string }) {
       return (
         <div className={styles.sidebarSpecimen}>
           <AufgabenSidebar />
+        </div>
+      );
+
+    case "block-rail":
+      return (
+        <div className={styles.blockRailSpecimen}>
+          <section>
+            <strong>BlockTile · Kategorievarianten</strong>
+            <div className={styles.blockTilePalette}>
+              {blockRailItems.map((item) => (
+                <BlockTile
+                  badge={item.badge}
+                  icon={item.icon}
+                  key={item.id}
+                  label={item.label}
+                  onClick={() => setActiveBlock(item.id)}
+                  selected={activeBlock === item.id}
+                  tone={item.tone}
+                />
+              ))}
+            </div>
+          </section>
+          <section>
+            <strong>state=default · Timeline</strong>
+            <BlockRail
+              activeId={activeBlock}
+              items={blockRailItems}
+              onActiveChange={setActiveBlock}
+            />
+          </section>
+          <section>
+            <strong>state=editable · Edit Rail</strong>
+            <BlockRail
+              activeId={activeBlock}
+              items={blockRailItems}
+              onActiveChange={setActiveBlock}
+              state="editable"
+            />
+          </section>
         </div>
       );
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { FokunaIcon } from "@fokuna/icons";
+import { Popover } from "radix-ui";
 import { useState, type HTMLAttributes, type ReactNode } from "react";
 
 import { Button } from "./button";
@@ -225,7 +226,7 @@ export function TaskGroupHeader({
       >
         <FokunaIcon name={expanded ? "chevron-down" : "chevron-right"} size={16} stroke={1.5} />
       </button>
-      <strong>{title}</strong>
+      <span className="fk-task-group__title">{title}</span>
       {count !== undefined ? <span className="fk-task-group__count">{count}</span> : null}
       <span className="fk-task-group__header-spacer" />
       {actions}
@@ -240,6 +241,7 @@ export interface TaskGroupProps extends HTMLAttributes<HTMLElement> {
   defaultExpanded?: boolean;
   draggable?: boolean;
   addLabel?: string;
+  addNamePlaceholder?: string;
   milestone?: boolean;
   actions?: ReactNode;
   onExpandedChange?: (expanded: boolean) => void;
@@ -252,6 +254,7 @@ export function TaskGroup({
   defaultExpanded = true,
   draggable,
   addLabel = "Aufgabe hinzufügen",
+  addNamePlaceholder = "Aufgabenname",
   milestone,
   actions,
   onExpandedChange,
@@ -260,6 +263,7 @@ export function TaskGroup({
   ...props
 }: TaskGroupProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const [adding, setAdding] = useState(false);
   const expanded = expandedProp ?? internalExpanded;
 
   function setExpanded(nextExpanded: boolean) {
@@ -284,12 +288,21 @@ export function TaskGroup({
         title={title}
       />
       {expanded ? (
-        <div className="fk-task-group__items">
+        <div className="fk-task-group__items" data-adding={adding || undefined}>
           {children}
-          <button className="fk-task-group__add" type="button">
-            <FokunaIcon name="add-small" size={24} />
-            {addLabel}
-          </button>
+          {adding ? (
+            <AddTask
+              expanded
+              namePlaceholder={addNamePlaceholder}
+              onExpandedChange={setAdding}
+              submitLabel={addLabel}
+            />
+          ) : (
+            <button className="fk-task-group__add" onClick={() => setAdding(true)} type="button">
+              <FokunaIcon name="add-small" size={24} />
+              {addLabel}
+            </button>
+          )}
         </div>
       ) : null}
     </section>
@@ -326,6 +339,7 @@ export function MilestoneTaskGroup({
   const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>(() =>
     Object.fromEntries(stages.map((stage) => [stage.id, stage.defaultExpanded ?? true])),
   );
+  const [addingMilestone, setAddingMilestone] = useState(false);
 
   function setStageExpanded(stageId: string, expanded: boolean) {
     setExpandedStages((current) => ({ ...current, [stageId]: expanded }));
@@ -366,10 +380,24 @@ export function MilestoneTaskGroup({
           </div>
         );
       })}
-      <button className="fk-milestone-group__add" type="button">
-        <FokunaIcon name="add-small" size={24} />
-        {addLabel}
-      </button>
+      {addingMilestone ? (
+        <AddTask
+          className="fk-milestone-group__add-form"
+          expanded
+          namePlaceholder="Meilensteinname"
+          onExpandedChange={setAddingMilestone}
+          submitLabel={addLabel}
+        />
+      ) : (
+        <button
+          className="fk-milestone-group__add"
+          onClick={() => setAddingMilestone(true)}
+          type="button"
+        >
+          <FokunaIcon name="add-small" size={24} />
+          {addLabel}
+        </button>
+      )}
     </section>
   );
 }
@@ -379,6 +407,9 @@ export interface AddTaskProps extends HTMLAttributes<HTMLDivElement> {
   defaultExpanded?: boolean;
   actions?: ReactNode;
   focusOnExpand?: boolean;
+  namePlaceholder?: string;
+  submitLabel?: string;
+  triggerLabel?: string;
   onExpandedChange?: (expanded: boolean) => void;
 }
 
@@ -387,6 +418,9 @@ export function AddTask({
   defaultExpanded = false,
   actions,
   focusOnExpand = true,
+  namePlaceholder = "Aufgabenname",
+  submitLabel,
+  triggerLabel = "Aufgabe hinzufügen",
   onExpandedChange,
   className,
   ...props
@@ -408,7 +442,7 @@ export function AddTask({
         type="button"
       >
         <FokunaIcon name="add-small" size={24} />
-        <span>Aufgabe hinzufügen</span>
+        <span>{triggerLabel}</span>
       </button>
     );
   }
@@ -416,7 +450,11 @@ export function AddTask({
   return (
     <div {...props} className={cn("fk-add-task", className)}>
       <div className="fk-add-task__fields">
-        <input aria-label="Aufgabenname" autoFocus={focusOnExpand} placeholder="Aufgabenname" />
+        <input
+          aria-label={namePlaceholder}
+          autoFocus={focusOnExpand}
+          placeholder={namePlaceholder}
+        />
         <div className="fk-add-task__description-row" data-empty={!description || undefined}>
           {!description ? <FokunaIcon name="hamburger-menu" size={16} stroke={1.5} /> : null}
           <textarea
@@ -445,7 +483,7 @@ export function AddTask({
           </Button>
           {actions ?? (
             <Button intent="secondary" onClick={() => setExpanded(false)} size="sm">
-              Aufgabe hinzufügen
+              {submitLabel ?? triggerLabel}
             </Button>
           )}
         </div>
@@ -564,25 +602,78 @@ export interface TaskModalMenuItem {
   value?: ReactNode;
   content?: ReactNode;
   defaultOpen?: boolean;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 export interface TaskModalMenuProps extends HTMLAttributes<HTMLElement> {
   items: TaskModalMenuItem[];
+  footer?: ReactNode;
 }
 
-export function TaskModalMenu({ items, className, ...props }: TaskModalMenuProps) {
+export function TaskModalMenu({ items, footer, className, ...props }: TaskModalMenuProps) {
   return (
     <aside {...props} className={cn("fk-task-modal-menu", className)} aria-label="Aufgabendetails">
-      {items.map((item) => (
-        <details key={item.label} open={item.defaultOpen}>
-          <summary>
-            <span>{item.label}</span>
-            {item.value ? <small>{item.value}</small> : null}
+      {items.map((item) => {
+        const trigger = (
+          <button
+            aria-label={`${item.label} bearbeiten`}
+            className="fk-task-modal-menu__trigger"
+            disabled={!item.content}
+            type="button"
+          >
+            <span className="fk-task-modal-menu__copy">
+              <span>{item.label}</span>
+            </span>
             <FokunaIcon name="add-small" />
-          </summary>
-          {item.content ? <div className="fk-task-modal-menu__content">{item.content}</div> : null}
-        </details>
-      ))}
+          </button>
+        );
+
+        const preview = item.value ? (
+          <div className="fk-task-modal-menu__preview">{item.value}</div>
+        ) : null;
+
+        if (!item.content) {
+          return (
+            <div className="fk-task-modal-menu__item" key={item.label}>
+              {trigger}
+              {preview}
+            </div>
+          );
+        }
+
+        return (
+          <div className="fk-task-modal-menu__item" key={item.label}>
+            <Popover.Root
+              defaultOpen={item.defaultOpen}
+              onOpenChange={item.onOpenChange}
+              open={item.open}
+            >
+              <Popover.Trigger asChild>{trigger}</Popover.Trigger>
+              {preview}
+              <Popover.Portal>
+                <Popover.Content
+                  align="start"
+                  avoidCollisions={false}
+                  className="fk-task-property-popover"
+                  collisionPadding={16}
+                  side="bottom"
+                  sideOffset={8}
+                >
+                  <div className="fk-task-property-popover__header">
+                    <strong>{item.label}</strong>
+                    <Popover.Close aria-label={`${item.label} schließen`}>
+                      <FokunaIcon name="close" />
+                    </Popover.Close>
+                  </div>
+                  <div className="fk-task-property-popover__content">{item.content}</div>
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+          </div>
+        );
+      })}
+      {footer ? <div className="fk-task-modal-menu__footer">{footer}</div> : null}
     </aside>
   );
 }
@@ -591,6 +682,7 @@ export interface TaskModalSlotProps extends HTMLAttributes<HTMLElement> {
   header: ReactNode;
   menu: ReactNode;
   breadcrumb?: ReactNode;
+  actions?: ReactNode;
   deleteAction?: ReactNode;
   footer?: ReactNode;
   closeLabel?: string;
@@ -601,6 +693,7 @@ export function TaskModalSlot({
   header,
   menu,
   breadcrumb,
+  actions,
   deleteAction,
   footer,
   closeLabel = "Schließen",
@@ -615,6 +708,7 @@ export function TaskModalSlot({
       className={cn("fk-task-modal-slot", className)}
       data-breadcrumb={breadcrumb ? "true" : "false"}
     >
+      {actions ? <div className="fk-task-modal-slot__actions">{actions}</div> : null}
       <button
         aria-label={closeLabel}
         className="fk-task-modal-slot__close"
@@ -624,11 +718,13 @@ export function TaskModalSlot({
         <FokunaIcon name="close" />
       </button>
       <div className="fk-task-modal-slot__main">
-        {breadcrumb ? <div className="fk-task-modal-slot__breadcrumb">{breadcrumb}</div> : null}
-        {header}
-        <div className="fk-task-modal-slot__body">{children}</div>
-        {deleteAction ? <div className="fk-task-modal-slot__delete">{deleteAction}</div> : null}
-        {footer ? <footer>{footer}</footer> : null}
+        <div className="fk-task-modal-slot__scroll-region">
+          {breadcrumb ? <div className="fk-task-modal-slot__breadcrumb">{breadcrumb}</div> : null}
+          {header}
+          <div className="fk-task-modal-slot__body">{children}</div>
+          {deleteAction ? <div className="fk-task-modal-slot__delete">{deleteAction}</div> : null}
+          {footer ? <footer>{footer}</footer> : null}
+        </div>
       </div>
       {menu}
     </section>

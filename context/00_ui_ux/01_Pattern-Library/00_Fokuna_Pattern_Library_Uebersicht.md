@@ -1099,7 +1099,38 @@ Wichtig fuer Umsetzung:
 - Loeschen ist destruktiv und braucht bestaetigende UX.
 - Breadcrumb, Header und rechte Property-Leiste muessen mit den entsprechenden Pattern-Library-Komponenten verbunden bleiben.
 
+### 36 Block Timeline & Edit Rail
+
+Screenshot: [36_Block_Timeline_Edit_Rail.png](36_Block_Timeline_Edit_Rail.png)
+
+`C - Desktop - Blocks` verbindet einen wiederverwendbaren Block-Baustein mit zwei vertikalen Rails. Die Timeline stellt die aktiven Zeitblock-Typen dauerhaft in der App-Navigation bereit; die Edit Rail ordnet dieselben Typen kompakt und zeigt freie Positionen fuer weitere Blocks.
+
+Varianten und Properties:
+
+- `BlockTile tone`: `coral`, `purple`, `gold`, `blue`, `pink`, `teal`; gespeist aus den Category-Tokens.
+- `BlockTile icon`: austauschbare 24px-Instanz aus dem zentralen Iconset, standardmaessig mit 2px Stroke und `icon/inverse`.
+- `BlockTile badge`: optionale 16px-Badge fuer offene bzw. enthaltene Eintraege.
+- `BlockRail state`: `default` oder `editable`.
+- `activeId`: markiert den aktuell gewaehlten Block und wird ueber `onActiveChange` aktualisiert.
+- `emptySlots`: Anzahl der freien Edit-Slots; Figma zeigt sechs Positionen.
+
+States:
+
+- `default/timeline`: 72 x 840px, ruhige `surface/subtle`-Flaeche, sechs Blocks oben und Edit-Aktion unten.
+- `editable`: 72 x 645px, weisse Card-Flaeche, 20px Radius, weicher Shadow und 8px innenliegende Schmucklinie.
+- `selected`: der aktive Block wird semantisch ueber `aria-pressed` markiert; die Kategorie-Kachel bleibt visuell ruhig und unveraendert.
+- `empty`: 40 x 40px freier Slot mit `surface/subtle`, 12px Radius und neutralem Verlauf-Stroke.
+- `badge`: korallenfarbener Zaehler rechts oben; die Tile-Geometrie bleibt unveraendert.
+- `hover/focus`: dezente Helligkeitsreaktion bzw. sichtbarer Tastatur-Fokus, ohne Layoutverschiebung.
+
+Wichtig fuer Umsetzung:
+
+- `BlockTile` ist eine eigenstaendige Komponente und darf auch in Karten, Auswahlfenstern und Block-Vorlagen wiederverwendet werden.
+- Die beiden Rails komponieren `BlockTile`; sie duplizieren weder Icon- noch Badge-Logik.
+- Sortierung und Drag-and-drop werden spaeter durch die Anwendungslogik geliefert. Die Pattern-Komponente stellt dafuer stabile IDs und die visuelle Edit-Struktur bereit.
+- Kategorie, Icon und Badge sind Daten des Blocks. Die Rail selbst entscheidet nicht ueber deren Inhalt.
+- Die Timeline bleibt im normalen App-Betrieb sichtbar. Die Edit Rail ist ein temporaerer Bearbeitungszustand und zeigt freie Slots explizit.
+
 ## Einsatz im Lastenheft
 
 Diese Pattern-Library-Uebersicht soll zusammen mit den View-Screenshots und View-Uebergabenotizen gelesen werden. Die Views zeigen das konkrete Produktverhalten; diese Datei zeigt die wiederverwendbaren Bausteine dahinter. Fuer technische Folgearbeiten sollte erst geprueft werden, ob ein UI-Element bereits in dieser Pattern Library existiert, bevor ein neues technisches Component Pattern definiert wird.
-

@@ -50,7 +50,7 @@ export function Checkbox({
       ) : (
         <CheckboxPrimitive.Indicator className="fk-checkbox__indicator" forceMount>
           <span className="fk-checkbox__check">
-            <FokunaIcon name="check-small" size={16} stroke={1.5} />
+            <FokunaIcon name="check-small" size={16} stroke={2} />
           </span>
           <span className="fk-checkbox__indeterminate">
             <span aria-hidden="true" />

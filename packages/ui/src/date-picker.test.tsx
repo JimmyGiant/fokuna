@@ -10,6 +10,7 @@ describe("DatePicker", () => {
     fireEvent.click(screen.getByRole("button", { name: /20\. Juli 2026/ }));
 
     expect(screen.getByRole("button", { name: "Datum auswählen" })).toHaveTextContent("20.07.2026");
+    expect(screen.queryByRole("grid", { name: "Kalender" })).not.toBeInTheDocument();
   });
 
   it("supports keyboard movement inside the calendar grid", () => {
@@ -31,5 +32,13 @@ describe("DatePicker", () => {
     expect(screen.getByRole("button", { name: "Datum auswählen" })).toHaveTextContent(
       "20.07.2026 – 24.07.2026",
     );
+  });
+
+  it("renders the calendar directly when used inside another popover", () => {
+    const { container } = render(<DatePicker inline />);
+
+    expect(screen.getByRole("grid", { name: "Kalender" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Datum auswählen" })).not.toBeInTheDocument();
+    expect(container.querySelector(".fk-date-picker--inline")).toBeInTheDocument();
   });
 });

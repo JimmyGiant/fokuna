@@ -1,5 +1,6 @@
 export * from "./button";
 export * from "./breadcrumb";
+export * from "./block-rail";
 export * from "./calendar-items";
 export * from "./card-modal";
 export * from "./callout";

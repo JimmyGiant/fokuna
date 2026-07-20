@@ -46,6 +46,7 @@ export interface DatePickerProps {
   maxDate?: Date;
   isDateDisabled?: (date: Date) => boolean;
   className?: string;
+  inline?: boolean;
   "aria-label"?: string;
 }
 
@@ -80,6 +81,7 @@ export function DatePicker({
   maxDate,
   isDateDisabled,
   className,
+  inline = false,
   "aria-label": ariaLabel,
 }: DatePickerProps) {
   const labelId = useId();
@@ -174,6 +176,86 @@ export function DatePicker({
 
   const range = isRange(selectedValue) ? selectedValue : undefined;
 
+  const calendar = (
+    <>
+      <header className="fk-date-picker__header">
+        <button
+          aria-label="Vorheriger Monat"
+          onClick={() => setVisibleMonth((month) => subMonths(month, 1))}
+          type="button"
+        >
+          <FokunaIcon name="chevron-left" />
+        </button>
+        <strong id={labelId}>{format(visibleMonth, "MMMM yyyy", { locale: de })}</strong>
+        <button
+          aria-label="Nächster Monat"
+          onClick={() => setVisibleMonth((month) => addMonths(month, 1))}
+          type="button"
+        >
+          <FokunaIcon name="chevron-right" />
+        </button>
+      </header>
+      <div aria-label="Kalender" className="fk-date-picker__grid" role="grid">
+        {weekDays.map((day) => (
+          <span aria-hidden="true" className="fk-date-picker__weekday" key={day}>
+            {day}
+          </span>
+        ))}
+        {days.map((day) => {
+          const isSingleSelected = selectedValue instanceof Date && isSameDay(day, selectedValue);
+          const isRangeStart = Boolean(range?.from && isSameDay(day, range.from));
+          const isRangeEnd = Boolean(range?.to && isSameDay(day, range.to));
+          const isInRange = Boolean(
+            range?.from &&
+            range.to &&
+            !isBefore(day, startOfDay(range.from)) &&
+            !isAfter(day, startOfDay(range.to)),
+          );
+          const dayDisabled = dateIsDisabled(day);
+
+          return (
+            <span className="fk-date-picker__cell" key={dateKey(day)} role="gridcell">
+              <button
+                aria-label={format(day, "EEEE, d. MMMM yyyy", { locale: de })}
+                aria-pressed={isSingleSelected || isRangeStart || isRangeEnd}
+                data-fk-date={dateKey(day)}
+                data-in-range={isInRange || undefined}
+                data-outside={!isSameMonth(day, visibleMonth) || undefined}
+                data-range-end={isRangeEnd || undefined}
+                data-range-start={isRangeStart || undefined}
+                data-selected={isSingleSelected || isRangeStart || isRangeEnd || undefined}
+                data-today={isToday(day) || undefined}
+                disabled={dayDisabled}
+                onClick={() => selectDate(day)}
+                onKeyDown={(event) => handleDayKeyDown(event, day)}
+                type="button"
+              >
+                {format(day, "d")}
+              </button>
+            </span>
+          );
+        })}
+      </div>
+      <footer className="fk-date-picker__footer">
+        <button onClick={() => selectDate(new Date())} type="button">
+          Heute
+        </button>
+        <span>{format(endOfMonth(visibleMonth), "MMMM", { locale: de })}</span>
+      </footer>
+    </>
+  );
+
+  if (inline) {
+    return (
+      <div
+        aria-label={ariaLabel ?? placeholder}
+        className={cn("fk-date-picker", "fk-date-picker--inline", className)}
+      >
+        {calendar}
+      </div>
+    );
+  }
+
   return (
     <Popover.Root onOpenChange={setOpen} open={isOpen}>
       <Popover.Trigger asChild>
@@ -202,71 +284,7 @@ export function DatePicker({
             focusDate(selectedAnchor ?? new Date());
           }}
         >
-          <header className="fk-date-picker__header">
-            <button
-              aria-label="Vorheriger Monat"
-              onClick={() => setVisibleMonth((month) => subMonths(month, 1))}
-              type="button"
-            >
-              <FokunaIcon name="chevron-left" />
-            </button>
-            <strong id={labelId}>{format(visibleMonth, "MMMM yyyy", { locale: de })}</strong>
-            <button
-              aria-label="Nächster Monat"
-              onClick={() => setVisibleMonth((month) => addMonths(month, 1))}
-              type="button"
-            >
-              <FokunaIcon name="chevron-right" />
-            </button>
-          </header>
-          <div aria-label="Kalender" className="fk-date-picker__grid" role="grid">
-            {weekDays.map((day) => (
-              <span aria-hidden="true" className="fk-date-picker__weekday" key={day}>
-                {day}
-              </span>
-            ))}
-            {days.map((day) => {
-              const isSingleSelected =
-                selectedValue instanceof Date && isSameDay(day, selectedValue);
-              const isRangeStart = Boolean(range?.from && isSameDay(day, range.from));
-              const isRangeEnd = Boolean(range?.to && isSameDay(day, range.to));
-              const isInRange = Boolean(
-                range?.from &&
-                range.to &&
-                !isBefore(day, startOfDay(range.from)) &&
-                !isAfter(day, startOfDay(range.to)),
-              );
-              const dayDisabled = dateIsDisabled(day);
-
-              return (
-                <span className="fk-date-picker__cell" key={dateKey(day)} role="gridcell">
-                  <button
-                    aria-label={format(day, "EEEE, d. MMMM yyyy", { locale: de })}
-                    aria-pressed={isSingleSelected || isRangeStart || isRangeEnd}
-                    data-fk-date={dateKey(day)}
-                    data-in-range={isInRange || undefined}
-                    data-outside={!isSameMonth(day, visibleMonth) || undefined}
-                    data-range-end={isRangeEnd || undefined}
-                    data-range-start={isRangeStart || undefined}
-                    data-selected={isSingleSelected || isRangeStart || isRangeEnd || undefined}
-                    data-today={isToday(day) || undefined}
-                    disabled={dayDisabled}
-                    onClick={() => selectDate(day)}
-                    onKeyDown={(event) => handleDayKeyDown(event, day)}
-                    type="button"
-                  >
-                    {format(day, "d")}
-                  </button>
-                </span>
-              );
-            })}
-          </div>
-          <footer className="fk-date-picker__footer">
-            <button onClick={() => selectDate(new Date())} type="button">
-              Heute
-            </button>
-            <span>{format(endOfMonth(visibleMonth), "MMMM", { locale: de })}</span>
-          </footer>
+          {calendar}
           <Popover.Arrow className="fk-date-picker__arrow" />
         </Popover.Content>
       </Popover.Portal>

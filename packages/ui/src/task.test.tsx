@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   AddTask,
@@ -94,6 +94,41 @@ describe("task composition patterns", () => {
     expect(screen.getByRole("textbox", { name: "Aufgabenname" })).toBeInTheDocument();
   });
 
+  it("opens and closes the add-task form inside task groups", () => {
+    const { container } = render(<TaskGroup title="Abschnitt" />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Aufgabe hinzufügen" }));
+    expect(screen.getByRole("textbox", { name: "Aufgabenname" })).toBeInTheDocument();
+    expect(container.querySelector(".fk-task-group__items")).toHaveAttribute("data-adding", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+    expect(screen.getByRole("button", { name: "Aufgabe hinzufügen" })).toBeInTheDocument();
+    expect(container.querySelector(".fk-task-group__items")).not.toHaveAttribute("data-adding");
+  });
+
+  it("uses contextual labels for modal subtasks", () => {
+    render(
+      <TaskGroup
+        addLabel="Unteraufgabe hinzufügen"
+        addNamePlaceholder="Unteraufgabenname"
+        title="Unteraufgaben"
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Unteraufgabe hinzufügen" }));
+    expect(screen.getByRole("textbox", { name: "Unteraufgabenname" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Unteraufgabe hinzufügen" }));
+    expect(screen.getByRole("button", { name: "Unteraufgabe hinzufügen" })).toBeInTheDocument();
+  });
+
+  it("opens and closes the add form for milestone groups", () => {
+    render(<MilestoneTaskGroup stages={[]} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Meilenstein hinzufügen" }));
+    expect(screen.getByRole("textbox", { name: "Meilensteinname" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+    expect(screen.getByRole("button", { name: "Meilenstein hinzufügen" })).toBeInTheDocument();
+  });
+
   it("switches task groups between expanded and collapsed states", () => {
     render(
       <TaskGroup title="Abschnitt">
@@ -169,6 +204,82 @@ describe("task composition patterns", () => {
       "data-breadcrumb",
       "false",
     );
+    const scrollRegion = container.querySelector(".fk-task-modal-slot__scroll-region");
+    expect(scrollRegion).toContainElement(container.querySelector(".fk-task-modal-header"));
+    expect(scrollRegion).toContainElement(container.querySelector(".fk-task-modal-slot__body"));
+    expect(container.querySelector(".fk-task-modal-menu__preview")).toHaveTextContent("Hoch");
+    expect(screen.getByRole("button", { name: "Priorität bearbeiten" })).not.toContainElement(
+      container.querySelector(".fk-task-modal-menu__preview"),
+    );
+  });
+
+  it("places optional task actions next to the modal close control", () => {
+    const { container } = render(
+      <TaskModalSlot
+        actions={<button type="button">Weitere Aktionen</button>}
+        header={<TaskModalHeader title="Aufgabe" />}
+        menu={<TaskModalMenu items={[]} />}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Weitere Aktionen" })).toBeInTheDocument();
+    expect(container.querySelector(".fk-task-modal-slot__actions")).toBeInTheDocument();
+  });
+
+  it("opens task properties in an anchored popover without changing the plus icon", () => {
+    const { container } = render(
+      <TaskModalMenu items={[{ label: "Priorität", content: <span>Prioritätsauswahl</span> }]} />,
+    );
+
+    const trigger = screen.getByRole("button", { name: "Priorität bearbeiten" });
+    fireEvent.click(trigger);
+
+    expect(screen.getByText("Prioritätsauswahl")).toBeInTheDocument();
+    expect(trigger).toHaveAttribute("data-state", "open");
+    expect(container.querySelector(".fk-task-modal-menu__trigger > svg")).toBeInTheDocument();
+  });
+
+  it("supports controlled property popovers for single-choice menus", () => {
+    const onOpenChange = vi.fn();
+    const { rerender } = render(
+      <TaskModalMenu
+        items={[
+          {
+            label: "Priorität",
+            content: <span>Prioritätsauswahl</span>,
+            onOpenChange,
+            open: true,
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByText("Prioritätsauswahl")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Priorität schließen" }));
+    expect(onOpenChange).toHaveBeenCalledWith(false);
+
+    rerender(
+      <TaskModalMenu
+        items={[
+          {
+            label: "Priorität",
+            content: <span>Prioritätsauswahl</span>,
+            onOpenChange,
+            open: false,
+          },
+        ]}
+      />,
+    );
+    expect(screen.queryByText("Prioritätsauswahl")).not.toBeInTheDocument();
+  });
+
+  it("keeps destructive actions in the detail rail footer", () => {
+    const { container } = render(
+      <TaskModalMenu footer={<button type="button">Aufgabe löschen</button>} items={[]} />,
+    );
+
+    expect(screen.getByRole("button", { name: "Aufgabe löschen" })).toBeInTheDocument();
+    expect(container.querySelector(".fk-task-modal-menu__footer")).toBeInTheDocument();
   });
 
   it("marks the breadcrumb composition without changing the modal shell", () => {
