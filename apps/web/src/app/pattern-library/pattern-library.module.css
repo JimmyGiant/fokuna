@@ -433,7 +433,7 @@
 
 .specimenRow {
   align-items: start;
-  background: var(--fk-color-surface-base);
+  background: var(--fk-color-surface-soft);
   border-bottom: 1px solid var(--fk-color-border-default);
   display: grid;
   gap: 12px;
