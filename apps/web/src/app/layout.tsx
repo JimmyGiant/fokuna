@@ -17,6 +17,10 @@ const robotoSerif = Roboto_Serif({
 export const metadata: Metadata = {
   title: "Fokuna Pattern Library",
   description: "Interne Prüfoberfläche für das Fokuna Designsystem.",
+  icons: {
+    icon: [{ url: "/branding/fokuna_logo_no-text.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/branding/fokuna_logo_no-text.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

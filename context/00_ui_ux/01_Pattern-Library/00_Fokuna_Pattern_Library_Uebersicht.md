@@ -60,9 +60,9 @@ Wichtig fuer Umsetzung:
 
 - Primaere Aktionen sichtbar und sparsam einsetzen.
 - `primary` und `secondary` sind flaechtig und tragen inverse Text- und Iconfarben.
-- `tertiary` passt zu Dropdown-, Toolbar- und ruhigen Utility-Buttons: transparente/helle Flaeche, `border/strong`, `text/primary`, `icon/primary`.
+- `tertiary` passt zu Dropdown-, Toolbar- und ruhigen Utility-Buttons: helle Flaeche (`surface/base`), `border/strong`, `text/primary`, `icon/primary` und Micro Shadow.
 - `ghost` ist fuer niedrig priorisierte Aktionen ohne dominante Flaeche gedacht.
-- Flaechige Buttons erhalten den vorgesehenen Micro Shadow auf Text/Icon, Outline/Ghost nicht.
+- Flaechige Buttons und Outline-`tertiary` erhalten den Micro Shadow; Outline primary/secondary sowie Ghost nicht.
 - Leading- und Trailing-Icon-Slots nicht durch feste Icons ersetzen.
 - Icon-only Buttons muessen klare `aria-labels` erhalten.
 
@@ -1171,6 +1171,104 @@ Wichtig fuer Umsetzung:
 - Fehlende optionale Inhalte werden vollstaendig aus dem Layout entfernt. Platzhalter sind nur fuer den bewusst stabil gehaltenen Media-Slot vorgesehen.
 - Wenn die gesamte Karte verlinkt ist, duerfen keine weiteren interaktiven Controls in den Link verschachtelt werden.
 - Bild-Alternativtext wird nur verwendet, wenn das Motiv zusaetzliche Information traegt; rein dekorative Bilder erhalten einen leeren Alternativtext.
+
+### 38 Insight Dashboard Cards
+
+Screenshot: [38_Insight_Dashboard_Cards.png](38_Insight_Dashboard_Cards.png)
+
+`C - Desktop - Cards` sind die modularen Insight-Karten fuer Ziel-Detail und Insights. Sie sitzen auf dem generischen Card-Slot (`03`) mit Schmuckrahmen und fuellen ihn mit festen Inhaltstypen: Kennzahlen, Aktivitaetsbalken, Meilenstein-Timeline, Progress, Konsistenz und Prioritaeten.
+
+Varianten und Properties:
+
+- `InsightCard`: wiederverwendbare Huelle mit `size` (`sm` 214x216, `md` 452x216, `lg` 452x456), optionalem Icon, Titel, Subtitle und Action-Slot.
+- `InsightActivityCard`: Wochenbalken mit optionalem Threshold; Segmenthoehe skaliert mit `max(Daten, Ziel)`, die rote Linie bleibt im Plot unterhalb von Titel/Subline.
+- `InsightQuoteCard`: volle Brand-Secondary-Flaeche mit Schmuckzeile (Roboto Serif Italic).
+- `InsightPlaceCard`: Media-Karte mit OpenStreetMap (Leaflet) hinter dem Header; standardmaessig ohne Controls und ohne Interaktion.
+- Inhalte: Deadline, Metric, Milestones, Progress Ring (konzentrische Halo-/Track-Ringe 180/134px, Stroke 16, Label zentriert), Segment Gauge, Bar List, Consistency, Priorities.
+
+States und Motion:
+
+- Charts und Progress animieren beim Mount (Balken, Segmente, Ring, Consistency-Tage); bei `prefers-reduced-motion` ohne Animation.
+- Activity ohne Goal zeigt keine Threshold-Kontrolle; mit Goal steuert der Picker den Threshold live.
+
+Wichtig fuer Umsetzung:
+
+- Keine Chart-Library; reine CSS/SVG-Umsetzung mit Design-Tokens.
+- Alle Karten nutzen `Card` inkl. dekorativem Innenrahmen und denselben Elevations.
+- Icons stammen aus `@fokuna/icons`; Subtask-Metadaten teilen sich das Icon mit Goal Card / Task.
+
+### 39 Block Card
+
+Screenshot: [39_Block_Card.png](39_Block_Card.png)
+
+`C - Desktop - Card - Time Blocks` ist die Auswahl- und Vorschaukarte fuer einen Time Block (z. B. Meditation). Sie sitzt auf dem generischen Card-Slot (`03`) und kombiniert Kategorie-Kachel, Dauer, Kurzbeschreibung und Metadaten wie Pomodoro oder Sound. Verwandt mit Block Timeline & Edit Rail (`36`); die Kachel teilt sich die visuelle Sprache mit `BlockTile`.
+
+Varianten und Properties:
+
+- `title` / `description`: Blockname und kurze Erklaerung (beide `body-lg`; Description in `text-tertiary`).
+- `icon` / `tone`: 40×40 Kategorie-Kachel (`BlockTile`-Look); Icon und Kategorie-Farbe kommen aus den Block-Daten.
+- `durationLabel` / `durationIcon`: Dauer-Tag (Standard `clock`, Groesse `lg`) neben der Kachel.
+- `meta`: optionale Outline-Tags im Footer (z. B. Pomodoro, Sound).
+- `onMenuClick` / `menu`: Outline-Icon-Button `more-vertical` in `sm` (28×28) rechts oben.
+
+States:
+
+- `default`: 334 × 240 px, Padding 24, Card-Radius 20, Subtle Elevation, dekorativer Innenrahmen.
+
+Wichtig fuer Umsetzung:
+
+- Die Kategorie-Kachel ist dekorativ und nicht selbst der primaere Selektor; Interaktion laeuft ueber Menu bzw. die umgebende Auswahlflaeche.
+- Meta-Tags und Dauer nutzen die bestehende `Tag`-Komponente; Icon-Set aus `@fokuna/icons` (z. B. `balance` fuer Meditation).
+
+### 40 Template Card
+
+Screenshot: [40_Template_Card.png](40_Template_Card.png)
+
+`C - Desktop - Card - Template` ist die Vorschaukarte fuer Journal- bzw. Tages-Templates (konkrete Szenarien wie „Eat that Frog“). Sie sitzt auf dem generischen Card-Slot (`03`) und zeigt Icon, Kurztext und Anzahl der Check-In-/Check-Out-Elemente.
+
+Varianten und Properties:
+
+- `title` / `description`: Template-Name und Beschreibung (beide `body-lg`; Description in `text-tertiary`).
+- `icon`: 24px Header-Icon (Standard `notes`).
+- `meta`: Outline-Tags mit Element-Zaehlern (z. B. `sunrise` / `sunset` fuer Morgen- und Abend-Elemente).
+- `onMenuClick` / `menu`: Outline-Icon-Button `more-vertical` in `sm` (28×28) rechts oben.
+
+States:
+
+- `default`: 374 × 240 px, Padding 24, Card-Radius 20, Subtle Elevation, dekorativer Innenrahmen.
+- Templates sind inhaltliche Szenarien, keine Dummy-Platzhalterkarten.
+
+Wichtig fuer Umsetzung:
+
+- Footer zeigt nur Meta-Tags; keine zusaetzliche CTA im Footer.
+- Wiederverwendung von `Card`, `Tag`, `Button` und Icons aus `@fokuna/icons`.
+
+### 41 View Overlay
+
+Screenshot: [41_View_Overlay.png](41_View_Overlay.png)
+
+`.slot - Modal Full Screen` ist der globale View-Overlay fuer groessere Bearbeitungs- und Verwaltungsmodi. Er legt sich ueber den kompletten View (Scrim + Panel), gleitet von unten ein und stellt Header, zentrierten Inhaltsslot und Footer-Aktionen bereit. Einsatz u. a. Journal Templates Edit, Ziel bearbeiten und Block bearbeiten.
+
+Varianten und Properties:
+
+- `title` / `icon`: Header links; Titel in `body-xl` Semibold, optionales 24px-Icon in `icon-tertiary`.
+- `children`: mittlerer Inhaltsslot, max. 920px breit, vertikal scrollbar.
+- `footerStart` / `footerEnd`: Footer-Aktionen; typisch destruktiv links, Verwerfen/Speichern rechts.
+- `open` / `onOpenChange` / `trigger`: Radix-Dialog-Steuerung analog zu `Modal`.
+- `closeLabel`: zugaengliches Label fuer den Close-Control oben rechts.
+
+States:
+
+- `open`: Scrim (`text-primary` bei 20% Opacity) und Panel (`surface-subtle`, `border-subtle`, Highlight Shadow) decken den View ab.
+- `enter`: Panel gleitet von unten ein; Scrim fadet ein.
+- Inhaltliche Tabs, Formulare und Listen liegen im Slot und nutzen bestehende Patterns (Tab Bar, Form, Button).
+
+Wichtig fuer Umsetzung:
+
+- Shell bleibt inhaltsneutral; Feature-Layouts (Template-, Ziel-, Block-Edit) belegen nur den Slot.
+- Padding 40px (`space-10`), Abstand Header/Body/Footer 80px.
+- Keine verschachtelten Fullscreen-Overlays; nested Dialoge bleiben beim bestehenden `Modal`.
+- Speichern persistiert, Verwerfen/Close verwirft lokale Aenderungen — Fachlogik liegt in der View.
 
 ## Einsatz im Lastenheft
 

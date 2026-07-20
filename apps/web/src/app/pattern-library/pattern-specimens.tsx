@@ -3,6 +3,7 @@
 import { FokunaIcon } from "@fokuna/icons";
 import {
   AddTask,
+  BlockCard,
   BlockRail,
   BlockTile,
   Breadcrumb,
@@ -16,6 +17,18 @@ import {
   Dropdown,
   FilterBar,
   GoalCard,
+  InsightActivityCard,
+  InsightBarList,
+  InsightCard,
+  InsightConsistencyGrid,
+  InsightDeadlineContent,
+  InsightMetricContent,
+  InsightMilestonesContent,
+  InsightPlaceCard,
+  InsightPrioritiesContent,
+  InsightProgressRing,
+  InsightQuoteCard,
+  InsightSegmentGauge,
   InputField,
   InputGroup,
   MetaMenu,
@@ -38,8 +51,10 @@ import {
   TaskModalHeader,
   TaskModalMenu,
   TaskModalSlot,
+  TemplateCard,
   ToggleGroup,
   UiShell,
+  ViewOverlay,
   type ControlSize,
   type BlockRailItem,
 } from "@fokuna/ui";
@@ -604,6 +619,8 @@ export function PatternSpecimen({ slug }: { slug: string }) {
   const [dropdown, setDropdown] = useState("week");
   const [activeBlock, setActiveBlock] = useState("focus");
   const [showTaskModalBreadcrumb, setShowTaskModalBreadcrumb] = useState(true);
+  const [viewOverlayOpen, setViewOverlayOpen] = useState(false);
+  const [viewOverlayTab, setViewOverlayTab] = useState("darstellung");
 
   switch (slug) {
     case "button":
@@ -1196,6 +1213,275 @@ export function PatternSpecimen({ slug }: { slug: string }) {
             />
           </MatrixRow>
         </Matrix>
+      );
+
+    case "insight-cards": {
+      const activityWeeks = [
+        { label: "KW 21", value: 4 },
+        { label: "KW 22", value: 3 },
+        { label: "KW 23", value: 1 },
+        { label: "KW 24", value: 2 },
+        { label: "KW 25", value: 4 },
+        { label: "KW 26", value: 4 },
+        { label: "KW 27", value: 3 },
+        { label: "KW 28", value: 5 },
+        { label: "KW 29", value: 0 },
+        { label: "KW 30", value: 0 },
+      ];
+      const consistencyStrong = Array.from({ length: 11 }, () => "strong" as const);
+      return (
+        <div className={styles.insightCardsSpecimen}>
+          <MatrixRow label="Small · Deadline, Metric, Quote, Place, Ring, Priorities">
+            <div className={styles.insightCardsRow}>
+              <InsightCard
+                elevated="micro"
+                icon="calendar"
+                size="sm"
+                subtitle="noch 23 Tage"
+                title="Zeitpunkt"
+              >
+                <InsightDeadlineContent day="28." month="Juli" year="2026" />
+              </InsightCard>
+              <InsightCard elevated="subtle" size="sm" subtitle="Aktuell" title="Aufgaben">
+                <InsightMetricContent value={47} />
+              </InsightCard>
+              <InsightQuoteCard quote="Seit meiner Kindheit träume ich davon." />
+              <InsightPlaceCard latitude={52.52} longitude={13.405} mapLabel="Berlin" zoom={12} />
+              <InsightCard size="sm" title="Fortschritt Ziele">
+                <InsightProgressRing value={79} />
+              </InsightCard>
+              <InsightCard size="sm" subtitle="Diese Woche" title="Prioritäten">
+                <InsightPrioritiesContent
+                  items={[
+                    { id: "low", label: "Niedrig", count: 12, tone: "low" },
+                    { id: "medium", label: "Mittel", count: 5, tone: "medium" },
+                    { id: "high", label: "Hoch", count: 8, tone: "high" },
+                    { id: "urgent", label: "Dringend", count: 3, tone: "urgent" },
+                  ]}
+                />
+              </InsightCard>
+            </div>
+          </MatrixRow>
+          <MatrixRow label="Medium · Activity, Segment Gauge, Consistency">
+            <div className={styles.insightCardsRow}>
+              <InsightActivityCard defaultThreshold={4} weeks={activityWeeks} />
+              <InsightActivityCard
+                showThresholdControl={false}
+                subtitle="Aktivität"
+                title="Aufgaben pro Woche"
+                weeks={activityWeeks}
+              />
+              <InsightCard size="md" subtitle="85%" title="Termingerechte Zielerreichung">
+                <InsightSegmentGauge value={85} />
+              </InsightCard>
+              <InsightCard size="md" subtitle="12 Tage" title="Journal Konsistenz">
+                <InsightConsistencyGrid
+                  rows={[
+                    {
+                      id: "in",
+                      label: "Check-In",
+                      days: [
+                        "partial",
+                        "empty",
+                        "empty",
+                        "strong",
+                        "empty",
+                        "empty",
+                        ...consistencyStrong.slice(0, 8),
+                        "partial",
+                      ],
+                    },
+                    {
+                      id: "out",
+                      label: "Check-Out",
+                      days: [
+                        "empty",
+                        "full",
+                        "strong",
+                        "full",
+                        "empty",
+                        ...consistencyStrong.slice(0, 9),
+                        "empty",
+                      ],
+                    },
+                  ]}
+                />
+              </InsightCard>
+            </div>
+          </MatrixRow>
+          <MatrixRow label="Large · Milestones & Bars">
+            <div className={styles.insightCardsRow}>
+              <InsightCard
+                action={
+                  <Button
+                    aria-label="Meilensteine öffnen"
+                    buttonType="outline"
+                    iconOnly
+                    intent="tertiary"
+                    leadingIcon="chevron-right-small"
+                    size="sm"
+                  >
+                    Öffnen
+                  </Button>
+                }
+                icon="flag"
+                size="lg"
+                subtitle="11 von 12 verbleibend"
+                title="Meilensteine"
+              >
+                <InsightMilestonesContent
+                  items={[
+                    {
+                      id: "1",
+                      title: "Laufcoach engagieren",
+                      completed: true,
+                      dueDate: "27. Juli 2026",
+                      subtasks: { completed: 0, total: 2 },
+                    },
+                    {
+                      id: "2",
+                      title: "Teilnahmeanmeldung einreichen",
+                      dueDate: "27. Juli 2026",
+                      subtasks: { completed: 0, total: 1 },
+                    },
+                    {
+                      id: "3",
+                      title: "Pace steigern",
+                      dueDate: "27. Juli 2026",
+                      subtasks: { completed: 0, total: 6 },
+                    },
+                    {
+                      id: "4",
+                      title: "Tempoläufe ins Training einbringen",
+                      dueDate: "27. Juli 2026",
+                      subtasks: { completed: 0, total: 6 },
+                    },
+                    {
+                      id: "5",
+                      title: "Lauf Equipment besorgen",
+                      dueDate: "27. Juli 2026",
+                      subtasks: { completed: 0, total: 9 },
+                    },
+                  ]}
+                />
+              </InsightCard>
+              <InsightCard
+                size="lg"
+                subtitle="Über alle Ziele hinweg"
+                title="Meilenstein Fortschritt"
+              >
+                <InsightBarList
+                  items={[
+                    { id: "pers", label: "Persönlich", valueLabel: "14h", progress: 86 },
+                    { id: "work", label: "Arbeit", valueLabel: "10h", progress: 60 },
+                    { id: "sport", label: "Sport", valueLabel: "6h", progress: 46 },
+                    { id: "learn", label: "Lernen", valueLabel: "3h", progress: 32 },
+                    { id: "rest", label: "Erholung", valueLabel: "1.5h", progress: 15 },
+                    { id: "other", label: "Andere", valueLabel: "1.5h", progress: 7 },
+                  ]}
+                />
+              </InsightCard>
+            </div>
+          </MatrixRow>
+        </div>
+      );
+    }
+
+    case "block-card":
+      return (
+        <Matrix>
+          <MatrixRow label="Default · Meditation">
+            <BlockCard
+              description="Ruhiger Block mit entspannter Hintergrundmusik."
+              durationLabel="15 min"
+              icon="balance"
+              meta={[
+                { id: "pomodoro", label: "Pomodoro", icon: "clock-alert" },
+                { id: "sound", label: "Woods", icon: "music" },
+              ]}
+              title="Meditation"
+              tone="pink"
+            />
+          </MatrixRow>
+        </Matrix>
+      );
+
+    case "template-card":
+      return (
+        <Matrix>
+          <MatrixRow label="Default · Eat that Frog">
+            <TemplateCard
+              description="Starte mit dem Wichtigsten und gestalte den Rest des Tages bewusst."
+              meta={[
+                { id: "morning", label: "5 Elemente", icon: "sunrise" },
+                { id: "evening", label: "3 Elemente", icon: "sunset" },
+              ]}
+              title="Eat that Frog"
+            />
+          </MatrixRow>
+        </Matrix>
+      );
+
+    case "view-overlay":
+      return (
+        <div className={styles.viewOverlaySpecimen}>
+          <p>
+            Globale Shell für größere Bearbeitungsmodi (Journal Templates, Ziel bearbeiten, Block
+            bearbeiten). Inhalt gehört in den mittleren Slot.
+          </p>
+          <Button intent="secondary" onClick={() => setViewOverlayOpen(true)} type="button">
+            Overlay öffnen
+          </Button>
+          <ViewOverlay
+            footerEnd={
+              <>
+                <Button buttonType="link" intent="tertiary" size="lg">
+                  Verwerfen
+                </Button>
+                <Button intent="secondary" leadingIcon="save" size="lg">
+                  Speichern
+                </Button>
+              </>
+            }
+            footerStart={
+              <Button
+                buttonType="link"
+                intent="primary"
+                leadingIcon="delete"
+                size="lg"
+                trailingIcon={null}
+              >
+                Template löschen
+              </Button>
+            }
+            icon={
+              <span className={styles.viewOverlayBlockIcon} data-tone="coral">
+                <FokunaIcon name="newspaper" radius={2} size={24} stroke={2} />
+              </span>
+            }
+            onOpenChange={setViewOverlayOpen}
+            open={viewOverlayOpen}
+            title={'"Lesen" bearbeiten'}
+          >
+            <TabBar
+              items={[
+                { value: "darstellung", label: "Darstellung" },
+                { value: "rhythmus", label: "Rhythmus & Dauer" },
+                { value: "fokus", label: "Fokusmodus" },
+              ]}
+              onValueChange={setViewOverlayTab}
+              value={viewOverlayTab}
+            />
+            <div className={styles.viewOverlaySection}>
+              <InputGroup defaultValue="Lesen" label="Titel" />
+              <InputGroup
+                defaultValue="Non Fiction Leseeinheit für den gebildeten morgen."
+                label="Beschreibung"
+                sublabel="Wird auf der Übersichtskarte angezeigt"
+              />
+            </div>
+          </ViewOverlay>
+        </div>
       );
 
     case "switch":

@@ -62,10 +62,16 @@ export default function PatternLibraryPage() {
             <p className={styles.sectionLabel}>Komponentenindex</p>
             <h2 id="pattern-index-title">Alle dokumentierten Patterns</h2>
           </div>
-          <Link className={styles.foundationLink} href="/pattern-library/foundations">
-            Foundations prüfen
-            <FokunaIcon name="chevron-right-small" size={16} />
-          </Link>
+          <div className={styles.indexHeaderLinks}>
+            <Link className={styles.foundationLink} href="/pattern-library/foundations">
+              Foundations
+              <FokunaIcon name="chevron-right-small" size={16} />
+            </Link>
+            <Link className={styles.foundationLink} href="/pattern-library/icons">
+              Icons
+              <FokunaIcon name="chevron-right-small" size={16} />
+            </Link>
+          </div>
         </header>
 
         {patternCategories.map((category) => (

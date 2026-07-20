@@ -1,6 +1,7 @@
 "use client";
 
 import { FokunaIcon } from "@fokuna/icons";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
@@ -15,7 +16,15 @@ export function PatternLibraryNavigation() {
     <aside className={styles.navigation}>
       <div className={styles.navigationHeader}>
         <Link className={styles.brand} href="/pattern-library">
-          <span aria-hidden="true">F</span>
+          <Image
+            alt=""
+            aria-hidden="true"
+            className={styles.brandMark}
+            height={32}
+            priority
+            src="/branding/fokuna_logo_no-text.svg"
+            width={34}
+          />
           <span>
             <strong>Fokuna</strong>
             <small>Pattern Library</small>
@@ -25,9 +34,16 @@ export function PatternLibraryNavigation() {
 
       <label className={styles.mobileNavigation}>
         <span>Pattern auswählen</span>
-        <select onChange={(event) => router.push(event.currentTarget.value)} value={pathname}>
+        <select
+          onChange={(event) => {
+            const next = event.currentTarget.value;
+            if (next !== pathname) router.push(next);
+          }}
+          value={pathname}
+        >
           <option value="/pattern-library">Übersicht</option>
           <option value="/pattern-library/foundations">Foundations</option>
+          <option value="/pattern-library/icons">Icons</option>
           {patternCategories.map((category) => (
             <optgroup key={category} label={category}>
               {patternEntries
@@ -58,6 +74,14 @@ export function PatternLibraryNavigation() {
         >
           <FokunaIcon name="diamond" size={16} />
           Foundations
+        </Link>
+        <Link
+          aria-current={pathname === "/pattern-library/icons" ? "page" : undefined}
+          className={styles.navigationOverview}
+          href="/pattern-library/icons"
+        >
+          <FokunaIcon name="images" size={16} />
+          Icons
         </Link>
 
         {patternCategories.map((category) => {

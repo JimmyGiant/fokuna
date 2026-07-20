@@ -1,0 +1,16 @@
+---
+description: Fokuna project principles for SaaS architecture, pixel-perfect UI, and Pattern Library work
+alwaysApply: true
+---
+
+# Fokuna Project Rules
+
+- Fokuna wird zuerst als Next.js-Plattform gebaut, soll aber so konzipiert werden, dass später native iOS-, macOS- und Android-Versionen problemlos folgen und über dieselbe API arbeiten können.
+- Für nahezu jeden View und jede Komponente gibt es High-Fidelity-Mockups, die nachzubauen sind. Layouts und passende Übergabenotizen in `context/00_ui_ux` sind das wichtigste Kriterium: keine ungefähre Referenz, sondern die pixelgenaue Vorgabe. Figma basiert auf denselben Tokens wie die Übergabe. Pattern-Library-Dokumente ergänzen das; bei Unklarheiten stets nachfragen.
+- Performance und Nutzbarkeit sind zentral. Die Architektur soll performant, effizient und professionell bleiben und gängigen Branchenlösungen in nichts nachstehen.
+- Anspruch ist eine professionelle SaaS-Lösung: kein schneller Test, kein Quickfix, keine Workarounds. Langlebigkeit und Professionalität stehen im Vordergrund.
+- Nicht dokumentierte States (Hover, Fokus, Drag-and-drop-Placeholder, Indikatoren u. Ä.) app-übergreifend konsistent umsetzen. Feeling und Verhalten sollen gleichbleibend sein; gängige UX-Patterns und Best Practices prüfen und bei Bedarf online recherchieren.
+- Fehlt eine benötigte Komponente in der Pattern-Library-Dokumentation, vor dem Bau nachfragen.
+- Dependencies außerhalb des definierten Tech-Stacks nur nach Freigabe: eine knappe Erklärung (was und warum), dann nachfragen.
+- Git und GitHub nur auf explizite Anweisung nutzen: professionelle Commits und Pushes nur, wenn ausdrücklich gewünscht.
+- Gewissenhaft und sauber arbeiten. Veraltete Tests entfernen, keine unnötige Dokumentation aufbauen und temporäre Erklärungen im Chat klären statt im Repo.
