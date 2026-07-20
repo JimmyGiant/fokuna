@@ -1141,12 +1141,13 @@ Varianten und Properties:
 
 - `title`: kurzer, praegnanter Zielname; lange Titel duerfen umbrechen, ohne Metadaten zu ueberlagern.
 - `image`: optionales Ziel- oder Motivbild im 144px hohen Media-Slot; ohne Bild erscheint eine ruhige tokenisierte Platzhalterflaeche.
-- `progress`: Wert von 0 bis 100; visuell als 48px-Ring und technisch als Progressbar ausgegeben.
+- `progress`: Wert von 0 bis 100; visuell als 48px-SVG-Ring in einer konkav gerundeten Media-Aussparung und technisch als Progressbar ausgegeben. Der Stroke startet bei 12 Uhr, laeuft im Uhrzeigersinn und besitzt runde Enden.
 - `location`: optionaler Ortskontext mit 16px-Icon.
 - `tags`: optionale Liste aus Label und austauschbarem 16px-Icon; die Zeile darf bei mehreren Eintraegen umbrechen.
 - `milestones`: geordnete Meilensteinliste mit Titel, optionalem Datum und optionaler Subtask-Statistik.
-- `milestonePreviewLimit`: Anzahl der direkt sichtbaren Meilensteine; Standard sind zwei.
+- `milestonePreviewLimit`: optionale explizite Obergrenze. Ohne Vorgabe zeigt die Karte bis zu drei vorhandene Meilensteine vollstaendig; ab dem vierten wird automatisch eine Summary-Zeile reserviert.
 - `totalMilestones`: Gesamtzahl fuer den Hinweis auf weitere Meilensteine.
+- `emptyMilestoneActionLabel` und `emptyMilestoneActionHref`: optionale Aktion des zentrierten Empty States. Innerhalb einer insgesamt verlinkten Goal Card bleibt der Aktionstext Teil des Kartenlinks.
 - `href`: macht die Karte zu einem semantischen, tastaturbedienbaren Link zur Ziel-Detailansicht.
 
 States:
@@ -1156,13 +1157,17 @@ States:
 - `focus visible`: klarer tokenisierter Tastaturfokus ausserhalb der Karte.
 - `without context`: fehlen Ort und Tags, wird die komplette Kontextzeile entfernt; es bleiben keine leeren Icons oder Phantomabstaende.
 - `milestone without metadata`: fehlen Datum und Subtasks, bleibt nur der Meilensteintitel sichtbar und der naechste Eintrag rueckt sauber nach.
-- `empty milestones`: ein ruhiger Hinweis ersetzt die Timeline, ohne die Kartenbreite oder Media-Geometrie zu veraendern.
+- `empty milestones`: eine zentrierte graue Fahne, der Hinweis `Noch keine Meilensteine` und eine optionale Anlege-Aktion ersetzen die Timeline, ohne die Kartenbreite oder Media-Geometrie zu veraendern.
 - `without image`: der Media-Slot bleibt fuer ein stabiles Kartenraster erhalten und zeigt einen neutralen Bild-Platzhalter.
 
 Wichtig fuer Umsetzung:
 
 - Fortschritt, Meilensteinanzahl und Subtask-Zaehler werden aus den Goal-Daten berechnet und nicht als unabhaengige UI-Werte gespeichert.
 - Die Timeline ist im Code datengetrieben und nicht absolut positioniert; dadurch bleiben optionale Inhalte und laengere Bezeichnungen robust.
+- Bis zu drei vorhandene Meilensteine werden direkt gezeigt. Ab vier Eintraegen reserviert die automatische Vorschau den dritten Slot fuer `+ X weitere Meilensteine`; `milestonePreviewLimit` kann dieses Verhalten fachlich ueberschreiben.
+- Der abgeschlossene Meilenstein verwendet ein Checkmark mit 3px Stroke. Die Subtask-Metainformation teilt sich dasselbe Icon-Asset mit dem Task-Pattern; die letzte Timeline-Verbindung fadet per Gradient aus.
+- Die konkave Progress-Aussparung wird durch eine 71 x 72px grosse, tokenisierte SVG-Form ueber der rechten unteren Bildecke simuliert. Das Bild selbst bleibt unveraendert; der Fortschrittsring liegt als eigener Layer ueber der Form.
+- Der Progressring besitzt keine eigene weisse Hinterlegung. Beim initialen Laden animiert sein Stroke von 0 bis zum normalisierten Zielwert; bei reduzierter Bewegung wird diese Animation deaktiviert.
 - Fehlende optionale Inhalte werden vollstaendig aus dem Layout entfernt. Platzhalter sind nur fuer den bewusst stabil gehaltenen Media-Slot vorgesehen.
 - Wenn die gesamte Karte verlinkt ist, duerfen keine weiteren interaktiven Controls in den Link verschachtelt werden.
 - Bild-Alternativtext wird nur verwendet, wenn das Motiv zusaetzliche Information traegt; rein dekorative Bilder erhalten einen leeren Alternativtext.

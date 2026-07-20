@@ -1,6 +1,7 @@
 import { FokunaIcon, type IconName } from "@fokuna/icons";
 import type { CSSProperties, ElementType, HTMLAttributes } from "react";
 
+import { SubtaskIcon } from "./subtask-icon";
 import { cn } from "./utils";
 
 export interface GoalCardTag {
@@ -31,6 +32,8 @@ export interface GoalCardProps extends Omit<HTMLAttributes<HTMLElement>, "childr
   milestonePreviewLimit?: number;
   totalMilestones?: number;
   emptyMilestoneLabel?: string;
+  emptyMilestoneActionLabel?: string;
+  emptyMilestoneActionHref?: string;
 }
 
 function clampProgress(value: number) {
@@ -46,22 +49,25 @@ export function GoalCard({
   location,
   tags = [],
   milestones = [],
-  milestonePreviewLimit = 2,
+  milestonePreviewLimit,
   totalMilestones,
   emptyMilestoneLabel = "Noch keine Meilensteine",
+  emptyMilestoneActionLabel = "Jetzt Meilenstein anlegen",
+  emptyMilestoneActionHref,
   className,
   style,
   ...props
 }: GoalCardProps) {
   const Component: ElementType = href ? "a" : "article";
   const normalizedProgress = clampProgress(progress);
-  const visibleMilestones = milestones.slice(0, Math.max(0, milestonePreviewLimit));
   const milestoneCount = Math.max(totalMilestones ?? milestones.length, milestones.length);
+  const resolvedPreviewLimit = milestonePreviewLimit ?? (milestoneCount <= 3 ? 3 : 2);
+  const visibleMilestones = milestones.slice(0, Math.max(0, resolvedPreviewLimit));
   const remainingMilestones = Math.max(0, milestoneCount - visibleMilestones.length);
   const hasContext = Boolean(location || tags.length);
   const progressStyle = {
     ...style,
-    "--fk-goal-card-progress": `${normalizedProgress * 3.6}deg`,
+    "--fk-goal-card-progress-offset": 100 - normalizedProgress,
   } as CSSProperties;
 
   return (
@@ -80,6 +86,25 @@ export function GoalCard({
             <FokunaIcon name="images" size={24} />
           </span>
         )}
+        <svg
+          aria-hidden="true"
+          className="fk-goal-card__media-mask"
+          fill="none"
+          viewBox="0 0 71 72"
+        >
+          <path
+            d="M71 16.0001L71 71.0001L16 71.0001L16 42.5001C16 27.8646 27.8645 16.0001 42.5 16.0001L71 16.0001Z"
+            fill="currentColor"
+          />
+          <path
+            d="M55.002 16C55.002 16 61.2238 16.6253 66.4798 10.4926C71.002 4.50037 71.002 0.0000078032 71.002 0.0000078032L71.002 16L55.002 16Z"
+            fill="currentColor"
+          />
+          <path
+            d="M0.00000000233295 70.9979C0.00000000233295 70.9979 6.22185 71.6231 11.4778 65.4904C16 59.4982 16 54.9979 16 54.9979L16 70.9979L0.00000000233295 70.9979Z"
+            fill="currentColor"
+          />
+        </svg>
       </div>
 
       <div
@@ -90,6 +115,9 @@ export function GoalCard({
         className="fk-goal-card__progress"
         role="progressbar"
       >
+        <svg aria-hidden="true" className="fk-goal-card__progress-ring" viewBox="0 0 48 48">
+          <circle cx="24" cy="24" pathLength="100" r="18" />
+        </svg>
         <span>{normalizedProgress}</span>
       </div>
 
@@ -128,35 +156,49 @@ export function GoalCard({
                   <li data-completed={milestone.completed || undefined} key={milestone.id}>
                     <span aria-hidden="true" className="fk-goal-card__marker">
                       {milestone.completed ? (
-                        <FokunaIcon name="check-small" size={16} stroke={2} />
+                        <FokunaIcon
+                          className="fk-goal-card__check"
+                          name="check-small"
+                          size={16}
+                          stroke={2}
+                        />
                       ) : null}
                     </span>
-                    <strong>{milestone.title}</strong>
-                    {hasMetadata ? (
-                      <span className="fk-goal-card__milestone-meta">
-                        {milestone.subtasks ? (
-                          <span>
-                            <FokunaIcon name="checklist" size={16} />
-                            {milestone.subtasks.completed}/{milestone.subtasks.total}
-                          </span>
-                        ) : null}
-                        {milestone.dueDate ? (
-                          <span>
-                            <FokunaIcon name="calendar" size={16} />
-                            {milestone.dueDate}
-                          </span>
-                        ) : null}
-                      </span>
-                    ) : null}
+                    <div className="fk-goal-card__milestone-body">
+                      <strong>{milestone.title}</strong>
+                      {hasMetadata ? (
+                        <span className="fk-goal-card__milestone-meta">
+                          {milestone.subtasks ? (
+                            <span>
+                              <SubtaskIcon />
+                              {milestone.subtasks.completed}/{milestone.subtasks.total}
+                            </span>
+                          ) : null}
+                          {milestone.dueDate ? (
+                            <span>
+                              <FokunaIcon name="calendar" size={16} />
+                              {milestone.dueDate}
+                            </span>
+                          ) : null}
+                        </span>
+                      ) : null}
+                    </div>
                   </li>
                 );
               })}
             </ol>
           ) : (
-            <p className="fk-goal-card__empty-milestones">
-              <span aria-hidden="true" className="fk-goal-card__marker" />
-              {emptyMilestoneLabel}
-            </p>
+            <div className="fk-goal-card__empty-milestones">
+              <FokunaIcon aria-hidden="true" name="flag" size={24} />
+              <strong>{emptyMilestoneLabel}</strong>
+              {href ? (
+                <span className="fk-goal-card__empty-action">{emptyMilestoneActionLabel}</span>
+              ) : emptyMilestoneActionHref ? (
+                <a className="fk-goal-card__empty-action" href={emptyMilestoneActionHref}>
+                  {emptyMilestoneActionLabel}
+                </a>
+              ) : null}
+            </div>
           )}
 
           {remainingMilestones ? (

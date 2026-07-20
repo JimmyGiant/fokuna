@@ -1913,7 +1913,7 @@
   }
 
   .fk-goal-card {
-    --fk-goal-card-progress: 0deg;
+    --fk-goal-card-progress-offset: 100;
     background: var(--fk-color-surface-base);
     border: 0;
     border-radius: var(--fk-radius-global-radius-card);
@@ -1937,7 +1937,13 @@
   }
 
   .fk-goal-card::after {
-    background: linear-gradient(to bottom, rgb(255 255 255 / 16%), rgb(0 0 0 / 4%)) border-box;
+    background: linear-gradient(
+        to bottom,
+        rgb(255 255 255 / 16%) 0,
+        var(--fk-color-surface-base) 38%,
+        rgb(0 0 0 / 4%) 100%
+      )
+      border-box;
     border: 1px solid transparent;
     border-radius: 16px;
     content: "";
@@ -1981,6 +1987,17 @@
     width: 100%;
   }
 
+  .fk-goal-card__media-mask {
+    bottom: -1px;
+    color: var(--fk-color-surface-base);
+    height: 72px;
+    pointer-events: none;
+    position: absolute;
+    right: 0;
+    width: 71px;
+    z-index: 1;
+  }
+
   .fk-goal-card__image,
   .fk-goal-card__image-placeholder {
     display: block;
@@ -2001,14 +2018,8 @@
 
   .fk-goal-card__progress {
     align-items: center;
-    background: conic-gradient(
-      from 110deg,
-      var(--fk-color-surface-brand-secondary) 0 var(--fk-goal-card-progress),
-      var(--fk-color-surface-base) var(--fk-goal-card-progress) 360deg
-    );
-    border: 4px solid var(--fk-color-surface-base);
-    border-radius: 999px;
-    box-shadow: 0 0 0 1px rgb(255 255 255 / 35%);
+    background: transparent;
+    border: 0;
     color: var(--fk-color-text-tertiary);
     display: flex;
     font-family: var(--fk-type-font-font-family-heading-primary);
@@ -2017,25 +2028,46 @@
     height: 48px;
     justify-content: center;
     line-height: var(--fk-type-font-line-height-body-sm);
-    padding: 4px;
+    padding: 0;
     position: absolute;
-    right: 16px;
+    right: 8px;
     top: 104px;
     width: 48px;
     z-index: 3;
   }
 
-  .fk-goal-card__progress::before {
-    background: var(--fk-color-surface-base);
-    border-radius: inherit;
-    content: "";
-    inset: 4px;
+  .fk-goal-card__progress-ring {
+    height: 48px;
+    inset: 0;
     position: absolute;
+    transform: rotate(-90deg);
+    width: 48px;
+  }
+
+  .fk-goal-card__progress-ring circle {
+    animation: fk-goal-card-progress-draw calc(var(--fk-motion-duration-slow) * 3)
+      var(--fk-motion-ease-enter) both;
+    fill: none;
+    stroke: var(--fk-color-surface-brand-secondary);
+    stroke-dasharray: 100 100;
+    stroke-dashoffset: var(--fk-goal-card-progress-offset);
+    stroke-linecap: round;
+    stroke-width: 4px;
   }
 
   .fk-goal-card__progress span {
     position: relative;
     z-index: 1;
+  }
+
+  @keyframes fk-goal-card-progress-draw {
+    from {
+      stroke-dashoffset: 100;
+    }
+
+    to {
+      stroke-dashoffset: var(--fk-goal-card-progress-offset);
+    }
   }
 
   .fk-goal-card__content {
@@ -2118,14 +2150,18 @@
     width: 2px;
   }
 
-  .fk-goal-card__timeline[data-has-remaining] li:last-child::after {
-    background: var(--fk-color-border-focus);
-    bottom: -13px;
+  .fk-goal-card__timeline li:last-child::after {
+    background: linear-gradient(to bottom, var(--fk-color-border-focus), transparent);
+    bottom: 0;
     content: "";
     left: 6px;
     position: absolute;
     top: 12px;
     width: 2px;
+  }
+
+  .fk-goal-card__timeline[data-has-remaining] li:last-child::after {
+    bottom: -13px;
   }
 
   .fk-goal-card__marker {
@@ -2150,8 +2186,16 @@
     width: 10px;
   }
 
+  .fk-goal-card__marker .fk-goal-card__check path {
+    stroke-width: 3px;
+  }
+
   .fk-goal-card__timeline li[data-completed="true"] > .fk-goal-card__marker {
     background: var(--fk-color-surface-brand-secondary);
+  }
+
+  .fk-goal-card__milestone-body {
+    transform: translateY(-3px);
   }
 
   .fk-goal-card__timeline strong {
@@ -2192,13 +2236,46 @@
   }
 
   .fk-goal-card__empty-milestones {
+    align-items: center;
     color: var(--fk-color-text-tertiary);
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     font-size: var(--fk-type-font-font-size-body-sm);
+    justify-content: center;
     line-height: var(--fk-type-font-line-height-body-sm);
     margin: 0;
-    min-height: 20px;
-    padding-left: 19px;
-    position: relative;
+    min-height: 96px;
+    text-align: center;
+  }
+
+  .fk-goal-card__empty-milestones > svg {
+    color: var(--fk-color-icon-tertiary);
+    margin-bottom: 8px;
+  }
+
+  .fk-goal-card__empty-milestones > strong {
+    color: var(--fk-color-text-secondary);
+    font-family: var(--fk-type-font-font-family-heading-primary);
+    font-weight: 600;
+  }
+
+  .fk-goal-card__empty-action {
+    color: var(--fk-color-text-action-primary);
+    font-weight: 600;
+    margin-top: 2px;
+    text-decoration: none;
+  }
+
+  a.fk-goal-card__empty-action:hover {
+    color: var(--fk-color-text-action-primary-hover);
+    text-decoration: underline;
+  }
+
+  a.fk-goal-card__empty-action:focus-visible {
+    border-radius: 4px;
+    outline: 2px solid var(--fk-color-border-focus);
+    outline-offset: 2px;
   }
 
   .fk-modal__overlay {
@@ -4082,5 +4159,9 @@
 
   .fk-spinner {
     animation-duration: 1600ms;
+  }
+
+  .fk-goal-card__progress-ring circle {
+    animation: none;
   }
 }

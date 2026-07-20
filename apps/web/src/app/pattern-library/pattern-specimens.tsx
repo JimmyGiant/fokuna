@@ -1182,13 +1182,18 @@ export function PatternSpecimen({ slug }: { slug: string }) {
               milestones={[
                 { id: "start", title: "Trainingsplan festlegen", completed: true },
                 { id: "finish", title: "Marathon absolvieren", dueDate: "27. September 2026" },
+                { id: "recover", title: "Regeneration planen" },
               ]}
               progress={42}
               title="Mein nächstes Laufziel"
             />
           </MatrixRow>
           <MatrixRow label="Leeres Ziel">
-            <GoalCard progress={0} title="Neues Ziel" />
+            <GoalCard
+              emptyMilestoneActionHref="#create-milestone"
+              progress={0}
+              title="Neues Ziel"
+            />
           </MatrixRow>
         </Matrix>
       );
