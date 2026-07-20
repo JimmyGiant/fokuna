@@ -2237,7 +2237,7 @@
 
   .fk-goal-card__empty-milestones {
     align-items: center;
-    color: var(--fk-color-text-tertiary);
+    color: var(--fk-color-text-quarternary);
     display: flex;
     flex: 1;
     flex-direction: column;
@@ -2250,25 +2250,25 @@
   }
 
   .fk-goal-card__empty-milestones > svg {
-    color: var(--fk-color-icon-tertiary);
+    color: currentColor;
     margin-bottom: 8px;
   }
 
   .fk-goal-card__empty-milestones > strong {
-    color: var(--fk-color-text-secondary);
+    color: currentColor;
     font-family: var(--fk-type-font-font-family-heading-primary);
     font-weight: 600;
   }
 
   .fk-goal-card__empty-action {
-    color: var(--fk-color-text-action-primary);
+    color: var(--fk-color-text-action-secondary);
     font-weight: 600;
     margin-top: 2px;
     text-decoration: none;
   }
 
   a.fk-goal-card__empty-action:hover {
-    color: var(--fk-color-text-action-primary-hover);
+    color: var(--fk-color-text-action-secondary-hover);
     text-decoration: underline;
   }
 

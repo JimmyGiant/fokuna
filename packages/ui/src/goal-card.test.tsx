@@ -68,8 +68,8 @@ describe("GoalCard", () => {
       />,
     );
 
-    expect(screen.getByText("Noch keine Meilensteine")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Jetzt Meilenstein anlegen" })).toHaveAttribute(
+    expect(screen.getByText("Keine Meilenstein")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Anlegen" })).toHaveAttribute(
       "href",
       "/goals/new/milestones",
     );

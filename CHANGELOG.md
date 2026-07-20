@@ -6,7 +6,7 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
 
 ### Changed
 
-- Goal Card mit frueher ausblendendem Schmuckrand, konkaver Progress-Aussparung, animiertem SVG-Progressring ab 12 Uhr, vertikal korrigierten Meilensteinen, gemeinsamem Task-Subtask-Icon, dynamischer Drei-Schritte-Vorschau und Fahnen-Empty-State an die Layout-Vorgabe angeglichen.
+- Goal Card mit frueher ausblendendem Schmuckrand, konkaver Progress-Aussparung, animiertem SVG-Progressring ab 12 Uhr, vertikal korrigierten Meilensteinen, gemeinsamem Task-Subtask-Icon, dynamischer Drei-Schritte-Vorschau und quarternaerem Fahnen-Empty-State mit gruener Anlege-Aktion an die Layout-Vorgabe angeglichen.
 
 ### Added
 

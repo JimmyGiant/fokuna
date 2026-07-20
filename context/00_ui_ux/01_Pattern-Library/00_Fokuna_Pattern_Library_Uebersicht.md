@@ -1157,7 +1157,7 @@ States:
 - `focus visible`: klarer tokenisierter Tastaturfokus ausserhalb der Karte.
 - `without context`: fehlen Ort und Tags, wird die komplette Kontextzeile entfernt; es bleiben keine leeren Icons oder Phantomabstaende.
 - `milestone without metadata`: fehlen Datum und Subtasks, bleibt nur der Meilensteintitel sichtbar und der naechste Eintrag rueckt sauber nach.
-- `empty milestones`: eine zentrierte graue Fahne, der Hinweis `Noch keine Meilensteine` und eine optionale Anlege-Aktion ersetzen die Timeline, ohne die Kartenbreite oder Media-Geometrie zu veraendern.
+- `empty milestones`: eine zentrierte Fahne und der Hinweis `Keine Meilenstein` in `text-quarternary` sowie die gruene Aktion `Anlegen` ersetzen die Timeline, ohne die Kartenbreite oder Media-Geometrie zu veraendern.
 - `without image`: der Media-Slot bleibt fuer ein stabiles Kartenraster erhalten und zeigt einen neutralen Bild-Platzhalter.
 
 Wichtig fuer Umsetzung:
