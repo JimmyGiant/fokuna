@@ -15,6 +15,7 @@ import {
   DatePicker,
   Dropdown,
   FilterBar,
+  GoalCard,
   InputField,
   InputGroup,
   MetaMenu,
@@ -471,11 +472,13 @@ function TaskModalComposition({
               content: (
                 <div className={styles.taskEstimateMenu}>
                   <div className={styles.taskEstimateQuickSelect}>
-                    {([
-                      ["30", "30 Min"],
-                      ["60", "1 Std"],
-                      ["120", "2 Std"],
-                    ] as const).map(([value, label]) => (
+                    {(
+                      [
+                        ["30", "30 Min"],
+                        ["60", "1 Std"],
+                        ["120", "2 Std"],
+                      ] as const
+                    ).map(([value, label]) => (
                       <button
                         aria-pressed={estimate === value}
                         data-selected={estimate === value || undefined}
@@ -1140,6 +1143,54 @@ export function PatternSpecimen({ slug }: { slug: string }) {
             />
           </section>
         </div>
+      );
+
+    case "goal-card":
+      return (
+        <Matrix>
+          <MatrixRow label="Figma default">
+            <GoalCard
+              href="#goal-card"
+              imageAlt="Läuferinnen und Läufer beim Berlin Marathon"
+              imageSrc="/pattern-library/goal-card-marathon.png"
+              location="Berlin"
+              milestones={[
+                {
+                  id: "one",
+                  title: "Meilenstein Name",
+                  completed: true,
+                  subtasks: { completed: 0, total: 2 },
+                  dueDate: "27. Juli 2026",
+                },
+                {
+                  id: "two",
+                  title: "Meilenstein Name",
+                  subtasks: { completed: 0, total: 2 },
+                  dueDate: "27. Juli 2026",
+                },
+              ]}
+              progress={85}
+              tags={[{ label: "Healthy", icon: "heart" }, { label: "Sport" }]}
+              title="Berlin Marathon"
+              totalMilestones={12}
+            />
+          </MatrixRow>
+          <MatrixRow label="Ohne Ort, Tags und Subtasks">
+            <GoalCard
+              imageAlt="Läuferinnen und Läufer beim Berlin Marathon"
+              imageSrc="/pattern-library/goal-card-marathon.png"
+              milestones={[
+                { id: "start", title: "Trainingsplan festlegen", completed: true },
+                { id: "finish", title: "Marathon absolvieren", dueDate: "27. September 2026" },
+              ]}
+              progress={42}
+              title="Mein nächstes Laufziel"
+            />
+          </MatrixRow>
+          <MatrixRow label="Leeres Ziel">
+            <GoalCard progress={0} title="Neues Ziel" />
+          </MatrixRow>
+        </Matrix>
       );
 
     case "switch":

@@ -1131,6 +1131,42 @@ Wichtig fuer Umsetzung:
 - Kategorie, Icon und Badge sind Daten des Blocks. Die Rail selbst entscheidet nicht ueber deren Inhalt.
 - Die Timeline bleibt im normalen App-Betrieb sichtbar. Die Edit Rail ist ein temporaerer Bearbeitungszustand und zeigt freie Slots explizit.
 
+### 37 Goal Card
+
+Screenshot: [37_Goal_Card.png](37_Goal_Card.png)
+
+`C - Desktop - Goal Card` ist die kompakte Zielvorschau der Ziele-Uebersicht. Sie verbindet ein optionales Titelbild, den berechneten Zielfortschritt, Titel und Kontextdaten mit einer Vorschau der naechsten Meilensteine. Die gesamte Karte kann als Navigation in die Ziel-Detailansicht dienen.
+
+Varianten und Properties:
+
+- `title`: kurzer, praegnanter Zielname; lange Titel duerfen umbrechen, ohne Metadaten zu ueberlagern.
+- `image`: optionales Ziel- oder Motivbild im 144px hohen Media-Slot; ohne Bild erscheint eine ruhige tokenisierte Platzhalterflaeche.
+- `progress`: Wert von 0 bis 100; visuell als 48px-Ring und technisch als Progressbar ausgegeben.
+- `location`: optionaler Ortskontext mit 16px-Icon.
+- `tags`: optionale Liste aus Label und austauschbarem 16px-Icon; die Zeile darf bei mehreren Eintraegen umbrechen.
+- `milestones`: geordnete Meilensteinliste mit Titel, optionalem Datum und optionaler Subtask-Statistik.
+- `milestonePreviewLimit`: Anzahl der direkt sichtbaren Meilensteine; Standard sind zwei.
+- `totalMilestones`: Gesamtzahl fuer den Hinweis auf weitere Meilensteine.
+- `href`: macht die Karte zu einem semantischen, tastaturbedienbaren Link zur Ziel-Detailansicht.
+
+States:
+
+- `default`: 274 x 396px mit 8px Aussenpadding, 20px Card-Radius, 16px Media-Radius und Subtle Element Shadow.
+- `hover/pressed`: dezente Elevation bzw. Rueckkehr in die Ausgangslage, ohne die innere Geometrie zu veraendern.
+- `focus visible`: klarer tokenisierter Tastaturfokus ausserhalb der Karte.
+- `without context`: fehlen Ort und Tags, wird die komplette Kontextzeile entfernt; es bleiben keine leeren Icons oder Phantomabstaende.
+- `milestone without metadata`: fehlen Datum und Subtasks, bleibt nur der Meilensteintitel sichtbar und der naechste Eintrag rueckt sauber nach.
+- `empty milestones`: ein ruhiger Hinweis ersetzt die Timeline, ohne die Kartenbreite oder Media-Geometrie zu veraendern.
+- `without image`: der Media-Slot bleibt fuer ein stabiles Kartenraster erhalten und zeigt einen neutralen Bild-Platzhalter.
+
+Wichtig fuer Umsetzung:
+
+- Fortschritt, Meilensteinanzahl und Subtask-Zaehler werden aus den Goal-Daten berechnet und nicht als unabhaengige UI-Werte gespeichert.
+- Die Timeline ist im Code datengetrieben und nicht absolut positioniert; dadurch bleiben optionale Inhalte und laengere Bezeichnungen robust.
+- Fehlende optionale Inhalte werden vollstaendig aus dem Layout entfernt. Platzhalter sind nur fuer den bewusst stabil gehaltenen Media-Slot vorgesehen.
+- Wenn die gesamte Karte verlinkt ist, duerfen keine weiteren interaktiven Controls in den Link verschachtelt werden.
+- Bild-Alternativtext wird nur verwendet, wenn das Motiv zusaetzliche Information traegt; rein dekorative Bilder erhalten einen leeren Alternativtext.
+
 ## Einsatz im Lastenheft
 
 Diese Pattern-Library-Uebersicht soll zusammen mit den View-Screenshots und View-Uebergabenotizen gelesen werden. Die Views zeigen das konkrete Produktverhalten; diese Datei zeigt die wiederverwendbaren Bausteine dahinter. Fuer technische Folgearbeiten sollte erst geprueft werden, ob ein UI-Element bereits in dieser Pattern Library existiert, bevor ein neues technisches Component Pattern definiert wird.

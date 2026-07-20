@@ -6,6 +6,7 @@ export * from "./card-modal";
 export * from "./callout";
 export * from "./dropdown";
 export * from "./date-picker";
+export * from "./goal-card";
 export * from "./input";
 export * from "./page-layout";
 export * from "./search-field";

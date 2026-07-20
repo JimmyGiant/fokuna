@@ -7,6 +7,7 @@ export type PatternCategory =
   | "Data display"
   | "Layout"
   | "Calendar"
+  | "Goals"
   | "Tasks";
 
 export interface PatternEntry {
@@ -431,6 +432,19 @@ export const patternEntries: PatternEntry[] = [
     dimensions: ["40 × 40 px tile", "72 × 840 px timeline", "72 × 645 px edit rail"],
     variantSummary: "Reusable block tile · timeline and editable rail · empty slots · badge",
   },
+  {
+    number: 37,
+    slug: "goal-card",
+    title: "Goal Card",
+    figmaName: "C - Desktop - Goal Card",
+    figmaNodeId: "18414:6214",
+    category: "Goals",
+    implementation: "GoalCard",
+    screenshot: "37_Goal_Card.png",
+    dimensions: ["274 × 396 px", "144 px media", "48 px progress"],
+    variantSummary:
+      "Optional image, location and tags · milestone preview · progress · empty states",
+  },
 ];
 
 export const patternCategories: PatternCategory[] = [
@@ -441,6 +455,7 @@ export const patternCategories: PatternCategory[] = [
   "Feedback",
   "Data display",
   "Calendar",
+  "Goals",
   "Tasks",
   "Layout",
 ];

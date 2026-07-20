@@ -6,6 +6,7 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
 
 ### Added
 
+- Goal Card der Ziele-Uebersicht als tokenisierte, verlinkbare Pattern-Komponente mit Fortschrittsring, optionalem Bild-, Orts- und Tag-Kontext sowie robusten Meilenstein- und Empty-States ergaenzt.
 - Block-Timeline und Edit-Rail aus `C - Desktop - Blocks` als tokenisierte Pattern-Komponenten mit wiederverwendbarem BlockTile, Category-Farben, Badge und freien Edit-Slots ergänzt.
 - Sidebar: Einstellungen ist nun ein vollwertiger, unten positionierter Level-1-Navigationseintrag mit identischer 48-px-Geometrie, 24-px-Icon-Darstellung sowie denselben Hover-, Fokus- und Tooltip-States wie die übrigen Rail-Items.
 - Produktions-Workspace für App, Design-Tokens, Icons und UI-Komponenten vorbereitet.
