@@ -1,4 +1,8 @@
 @layer components {
+  :root {
+    --fk-task-column-width: 800px;
+  }
+
   .fk-sr-only {
     position: absolute;
     width: 1px;
@@ -3585,8 +3589,8 @@
     gap: 4px;
     min-height: 40px;
     padding: 8px;
-    width: 640px;
-    flex: 0 0 640px;
+    width: var(--fk-task-column-width);
+    flex: 0 0 var(--fk-task-column-width);
     transition:
       background var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
       box-shadow var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
@@ -3640,7 +3644,7 @@
     border: 1px solid transparent;
     border-radius: 8px;
     min-height: 68px;
-    width: 640px;
+    width: var(--fk-task-column-width, 800px);
   }
 
   .fk-task-item__drag,
@@ -3700,7 +3704,7 @@
 
   .fk-task-item-tree {
     display: grid;
-    width: 640px;
+    width: var(--fk-task-column-width, 800px);
   }
 
   .fk-task-item-tree__children {
@@ -3725,8 +3729,8 @@
 
   .fk-task-item[data-milestone-task="true"] {
     margin-left: 20px;
-    width: 620px;
-    flex-basis: 620px;
+    width: calc(var(--fk-task-column-width, 800px) - 20px);
+    flex-basis: calc(var(--fk-task-column-width, 800px) - 20px);
   }
 
   .fk-task-item[data-milestone-task="true"] .fk-task-item__primary-row {
@@ -3815,8 +3819,8 @@
     border: 0;
     border-radius: 0;
     overflow: hidden;
-    width: 640px;
-    flex: 0 0 640px;
+    width: var(--fk-task-column-width, 800px);
+    flex: 0 0 var(--fk-task-column-width, 800px);
   }
 
   .fk-task-group[data-expanded="false"] {
@@ -3922,12 +3926,15 @@
   }
 
   .fk-milestone-group {
+    --fk-milestone-axis-x: 64px; /* optical center of milestone circle (grid math ≈ 68px) */
+    --fk-milestone-rail-width: 2px;
+    --fk-milestone-add-icon-size: 24px;
     background: transparent;
     display: grid;
-    flex: 0 0 640px;
+    flex: 0 0 var(--fk-task-column-width, 800px);
     isolation: isolate;
     padding: 8px 0 0;
-    width: 640px;
+    width: var(--fk-task-column-width, 800px);
   }
 
   .fk-milestone-group__stage {
@@ -3939,10 +3946,10 @@
     background: var(--fk-color-border-action-secondary);
     bottom: 0;
     content: "";
-    left: 73px;
+    left: calc(var(--fk-milestone-axis-x) - (var(--fk-milestone-rail-width) / 2));
     position: absolute;
     top: 0;
-    width: 2px;
+    width: var(--fk-milestone-rail-width);
     z-index: 0;
   }
 
@@ -3985,7 +3992,7 @@
     color: var(--fk-color-text-tertiary);
     font-size: var(--fk-type-font-font-size-body-sm);
     line-height: var(--fk-type-font-line-height-body-sm);
-    margin: 0 0 8px 96px;
+    margin: 0 0 8px 88px;
     position: relative;
   }
 
@@ -3998,8 +4005,8 @@
 
   .fk-milestone-group__items .fk-task-item {
     margin-left: 0;
-    width: 620px;
-    flex-basis: 620px;
+    width: calc(var(--fk-task-column-width, 800px) - 20px);
+    flex-basis: calc(var(--fk-task-column-width, 800px) - 20px);
   }
 
   .fk-milestone-group__items .fk-task-item__expand {
@@ -4016,9 +4023,10 @@
     gap: 6px;
     cursor: pointer;
     height: 48px;
-    padding: 0 8px 0 62px;
+    /* Center the 24px plus on the milestone circle / rail axis. */
+    padding: 0 8px 0 calc(var(--fk-milestone-axis-x) - (var(--fk-milestone-add-icon-size) / 2));
     text-align: left;
-    width: 640px;
+    width: var(--fk-task-column-width, 800px);
   }
 
   .fk-milestone-group__add:hover {
@@ -4039,8 +4047,8 @@
     min-height: 48px;
     padding: 0 8px 0 52px;
     text-align: left;
-    width: 640px;
-    flex: 0 0 640px;
+    width: var(--fk-task-column-width, 800px);
+    flex: 0 0 var(--fk-task-column-width, 800px);
   }
 
   .fk-task-group__add:hover,
@@ -4061,12 +4069,14 @@
     height: 190px;
     margin-left: var(--fk-add-task-inset);
     padding: 16px;
-    width: calc(640px - var(--fk-add-task-inset));
-    flex: 0 0 calc(640px - var(--fk-add-task-inset));
+    width: calc(var(--fk-task-column-width, 800px) - var(--fk-add-task-inset));
+    flex: 0 0 calc(var(--fk-task-column-width, 800px) - var(--fk-add-task-inset));
   }
 
   .fk-milestone-group__add-form {
-    --fk-add-task-inset: 62px;
+    --fk-add-task-inset: calc(
+      var(--fk-milestone-axis-x, 64px) - (var(--fk-milestone-add-icon-size, 24px) / 2)
+    );
   }
 
   .fk-add-task__fields {

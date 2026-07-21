@@ -941,6 +941,7 @@ Wichtig fuer Umsetzung:
 - Auf Ebene 5 (`indentLevel` 4) koennen keine weiteren Subtasks angelegt werden; Expand/Collapse bleibt fuer Ebenen 1–4 mit Kindern verfuegbar.
 - Im Aufgaben-Modal entfaellt auf Ebene 5 der gesamte Unteraufgaben-Block.
 - Task-Titel (`strong`) erhalten `padding-top: 1px` fuer die optische Vertikalzentrierung zur Checkbox.
+- Listen-/Gruppenbreite der Aufgaben-View: `--fk-task-column-width` (Default `800px`); Modal-Subtasks bleiben fluid (`width: auto` / `100%`).
 - Rechtsklick oeffnet ein Kontextmenue: Bearbeiten (Modal), Prioritaet (Submenu mit farbigen Flag-Icons), Faelligkeit und Zeitschaetzung (Level-2-Panels mit denselben Controls wie die Modal-Rail: Quick-Picks + DatePicker bzw. Dauer-Dropdown), Verschieben, Duplizieren, Loeschen. Tags sind in v1 nicht Teil des Menues.
 - Prioritaets-Submenu und Modal-Rail nutzen dieselben farbigen `flag`-Icons; Faelligkeit/Zeitschaetzung sind eingebettete Submenu-Panels (nicht separate Popovers). Verschieben listet vorhandene Gruppen (`groupKey`). Loeschen steht separat als destruktive Aktion.
 - Das Dauer-Dropdown innerhalb des Zeitschaetzungs-Submenus muss oberhalb des Kontextmenues stacken (`.fk-menu--select` ueber `.fk-menu--submenu`).
@@ -1031,6 +1032,7 @@ States:
 Wichtig fuer Umsetzung:
 
 - Die Timeline-Linie ist semantisch nur visuell; die Datenstruktur bleibt Milestone -> Tasks.
+- Vertikale Rail und Plus von „Meilenstein hinzufügen“ teilen dieselbe X-Achse (`--fk-milestone-axis-x` = Kreismitte). Nach Indent-Grid-Aenderungen an Task Rows diese Achse neu kalibrieren.
 - Completion sollte aus den enthaltenen Aufgaben berechnet werden.
 - Bei langen Zielstrukturen muss die Gruppe performant rendern und ggf. virtualisiert werden.
 

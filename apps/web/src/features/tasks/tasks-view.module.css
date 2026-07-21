@@ -26,7 +26,7 @@
   display: grid;
   gap: 24px;
   align-content: start;
-  width: min(100%, 640px);
+  width: min(100%, var(--fk-task-column-width, 800px));
   margin-inline: auto;
   margin-top: var(--fk-type-font-paragraph-spacing-heading-2xl, 80px);
 }
