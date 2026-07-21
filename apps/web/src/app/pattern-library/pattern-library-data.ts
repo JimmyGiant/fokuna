@@ -358,7 +358,7 @@ export const patternEntries: PatternEntry[] = [
     implementation: "TaskListItem",
     screenshot: "29_Task_List_Item.png",
     dimensions: ["640 × 67–76 px"],
-    variantSummary: "Default, hover, dragged, placeholder · favorite",
+    variantSummary: "Default, hover, dragged, placeholder · favorite · hierarchy 5 levels",
   },
   {
     number: 30,
@@ -370,7 +370,7 @@ export const patternEntries: PatternEntry[] = [
     implementation: "TaskGroup",
     screenshot: "30_Task_Group.png",
     dimensions: ["640 × 254 px"],
-    variantSummary: "Default, dragged and placeholder",
+    variantSummary: "Expanded, collapsed · hierarchy 5 levels",
   },
   {
     number: 28,
@@ -417,7 +417,7 @@ export const patternEntries: PatternEntry[] = [
     category: "Tasks",
     implementation: "TaskModalSlot + TaskModalHeader + TaskModalMenu",
     screenshot: "35_Aufgaben_Modal_Task_Slot.png",
-    dimensions: ["848 × 566 px"],
+    dimensions: ["848 × min(80dvh, 900px)"],
     variantSummary: "Unfocused and inline-edit header · subtasks · properties · delete action",
   },
   {

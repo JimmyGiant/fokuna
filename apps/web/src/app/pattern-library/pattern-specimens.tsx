@@ -58,8 +58,9 @@ import {
   ToggleGroup,
   UiShell,
   ViewOverlay,
-  type ControlSize,
   type BlockRailItem,
+  type ControlSize,
+  type FokunaContextMenuEntry,
 } from "@fokuna/ui";
 import { useState } from "react";
 import Image from "next/image";
@@ -300,10 +301,20 @@ function TaskItems({
       <MatrixRow label="Default">
         <TaskListItem
           due="Morgen"
+          dueTone="coral"
           goal={isMilestoneHeader || isMilestoneTask ? "Mein Ziel" : "Website Launch"}
           subtasks="1/3"
           tags={["Design"]}
           title={isMilestoneHeader ? "Meilenstein A" : "Komponenten prüfen"}
+          {...sharedMilestoneProps}
+        />
+      </MatrixRow>
+      <MatrixRow label="Fälligkeit (Datum, neutral)">
+        <TaskListItem
+          due="28. Jul."
+          dueTone="neutral"
+          goal={milestoneGoal}
+          title="Späterer Termin — graue Meta"
           {...sharedMilestoneProps}
         />
       </MatrixRow>
@@ -598,7 +609,7 @@ function TaskModalComposition({
                   <SearchField
                     aria-label="Tags durchsuchen"
                     collapsedWidth={278}
-                    controlSize="sm"
+                    controlSize="md"
                     expandedWidth={278}
                     placeholder="Etikett suchen oder erstellen ..."
                   />
@@ -649,7 +660,7 @@ function TaskModalComposition({
         count={3}
         title="Unteraufgaben"
       >
-        <TaskListItem due="Morgen" subtasks="0/2" title="Recherchieren" />
+        <TaskListItem due="Morgen" dueTone="coral" subtasks="0/2" title="Recherchieren" />
         <TaskListItem title="Teile bestellen" />
         <TaskListItem title="Unteraufgabenname" />
       </TaskGroup>
@@ -1976,7 +1987,150 @@ export function PatternSpecimen({ slug }: { slug: string }) {
       return <TaskItems variant="milestone-header" />;
 
     case "task-list-item":
-      return <TaskItems />;
+      return (
+        <Matrix>
+          <MatrixRow label="States">
+            <TaskItems />
+          </MatrixRow>
+          <MatrixRow label="Hierarchie (5 Ebenen)">
+            <TaskListItem subtasks="1/1" title="Ebene 1">
+              <TaskListItem indentLevel={1} subtasks="1/1" title="Ebene 2">
+                <TaskListItem indentLevel={2} subtasks="1/1" title="Ebene 3">
+                  <TaskListItem indentLevel={3} subtasks="1/1" title="Ebene 4">
+                    <TaskListItem indentLevel={4} title="Ebene 5" />
+                  </TaskListItem>
+                </TaskListItem>
+              </TaskListItem>
+            </TaskListItem>
+          </MatrixRow>
+          <MatrixRow label="Rechtsklick-Kontextmenü">
+            <div style={{ maxWidth: 480 }}>
+              <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--fk-color-text-secondary)" }}>
+                Rechtsklick: Priorität, Fälligkeit und Zeitschätzung als Level-2-Submenus (Panels mit
+                DatePicker bzw. Dauer-Dropdown wie in der Modal-Rail).
+              </p>
+              <TaskListItem
+                contextMenuItems={
+                  [
+                    { label: "Bearbeiten", icon: "edit" },
+                    {
+                      type: "submenu",
+                      label: "Priorität",
+                      icon: "flag",
+                      children: [
+                        {
+                          label: "Hoch",
+                          checked: true,
+                          leading: (
+                            <FokunaIcon
+                              fill="on"
+                              name="flag"
+                              size={16}
+                              stroke={1.5}
+                              style={{ color: "var(--fk-color-task-priority-urgent)" }}
+                            />
+                          ),
+                        },
+                        {
+                          label: "Mittel",
+                          leading: (
+                            <FokunaIcon
+                              fill="on"
+                              name="flag"
+                              size={16}
+                              stroke={1.5}
+                              style={{ color: "var(--fk-color-task-priority-medium)" }}
+                            />
+                          ),
+                        },
+                        {
+                          label: "Niedrig",
+                          leading: (
+                            <FokunaIcon
+                              fill="on"
+                              name="flag"
+                              size={16}
+                              stroke={1.5}
+                              style={{ color: "var(--fk-color-task-priority-low)" }}
+                            />
+                          ),
+                        },
+                        {
+                          label: "Keine",
+                          leading: (
+                            <FokunaIcon
+                              fill="off"
+                              name="flag"
+                              size={16}
+                              stroke={1.5}
+                              style={{ color: "var(--fk-color-icon-tertiary)" }}
+                            />
+                          ),
+                        },
+                      ],
+                    },
+                    {
+                      type: "submenu",
+                      label: "Fälligkeit",
+                      icon: "calendar",
+                      panel: true,
+                      content: (
+                        <div className="fk-task-property-panel">
+                          <div className="fk-task-property-quick">
+                            <button type="button">Heute</button>
+                            <button type="button">Morgen</button>
+                            <button type="button">Kein</button>
+                          </div>
+                          <span style={{ fontSize: 12, color: "var(--fk-color-text-tertiary)" }}>
+                            DatePicker (inline) im Submenu
+                          </span>
+                        </div>
+                      ),
+                    },
+                    {
+                      type: "submenu",
+                      label: "Zeitschätzung",
+                      icon: "clock",
+                      panel: true,
+                      content: (
+                        <div className="fk-task-property-panel">
+                          <div className="fk-task-property-quick">
+                            <button type="button">30 Min</button>
+                            <button type="button">1 Std</button>
+                            <button type="button">2 Std</button>
+                          </div>
+                          <span style={{ fontSize: 12, color: "var(--fk-color-text-tertiary)" }}>
+                            Dauer-Dropdown im Submenu
+                          </span>
+                        </div>
+                      ),
+                    },
+                    {
+                      type: "submenu",
+                      label: "Verschieben",
+                      icon: "folder",
+                      children: [
+                        { label: "Ohne Abschnitt" },
+                        { label: "Heute", checked: true },
+                        { label: "Eingang" },
+                      ],
+                    },
+                    { label: "Duplizieren", icon: "layers" },
+                    { type: "separator" },
+                    { label: "Löschen", icon: "delete", destructive: true },
+                  ] satisfies FokunaContextMenuEntry[]
+                }
+                due="Morgen"
+                dueTone="coral"
+                goal="Website Launch"
+                subtasks="1/3"
+                tags={["Design"]}
+                title="Komponenten prüfen"
+              />
+            </div>
+          </MatrixRow>
+        </Matrix>
+      );
 
     case "task-group":
       return (
@@ -1985,6 +2139,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
             <TaskGroup count={3} draggable title="Abschnitt 3">
               <TaskListItem
                 due="Morgen"
+                dueTone="coral"
                 goal="Website Launch"
                 subtasks="1/3"
                 tags={["Design"]}
@@ -2001,6 +2156,19 @@ export function PatternSpecimen({ slug }: { slug: string }) {
           </MatrixRow>
           <MatrixRow label="Collapsed">
             <TaskGroup count={3} defaultExpanded={false} title="Abschnitt 3" />
+          </MatrixRow>
+          <MatrixRow label="Hierarchie (5 Ebenen)">
+            <TaskGroup count={5} title="Einrückung">
+              <TaskListItem subtasks="1/1" title="Ebene 1">
+                <TaskListItem indentLevel={1} subtasks="1/1" title="Ebene 2">
+                  <TaskListItem indentLevel={2} subtasks="1/1" title="Ebene 3">
+                    <TaskListItem indentLevel={3} subtasks="1/1" title="Ebene 4">
+                      <TaskListItem indentLevel={4} title="Ebene 5" />
+                    </TaskListItem>
+                  </TaskListItem>
+                </TaskListItem>
+              </TaskListItem>
+            </TaskGroup>
           </MatrixRow>
         </Matrix>
       );

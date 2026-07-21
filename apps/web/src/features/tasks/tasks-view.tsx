@@ -18,6 +18,11 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { BlockDto, CalendarEntryDto, TaskDto } from "@fokuna/api-contracts";
+import {
+  canCreateSubtaskAtDepth,
+  TASK_MAX_INDENT_LEVEL,
+  type TaskIndentLevel,
+} from "@fokuna/domain";
 import { FokunaIcon, type IconName } from "@fokuna/icons";
 import {
   AddTask,
@@ -35,6 +40,7 @@ import {
   getCalendarEntryPosition,
   type BlockRailItem,
   type BlockTone,
+  type FokunaContextMenuEntry,
 } from "@fokuna/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -42,6 +48,8 @@ import { Children, useMemo, useState, type ReactNode } from "react";
 
 import { apiGet, apiSend } from "@/lib/api";
 import { TaskDetailModal } from "./task-detail-modal";
+import { TaskDueDateMenuPanel, TaskEstimateMenuPanel } from "./task-property-editor";
+import { priorityOptions } from "./task-property-options";
 import styles from "./tasks-view.module.css";
 
 const ROOT_GROUP = "root";
@@ -74,7 +82,19 @@ function formatDueLabel(dueDate: string | null): string | undefined {
   return due.toLocaleDateString("de-DE", { day: "numeric", month: "short" });
 }
 
+/** Near-term dues may emphasize; other dates stay neutral meta gray. */
+function dueMetaTone(dueDate: string | null): "coral" | "neutral" {
+  if (!dueDate) return "neutral";
+  const due = new Date(`${dueDate}T12:00:00`);
+  const today = new Date();
+  today.setHours(12, 0, 0, 0);
+  const diffDays = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  if (diffDays === 0 || diffDays === 1) return "coral";
+  return "neutral";
+}
+
 function groupTitle(groupKey: string): string {
+  if (groupKey === ROOT_GROUP) return "Ohne Abschnitt";
   if (groupKey === "today") return "Heute";
   if (groupKey === "inbox") return "Eingang";
   if (groupKey === "abschnitt-4") return "Abschnitt 4";
@@ -140,6 +160,8 @@ function SortableTask({
   children,
   goalTitle,
   subtaskLabel,
+  indentLevel = 0,
+  contextMenuItems,
   onOpen,
   onToggle,
   onFavorite,
@@ -148,6 +170,8 @@ function SortableTask({
   children?: ReactNode;
   goalTitle?: string;
   subtaskLabel?: string;
+  indentLevel?: TaskIndentLevel;
+  contextMenuItems?: FokunaContextMenuEntry[];
   onOpen: (task: TaskDto) => void;
   onToggle: (task: TaskDto, completed: boolean) => void;
   onFavorite: (task: TaskDto, favorite: boolean) => void;
@@ -168,9 +192,12 @@ function SortableTask({
     >
       <TaskListItem
         completed={task.isCompleted}
+        contextMenuItems={contextMenuItems}
         due={formatDueLabel(task.dueDate)}
+        dueTone={dueMetaTone(task.dueDate)}
         favorite={task.isFavorite}
         goal={goalTitle}
+        indentLevel={indentLevel}
         onClick={() => onOpen(task)}
         onCompletedChange={(completed) => onToggle(task, completed)}
         onFavoriteChange={(favorite) => onFavorite(task, favorite)}
@@ -196,6 +223,21 @@ function listTitleForFilter(filter: string): string {
   if (filter === "today") return "Heute";
   if (filter === "inbox") return "Eingang";
   return "Alle Aufgaben";
+}
+
+function normalizePriority(priority: TaskDto["priority"]): TaskDto["priority"] {
+  return priority === "high" ? "urgent" : priority;
+}
+
+function countTaskTree(
+  roots: TaskDto[],
+  childrenByParent: Map<string, TaskDto[]>,
+): number {
+  function countNode(task: TaskDto): number {
+    const children = childrenByParent.get(task.id) ?? [];
+    return 1 + children.reduce((sum, child) => sum + countNode(child), 0);
+  }
+  return roots.reduce((sum, task) => sum + countNode(task), 0);
 }
 
 export function TasksView() {
@@ -233,6 +275,13 @@ export function TasksView() {
       description?: string;
       groupKey: string;
       parentTaskId?: string;
+      goalId?: string;
+      milestoneId?: string;
+      priority?: TaskDto["priority"];
+      estimateMinutes?: number;
+      dueDate?: string;
+      tags?: string[];
+      isFavorite?: boolean;
     }) => apiSend<TaskDto>("/api/v1/tasks", "POST", payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["tasks"] });
@@ -370,6 +419,12 @@ export function TasksView() {
 
   const activeTask = visibleTasks.find((task) => task.id === activeId) ?? null;
   const selectedTask = (tasksQuery.data ?? []).find((task) => task.id === selectedTaskId) ?? null;
+  const tasksById = useMemo(
+    () => new Map((tasksQuery.data ?? []).map((task) => [task.id, task])),
+    [tasksQuery.data],
+  );
+  const selectedTaskDepth = selectedTask ? getTaskDepth(selectedTask, tasksById) : 1;
+  const canCreateSelectedSubtask = canCreateSubtaskAtDepth(selectedTaskDepth);
   const selectedSubtasks = selectedTask
     ? (tasksQuery.data ?? [])
         .filter((task) => task.parentTaskId === selectedTask.id)
@@ -377,17 +432,16 @@ export function TasksView() {
     : [];
   const selectedBreadcrumbItems = useMemo(() => {
     if (!selectedTask) return [];
-    const byId = new Map((tasksQuery.data ?? []).map((task) => [task.id, task]));
     const chain: Array<{ id: string; label: string }> = [];
     let cursor = selectedTask.parentTaskId
-      ? byId.get(selectedTask.parentTaskId)
+      ? tasksById.get(selectedTask.parentTaskId)
       : undefined;
     while (cursor) {
       chain.unshift({ id: cursor.id, label: cursor.title });
-      cursor = cursor.parentTaskId ? byId.get(cursor.parentTaskId) : undefined;
+      cursor = cursor.parentTaskId ? tasksById.get(cursor.parentTaskId) : undefined;
     }
     return chain;
-  }, [selectedTask, tasksQuery.data]);
+  }, [selectedTask, tasksById]);
   const railItems = toBlockRailItems(blocksQuery.data ?? []);
   const blocksById = useMemo(
     () => new Map((blocksQuery.data ?? []).map((block) => [block.id, block])),
@@ -442,6 +496,134 @@ export function TasksView() {
     reorderMutation.mutate({ groupKey: activeTaskItem.groupKey, orderedIds });
   }
 
+  function getTaskDepth(task: TaskDto, byId: Map<string, TaskDto>): number {
+    let depth = 1;
+    let cursor = task.parentTaskId ? byId.get(task.parentTaskId) : undefined;
+    while (cursor) {
+      depth += 1;
+      cursor = cursor.parentTaskId ? byId.get(cursor.parentTaskId) : undefined;
+    }
+    return depth;
+  }
+
+  function buildTaskContextMenuItems(task: TaskDto): FokunaContextMenuEntry[] {
+    const currentPriority = normalizePriority(task.priority);
+
+    function patchTask(taskId: string, patch: Partial<TaskDto>) {
+      updateMutation.mutate({ id: taskId, ...patch });
+    }
+
+    return [
+      {
+        label: "Bearbeiten",
+        icon: "edit",
+        onSelect: () => setTaskQuery(task.id),
+      },
+      {
+        type: "submenu",
+        label: "Priorität",
+        icon: "flag",
+        children: priorityOptions.map((option) => ({
+          label: option.label,
+          checked: currentPriority === option.value,
+          leading: (
+            <FokunaIcon
+              fill={option.value === "none" ? "off" : "on"}
+              name="flag"
+              size={16}
+              stroke={1.5}
+              style={{ color: option.color }}
+            />
+          ),
+          onSelect: () => patchTask(task.id, { priority: option.value }),
+        })),
+      },
+      {
+        type: "submenu",
+        label: "Fälligkeit",
+        icon: "calendar",
+        panel: true,
+        content: <TaskDueDateMenuPanel onUpdate={patchTask} task={task} />,
+      },
+      {
+        type: "submenu",
+        label: "Zeitschätzung",
+        icon: "clock",
+        panel: true,
+        content: <TaskEstimateMenuPanel onUpdate={patchTask} task={task} />,
+      },
+      {
+        type: "submenu",
+        label: "Verschieben",
+        icon: "folder",
+        children: orderedGroupKeys.map((groupKey) => ({
+          label: groupTitle(groupKey),
+          checked: task.groupKey === groupKey,
+          onSelect: () => patchTask(task.id, { groupKey }),
+        })),
+      },
+      {
+        label: "Duplizieren",
+        icon: "layers",
+        onSelect: () =>
+          createMutation.mutate({
+            title: `${task.title} (Kopie)`,
+            description: task.description ?? undefined,
+            groupKey: task.groupKey,
+            parentTaskId: task.parentTaskId ?? undefined,
+            goalId: task.goalId ?? undefined,
+            milestoneId: task.milestoneId ?? undefined,
+            priority: normalizePriority(task.priority),
+            estimateMinutes: task.estimateMinutes ?? undefined,
+            dueDate: task.dueDate ?? undefined,
+            tags: task.tags,
+            isFavorite: task.isFavorite,
+          }),
+      },
+      { type: "separator" },
+      {
+        label: "Löschen",
+        icon: "delete",
+        destructive: true,
+        onSelect: () => deleteMutation.mutate(task.id),
+      },
+    ];
+  }
+
+  function renderNestedTask(task: TaskDto, indentLevel: TaskIndentLevel): ReactNode {
+    const children = childrenByParent.get(task.id) ?? [];
+    const subtaskLabel =
+      children.length > 0
+        ? `${children.filter((child) => child.isCompleted).length}/${children.length}`
+        : undefined;
+    const nextIndent = Math.min(indentLevel + 1, TASK_MAX_INDENT_LEVEL) as TaskIndentLevel;
+
+    return (
+      <TaskListItem
+        completed={task.isCompleted}
+        contextMenuItems={buildTaskContextMenuItems(task)}
+        due={formatDueLabel(task.dueDate)}
+        dueTone={dueMetaTone(task.dueDate)}
+        favorite={task.isFavorite}
+        goal={task.goalId ? goalTitles.get(task.goalId) : undefined}
+        indentLevel={indentLevel}
+        key={task.id}
+        onClick={() => setTaskQuery(task.id)}
+        onCompletedChange={(completed) =>
+          updateMutation.mutate({ id: task.id, isCompleted: completed })
+        }
+        onFavoriteChange={(favorite) =>
+          updateMutation.mutate({ id: task.id, isFavorite: favorite })
+        }
+        subtasks={subtaskLabel}
+        tags={task.tags}
+        title={task.title}
+      >
+        {children.map((child) => renderNestedTask(child, nextIndent))}
+      </TaskListItem>
+    );
+  }
+
   function renderTask(task: TaskDto) {
     const children = childrenByParent.get(task.id) ?? [];
     const subtaskLabel =
@@ -451,6 +633,7 @@ export function TasksView() {
 
     return (
       <SortableTask
+        contextMenuItems={buildTaskContextMenuItems(task)}
         goalTitle={task.goalId ? goalTitles.get(task.goalId) : undefined}
         key={task.id}
         onFavorite={(current, favorite) =>
@@ -463,52 +646,7 @@ export function TasksView() {
         subtaskLabel={subtaskLabel}
         task={task}
       >
-        {children.map((child) => {
-          const nested = childrenByParent.get(child.id) ?? [];
-          const nestedLabel =
-            nested.length > 0
-              ? `${nested.filter((item) => item.isCompleted).length}/${nested.length}`
-              : undefined;
-
-          return (
-            <TaskListItem
-              completed={child.isCompleted}
-              due={formatDueLabel(child.dueDate)}
-              favorite={child.isFavorite}
-              indentLevel={1}
-              key={child.id}
-              onClick={() => setTaskQuery(child.id)}
-              onCompletedChange={(completed) =>
-                updateMutation.mutate({ id: child.id, isCompleted: completed })
-              }
-              onFavoriteChange={(favorite) =>
-                updateMutation.mutate({ id: child.id, isFavorite: favorite })
-              }
-              subtasks={nestedLabel}
-              tags={child.tags}
-              title={child.title}
-            >
-              {nested.map((grandchild) => (
-                <TaskListItem
-                  completed={grandchild.isCompleted}
-                  due={formatDueLabel(grandchild.dueDate)}
-                  favorite={grandchild.isFavorite}
-                  indentLevel={1}
-                  key={grandchild.id}
-                  onClick={() => setTaskQuery(grandchild.id)}
-                  onCompletedChange={(completed) =>
-                    updateMutation.mutate({ id: grandchild.id, isCompleted: completed })
-                  }
-                  onFavoriteChange={(favorite) =>
-                    updateMutation.mutate({ id: grandchild.id, isFavorite: favorite })
-                  }
-                  tags={grandchild.tags}
-                  title={grandchild.title}
-                />
-              ))}
-            </TaskListItem>
-          );
-        })}
+        {children.map((child) => renderNestedTask(child, 1))}
       </SortableTask>
     );
   }
@@ -613,7 +751,7 @@ export function TasksView() {
 
                 return (
                   <TaskGroup
-                    count={tasks.length}
+                    count={countTaskTree(tasks, childrenByParent)}
                     key={groupKey}
                     onAddSubmit={async ({ title, description }) => {
                       await createMutation.mutateAsync({
@@ -715,8 +853,12 @@ export function TasksView() {
       </aside>
 
       <TaskDetailModal
+        canCreateSubtask={canCreateSelectedSubtask}
         onCreateSubtask={async ({ parentTaskId, title, description }) => {
           const parent = (tasksQuery.data ?? []).find((task) => task.id === parentTaskId);
+          if (parent && !canCreateSubtaskAtDepth(getTaskDepth(parent, tasksById))) {
+            return;
+          }
           await createMutation.mutateAsync({
             title,
             description,

@@ -109,7 +109,7 @@ const globalStore = globalThis as typeof globalThis & {
   __fokunaMemoryStoreVersion?: number;
 };
 
-const MEMORY_STORE_VERSION = 5;
+const MEMORY_STORE_VERSION = 6;
 
 function createStore(): MemoryStore {
   const store: MemoryStore = {

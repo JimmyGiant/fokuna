@@ -5,6 +5,9 @@ import { requireAuthSecret } from "../env";
 
 export const DEMO_SESSION_COOKIE = "fokuna_demo_session";
 
+/** Stable id so seed data and demo sessions survive HMR / module reloads. */
+export const DEMO_SEED_USER_ID = "user_demo_seed";
+
 interface DemoUser {
   id: string;
   name: string;
@@ -17,7 +20,16 @@ interface DemoSessionPayload {
   exp: number;
 }
 
-const users = new Map<string, DemoUser>();
+const globalDemoAuth = globalThis as typeof globalThis & {
+  __fokunaDemoUsers?: Map<string, DemoUser>;
+};
+
+function getUsers(): Map<string, DemoUser> {
+  if (!globalDemoAuth.__fokunaDemoUsers) {
+    globalDemoAuth.__fokunaDemoUsers = new Map();
+  }
+  return globalDemoAuth.__fokunaDemoUsers;
+}
 
 function sign(value: string): string {
   return createHmac("sha256", requireAuthSecret()).update(value).digest("base64url");
@@ -63,6 +75,7 @@ export function registerDemoUser(input: {
   email: string;
   password: string;
 }): DemoUser {
+  const users = getUsers();
   const email = input.email.trim().toLowerCase();
   if ([...users.values()].some((user) => user.email === email)) {
     throw new Error("EMAIL_TAKEN");
@@ -79,6 +92,7 @@ export function registerDemoUser(input: {
 }
 
 export function authenticateDemoUser(email: string, password: string): DemoUser | null {
+  const users = getUsers();
   const normalized = email.trim().toLowerCase();
   const user = [...users.values()].find((entry) => entry.email === normalized);
   if (!user || user.password !== password) {
@@ -101,7 +115,7 @@ export function getDemoSession(token: string | undefined): {
   if (!payload) {
     return null;
   }
-  const user = users.get(payload.userId);
+  const user = getUsers().get(payload.userId);
   if (!user) {
     return null;
   }
@@ -120,15 +134,19 @@ export function deleteDemoSession(): void {
 
 /** Seed a predictable local user for Playwright and first-run demos. */
 export function ensureDemoSeedUser(): DemoUser {
+  const users = getUsers();
   const existing = [...users.values()].find((user) => user.email === "demo@fokuna.app");
   if (existing) {
     return existing;
   }
-  return registerDemoUser({
+  const user: DemoUser = {
+    id: DEMO_SEED_USER_ID,
     name: "Demo Nutzer",
     email: "demo@fokuna.app",
     password: "demo-password-123",
-  });
+  };
+  users.set(user.id, user);
+  return user;
 }
 
 ensureDemoSeedUser();

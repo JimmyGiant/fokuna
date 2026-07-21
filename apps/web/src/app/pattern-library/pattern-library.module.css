@@ -1315,7 +1315,7 @@
   align-items: center;
   background: transparent;
   border: 0;
-  border-radius: 4px;
+  border-radius: 8px;
   color: var(--fk-color-text-secondary);
   cursor: pointer;
   display: grid;

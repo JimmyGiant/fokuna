@@ -1,14 +1,25 @@
 "use client";
 
 import { FokunaIcon } from "@fokuna/icons";
+import {
+  TASK_MAX_DEPTH,
+  TASK_MAX_INDENT_LEVEL,
+  type TaskIndentLevel,
+} from "@fokuna/domain";
 import { Dialog, Popover } from "radix-ui";
 import { Children, useState, type HTMLAttributes, type ReactNode } from "react";
 
 import { Button } from "./button";
+import {
+  FokunaContextMenu,
+  type FokunaContextMenuEntry,
+} from "./context-menu";
 import { Checkbox } from "./selection-control";
 import { SubtaskIcon } from "./subtask-icon";
-import { Tag } from "./tag";
+import { Tag, type TagTone } from "./tag";
 import { cn } from "./utils";
+
+export { TASK_MAX_DEPTH, TASK_MAX_INDENT_LEVEL, type TaskIndentLevel };
 
 export type TaskItemState = "default" | "hover" | "selected" | "dragged" | "placeholder";
 
@@ -27,7 +38,15 @@ export interface TaskListItemProps extends HTMLAttributes<HTMLDivElement> {
   expandable?: boolean;
   expanded?: boolean;
   defaultExpanded?: boolean;
-  indentLevel?: 0 | 1;
+  /** 0 = root … 4 = fifth (deepest) level. */
+  indentLevel?: TaskIndentLevel;
+  /**
+   * Due meta tone. Near-term (`Heute` / `Morgen`) may use emphasis (e.g. coral);
+   * other dates stay neutral gray meta.
+   */
+  dueTone?: TagTone;
+  /** Right-click menu entries for this row (not nested children). */
+  contextMenuItems?: FokunaContextMenuEntry[];
   onCompletedChange?: (completed: boolean) => void;
   onExpandedChange?: (expanded: boolean) => void;
   onFavoriteChange?: (favorite: boolean) => void;
@@ -41,6 +60,7 @@ export function TaskListItem({
   state = "default",
   goal,
   due,
+  dueTone = "neutral",
   tags = [],
   subtasks,
   milestone,
@@ -49,6 +69,7 @@ export function TaskListItem({
   expanded: expandedProp,
   defaultExpanded = true,
   indentLevel = 0,
+  contextMenuItems,
   onCompletedChange,
   onExpandedChange,
   onFavoriteChange,
@@ -60,9 +81,16 @@ export function TaskListItem({
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const isFavorite = onFavoriteChange ? Boolean(favorite) : internalFavorite;
   const resolvedGoal = goal ?? (milestone || milestoneTask ? "Mein Ziel" : undefined);
-  const isExpandable = milestoneTask ? false : (expandable ?? Boolean(subtasks));
+  const childCount = Children.count(children);
+  const isExpandable = milestoneTask
+    ? false
+    : (expandable ?? (Boolean(subtasks) || childCount > 0));
   const isExpanded = expandedProp ?? internalExpanded;
   const hasMeta = Boolean(description || subtasks || resolvedGoal || due || tags.length);
+  const resolvedIndent = Math.max(
+    0,
+    Math.min(TASK_MAX_INDENT_LEVEL, indentLevel),
+  ) as TaskIndentLevel;
 
   function setExpanded(nextExpanded: boolean) {
     if (expandedProp === undefined) setInternalExpanded(nextExpanded);
@@ -79,7 +107,7 @@ export function TaskListItem({
       aria-grabbed={state === "dragged" || undefined}
       className={cn("fk-task-item", className)}
       data-has-meta={hasMeta || undefined}
-      data-indent={indentLevel || undefined}
+      data-indent={resolvedIndent || undefined}
       data-milestone={milestone || undefined}
       data-milestone-task={milestoneTask || undefined}
       data-expanded={isExpandable ? isExpanded : undefined}
@@ -139,7 +167,7 @@ export function TaskListItem({
                 </Tag>
               ) : null}
               {due ? (
-                <Tag icon="calendar" tone="coral">
+                <Tag icon="calendar" tone={dueTone}>
                   {due}
                 </Tag>
               ) : null}
@@ -169,12 +197,19 @@ export function TaskListItem({
     </div>
   );
 
+  const row =
+    contextMenuItems && contextMenuItems.length > 0 ? (
+      <FokunaContextMenu items={contextMenuItems}>{item}</FokunaContextMenu>
+    ) : (
+      item
+    );
+
   // Empty arrays are truthy — only wrap when there are real child nodes.
-  if (Children.count(children) === 0) return item;
+  if (childCount === 0) return row;
 
   return (
     <div className="fk-task-item-tree" data-expanded={isExpanded}>
-      {item}
+      {row}
       {isExpanded ? <div className="fk-task-item-tree__children">{children}</div> : null}
     </div>
   );
@@ -239,6 +274,8 @@ export interface TaskGroupProps extends HTMLAttributes<HTMLElement> {
   addLabel?: string;
   addNamePlaceholder?: string;
   milestone?: boolean;
+  /** When false, the inline add-row is omitted (e.g. max nesting depth). Default true. */
+  showAdd?: boolean;
   actions?: ReactNode;
   onExpandedChange?: (expanded: boolean) => void;
   onAddSubmit?: (payload: AddTaskSubmitPayload) => void | Promise<void>;
@@ -253,6 +290,7 @@ export function TaskGroup({
   addLabel = "Aufgabe hinzufügen",
   addNamePlaceholder = "Aufgabenname",
   milestone,
+  showAdd = true,
   actions,
   onExpandedChange,
   onAddSubmit,
@@ -288,20 +326,22 @@ export function TaskGroup({
       {expanded ? (
         <div className="fk-task-group__items fk-task-list" data-adding={adding || undefined}>
           {children}
-          {adding ? (
-            <AddTask
-              expanded
-              namePlaceholder={addNamePlaceholder}
-              onExpandedChange={setAdding}
-              onSubmit={onAddSubmit}
-              submitLabel={addLabel}
-            />
-          ) : (
-            <button className="fk-task-group__add" onClick={() => setAdding(true)} type="button">
-              <FokunaIcon name="add-small" size={24} />
-              {addLabel}
-            </button>
-          )}
+          {showAdd ? (
+            adding ? (
+              <AddTask
+                expanded
+                namePlaceholder={addNamePlaceholder}
+                onExpandedChange={setAdding}
+                onSubmit={onAddSubmit}
+                submitLabel={addLabel}
+              />
+            ) : (
+              <button className="fk-task-group__add" onClick={() => setAdding(true)} type="button">
+                <FokunaIcon name="add-small" size={24} />
+                {addLabel}
+              </button>
+            )
+          ) : null}
         </div>
       ) : null}
     </section>

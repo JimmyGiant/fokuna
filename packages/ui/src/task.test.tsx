@@ -22,20 +22,35 @@ describe("task composition patterns", () => {
     render(
       <>
         <TaskListItem indentLevel={1} title="Kompakter Untertask" />
+        <TaskListItem indentLevel={3} title="Tiefe Ebene" />
         <TaskListItem subtasks="1/3" title="Task mit Metadaten" />
       </>,
     );
 
     const compactTask = screen.getByText("Kompakter Untertask").closest(".fk-task-item");
+    const deepTask = screen.getByText("Tiefe Ebene").closest(".fk-task-item");
     const taskWithMeta = screen.getByText("Task mit Metadaten").closest(".fk-task-item");
 
     expect(compactTask).toHaveAttribute("data-indent", "1");
+    expect(deepTask).toHaveAttribute("data-indent", "3");
     expect(compactTask).not.toHaveAttribute("data-has-meta");
     expect(compactTask?.querySelector(".fk-task-item__meta")).not.toBeInTheDocument();
     expect(compactTask?.querySelector(".fk-task-item__expand svg")).not.toBeInTheDocument();
     expect(taskWithMeta).toHaveAttribute("data-has-meta", "true");
     expect(taskWithMeta?.querySelector(".fk-task-item__meta")).toBeInTheDocument();
     expect(taskWithMeta?.querySelector(".fk-task-item__expand svg")).toBeInTheDocument();
+  });
+
+  it("expands nested children even without a subtasks label", () => {
+    render(
+      <TaskListItem title="Hauptaufgabe">
+        <TaskListItem indentLevel={1} title="Unteraufgabe" />
+      </TaskListItem>,
+    );
+
+    expect(screen.getByText("Unteraufgabe")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Aufgabendetails ausblenden" }));
+    expect(screen.queryByText("Unteraufgabe")).not.toBeInTheDocument();
   });
 
   it("keeps milestone tasks on one hierarchy level while retaining goal metadata", () => {

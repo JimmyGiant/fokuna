@@ -1,6 +1,6 @@
 import type { CreateTaskInput, TaskDto, UpdateTaskInput } from "@fokuna/api-contracts";
 import { and, asc, eq, isNull, task as taskTable } from "@fokuna/db";
-import { createId } from "@fokuna/domain";
+import { canCreateSubtaskAtDepth, createId, TASK_MAX_DEPTH } from "@fokuna/domain";
 
 import { getDatabase } from "../db";
 import { getDataDriver } from "../env";
@@ -75,6 +75,22 @@ export async function getTask(userId: string, taskId: string): Promise<TaskDto |
 }
 
 export async function createTask(userId: string, input: CreateTaskInput): Promise<TaskDto> {
+  if (input.parentTaskId) {
+    const parent = await getTask(userId, input.parentTaskId);
+    if (!parent) {
+      throw new Error("Parent task not found");
+    }
+    let parentDepth = 1;
+    let cursor = parent.parentTaskId ? await getTask(userId, parent.parentTaskId) : null;
+    while (cursor) {
+      parentDepth += 1;
+      cursor = cursor.parentTaskId ? await getTask(userId, cursor.parentTaskId) : null;
+    }
+    if (!canCreateSubtaskAtDepth(parentDepth)) {
+      throw new Error(`Tasks cannot nest deeper than ${TASK_MAX_DEPTH} levels`);
+    }
+  }
+
   const now = new Date();
   const id = createId("task");
 

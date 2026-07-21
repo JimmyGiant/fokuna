@@ -246,7 +246,7 @@ States:
 Wichtig fuer Umsetzung:
 
 - Nicht fuer Hauptnavigation verwenden.
-- Aktuelle Ebene visuell klar, aber nicht ueberbetont darstellen.
+- Gesamter Breadcrumb-Trail (Segmente, Current, Separator-Icons, Collapsed-Trigger) nutzt `text-quarternary`.
 - Lange Breadcrumbs muessen kuerzbar oder responsiv umbrechbar sein.
 - Ab drei Segmenten die Collapsed-/Punkt-Variante nutzen (`first › … › current`), damit der Pfad einzeilig bleibt; Umbruch nur als aeusserster Notfall.
 - Separatoren sind rein visuell und nicht Teil des Screenreader-Labels.
@@ -385,6 +385,8 @@ Wichtig fuer Umsetzung:
 - Dropdown Buttons fuer kontrollierte Auswahl oder versteckte Panel-Interaktion.
 - Keine primaeren Workflows komplett hinter Dropdowns verstecken.
 - Menues muessen ausserhalb klicken, Escape und Tastaturnavigation unterstuetzen.
+- Rechtsklick-Kontextmenues nutzen dasselbe `.fk-menu`-Styling wie Meta-Menues (`FokunaContextMenu`), inkl. Separator, destruktiver Items und Submenus mit Checkmark fuer den aktuellen Wert.
+- Eingebettete Select-/Dropdown-Listen (z. B. Zeitschaetzung im Kontextmenue) nutzen `.fk-menu--select` mit hoeherem z-index als Kontext-Submenus, damit die Optionsliste vor dem Panel liegt.
 
 ### 12 Filter Bar
 
@@ -872,6 +874,8 @@ Wichtig fuer Umsetzung:
 - Header klickt nicht automatisch jede Aufgabe an; Collapse/Expand und Drag muessen getrennte Zielbereiche haben.
 - Gruppentitel kann spaeter editierbar werden, sollte aber nicht mit dem ganzen Header-Klick kollidieren.
 - Hover darf keine Hoehenspruenge erzeugen.
+- Der Count hinter dem Titel nutzt `text-quarternary` (nicht tertiary).
+- Der Count zaehlt alle sichtbaren Tasks der Gruppe inklusive verschachtelter Subtasks (nicht nur Root-Items).
 
 ### 28 Milestone Header Item
 
@@ -931,7 +935,15 @@ Wichtig fuer Umsetzung:
 - Checkbox, Favorite, Drag Handle und Zeilenklick brauchen getrennte Event-Zonen.
 - Drag-and-Drop darf nicht beim Anklicken der Checkbox starten.
 - Metadata-Tags muessen mit bestehenden Tag- und Category-/Priority-Tokens arbeiten.
+- Faelligkeits-Meta: `Heute` und `Morgen` duerfen betont werden (`tone=coral`); alle anderen Daten (inkl. spaetere Zukunft und formatierte Datumsangaben) nutzen neutrales Grau wie Standard-Meta (`tone=neutral`) — keine Korall-/Error-Farbe fuer spaetere Termine.
 - Lange Titel muessen umbrechen oder ellipsieren, ohne die Listenhoehe unkontrolliert zu zerstoeren.
+- Hierarchie: bis zu fuenf Ebenen (`indentLevel` 0–4). Chevron- und Checkbox-Spalte sind gleich breit (16px), Gap 8px → Indent-Schritt 24px. Dadurch sitzt der Chevron des Kindes zentriert unter der Parent-Checkbox, und der Parent-Titel beginnt an der linken Kante der Kind-Checkbox.
+- Auf Ebene 5 (`indentLevel` 4) koennen keine weiteren Subtasks angelegt werden; Expand/Collapse bleibt fuer Ebenen 1–4 mit Kindern verfuegbar.
+- Im Aufgaben-Modal entfaellt auf Ebene 5 der gesamte Unteraufgaben-Block.
+- Task-Titel (`strong`) erhalten `padding-top: 1px` fuer die optische Vertikalzentrierung zur Checkbox.
+- Rechtsklick oeffnet ein Kontextmenue: Bearbeiten (Modal), Prioritaet (Submenu mit farbigen Flag-Icons), Faelligkeit und Zeitschaetzung (Level-2-Panels mit denselben Controls wie die Modal-Rail: Quick-Picks + DatePicker bzw. Dauer-Dropdown), Verschieben, Duplizieren, Loeschen. Tags sind in v1 nicht Teil des Menues.
+- Prioritaets-Submenu und Modal-Rail nutzen dieselben farbigen `flag`-Icons; Faelligkeit/Zeitschaetzung sind eingebettete Submenu-Panels (nicht separate Popovers). Verschieben listet vorhandene Gruppen (`groupKey`). Loeschen steht separat als destruktive Aktion.
+- Das Dauer-Dropdown innerhalb des Zeitschaetzungs-Submenus muss oberhalb des Kontextmenues stacken (`.fk-menu--select` ueber `.fk-menu--submenu`).
 
 ### 30 Task Group
 
@@ -1109,8 +1121,13 @@ Wichtig fuer Umsetzung:
 
 - Dieser Slot sollte innerhalb des bestehenden Modal-Patterns verwendet werden, nicht als eigenstaendiges Overlay.
 - Unteraufgaben nutzen dieselbe Task-Listenlogik wie normale Aufgaben, aber mit Subtask-Kontext.
+- Auf der tiefsten Hierarchieebene (Ebene 5) wird der Unteraufgaben-Block im Modal vollstaendig ausgeblendet.
+- Subtask-Items im Modal haben keinen Hover-Hintergrund.
+- Die Unteraufgaben-Group-Header-Zeile im Modal hat keinen Hover-Hintergrund.
 - Loeschen ist destruktiv und braucht bestaetigende UX.
 - Breadcrumb, Header und rechte Property-Leiste muessen mit den entsprechenden Pattern-Library-Komponenten verbunden bleiben.
+- Der Count hinter dem Titel (z. B. Unteraufgaben) nutzt `text-quarternary`.
+- Dialoghoehe: `min(80dvh, 900px)`, damit das Modal beim Oeffnen als Arbeitsflaeche wirkt und nicht auf Inhaltsmindesthoehe schrumpft.
 
 ### 36 Block Bar & Rail
 

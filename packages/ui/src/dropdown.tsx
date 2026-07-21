@@ -88,7 +88,7 @@ export function Dropdown({
         </Select.Icon>
       </Select.Trigger>
       <Select.Portal>
-        <Select.Content className="fk-menu" position="popper" sideOffset={6}>
+        <Select.Content className="fk-menu fk-menu--select" position="popper" sideOffset={6}>
           <Select.Viewport>
             {options.map((option) => (
               <Select.Item

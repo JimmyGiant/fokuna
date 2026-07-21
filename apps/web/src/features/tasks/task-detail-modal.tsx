@@ -20,22 +20,7 @@ import {
 import { useMemo, useState, type CSSProperties } from "react";
 
 import styles from "./task-detail-modal.module.css";
-
-const priorityOptions = [
-  { value: "urgent", label: "Hoch", color: "var(--fk-color-task-priority-urgent)" },
-  { value: "medium", label: "Mittel", color: "var(--fk-color-task-priority-medium)" },
-  { value: "low", label: "Niedrig", color: "var(--fk-color-task-priority-low)" },
-  { value: "none", label: "Keine", color: "var(--fk-color-icon-tertiary)" },
-] as const;
-
-const estimateOptions = [
-  { value: "30", label: "30 Min" },
-  { value: "60", label: "1:00 Std" },
-  { value: "90", label: "1:30 Std" },
-  { value: "120", label: "2:00 Std" },
-  { value: "180", label: "3 Std" },
-  { value: "240", label: "4 Std" },
-];
+import { estimateOptions, priorityOptions } from "./task-property-options";
 
 const tagCatalog = [
   {
@@ -96,6 +81,7 @@ export function TaskDetailModal({
   task,
   subtasks,
   breadcrumbItems,
+  canCreateSubtask = true,
   onOpenChange,
   onOpenSubtask,
   onUpdate,
@@ -109,6 +95,8 @@ export function TaskDetailModal({
     id: string;
     label: string;
   }>;
+  /** False at nesting depth 5 — no further subtasks may be created. */
+  canCreateSubtask?: boolean;
   onOpenChange: (open: boolean) => void;
   onOpenSubtask?: (taskId: string) => void;
   onUpdate: (taskId: string, patch: Partial<TaskDto>) => Promise<void>;
@@ -389,7 +377,7 @@ export function TaskDetailModal({
                     <SearchField
                       aria-label="Tags durchsuchen"
                       collapsedWidth={278}
-                      controlSize="sm"
+                      controlSize="md"
                       expandedWidth={278}
                       onChange={(event) => setTagQuery(event.target.value)}
                       placeholder="Etikett suchen oder erstellen ..."
@@ -427,33 +415,35 @@ export function TaskDetailModal({
         }
         onClose={() => onOpenChange(false)}
       >
-        <TaskGroup
-          addLabel="Unteraufgabe hinzufügen"
-          addNamePlaceholder="Unteraufgabenname"
-          count={subtasks.length}
-          onAddSubmit={async ({ title, description }) => {
-            await onCreateSubtask({
-              parentTaskId: task.id,
-              title,
-              description: description || undefined,
-            });
-          }}
-          title="Unteraufgaben"
-        >
-          {subtasks.map((subtask) => (
-            <TaskListItem
-              completed={subtask.isCompleted}
-              due={formatDueLabel(subtask.dueDate)}
-              key={subtask.id}
-              onClick={() => onOpenSubtask?.(subtask.id)}
-              onCompletedChange={(completed) =>
-                void onUpdate(subtask.id, { isCompleted: completed })
-              }
-              tags={subtask.tags}
-              title={subtask.title}
-            />
-          ))}
-        </TaskGroup>
+        {canCreateSubtask ? (
+          <TaskGroup
+            addLabel="Unteraufgabe hinzufügen"
+            addNamePlaceholder="Unteraufgabenname"
+            count={subtasks.length}
+            onAddSubmit={async ({ title, description }) => {
+              await onCreateSubtask({
+                parentTaskId: task.id,
+                title,
+                description: description || undefined,
+              });
+            }}
+            title="Unteraufgaben"
+          >
+            {subtasks.map((subtask) => (
+              <TaskListItem
+                completed={subtask.isCompleted}
+                due={formatDueLabel(subtask.dueDate)}
+                key={subtask.id}
+                onClick={() => onOpenSubtask?.(subtask.id)}
+                onCompletedChange={(completed) =>
+                  void onUpdate(subtask.id, { isCompleted: completed })
+                }
+                tags={subtask.tags}
+                title={subtask.title}
+              />
+            ))}
+          </TaskGroup>
+        ) : null}
       </TaskModalSlot>
     </TaskModalDialog>
   );

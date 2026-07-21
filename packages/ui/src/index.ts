@@ -5,6 +5,7 @@ export * from "./block-rail";
 export * from "./calendar-items";
 export * from "./card-modal";
 export * from "./callout";
+export * from "./context-menu";
 export * from "./dropdown";
 export * from "./date-picker";
 export * from "./goal-card";
