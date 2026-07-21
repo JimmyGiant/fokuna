@@ -60,7 +60,7 @@ Wichtig fuer Umsetzung:
 
 - Primaere Aktionen sichtbar und sparsam einsetzen.
 - `primary` und `secondary` sind flaechtig und tragen inverse Text- und Iconfarben.
-- `tertiary` passt zu Dropdown-, Toolbar- und ruhigen Utility-Buttons: helle Flaeche (`surface/base`), `border/strong`, `text/primary`, `icon/primary` und Micro Shadow.
+- `tertiary` passt zu Dropdown-, Toolbar- und ruhigen Utility-Buttons: helle Flaeche (`surface/base`), `border/default`, `text/primary`, `icon/primary` und Micro Shadow. Hover wechselt auf `border/strong`.
 - `ghost` ist fuer niedrig priorisierte Aktionen ohne dominante Flaeche gedacht.
 - Flaechige Buttons und Outline-`tertiary` erhalten den Micro Shadow; Outline primary/secondary sowie Ghost nicht.
 - Leading- und Trailing-Icon-Slots nicht durch feste Icons ersetzen.
@@ -136,6 +136,9 @@ Der Calendar Drawer strukturiert Kalenderinhalte, importierte Termine, Tasks und
 Varianten und Properties:
 
 - `entry type`: Termin, Aufgabe, Block, Import/externes Ereignis.
+- `header`: Text-Icon-Dropdown (`appearance=text`, Kalender-Icon, MD) links, Switcher (MD) rechts — gleiche Hoehe.
+- `padding`: 24 px innen, linker 1 px Border (`border/default`).
+- `time axis`: Stundenmarken 07:00–18:00 mit gleichmaessigem Abstand (67 px Pitch), Linie und Label bündig.
 - `time`: Start-/Endzeit oder Dauer.
 - `source`: Kalenderquelle bzw. Kontext.
 - `status`: erledigt, geplant, laufend oder verpasst, sofern fachlich relevant.
@@ -245,6 +248,7 @@ Wichtig fuer Umsetzung:
 - Nicht fuer Hauptnavigation verwenden.
 - Aktuelle Ebene visuell klar, aber nicht ueberbetont darstellen.
 - Lange Breadcrumbs muessen kuerzbar oder responsiv umbrechbar sein.
+- Ab drei Segmenten die Collapsed-/Punkt-Variante nutzen (`first › … › current`), damit der Pfad einzeilig bleibt; Umbruch nur als aeusserster Notfall.
 - Separatoren sind rein visuell und nicht Teil des Screenreader-Labels.
 
 ### 08 Switcher
@@ -354,10 +358,12 @@ Dropdowns decken sowohl Meta-Menues als auch Dropdown Buttons ab. Sie werden fue
 
 Varianten und Properties:
 
-- `dropdown button`: sichtbarer Trigger mit Label und Chevron.
+- `dropdown button` (`form=button`): sichtbarer Trigger mit Border, Micro Shadow, Label und Chevron.
+- `text` (`form=text`): borderloser Text-Trigger ohne Border/Shadow; gleiche Groessenskala wie Button.
+- `type=single | key-value | icon`: reines Label, Key+Value oder Leading-Icon + Label.
+- `size`: `sm` 28, `md` 32, `lg` 40, `xl` 48 — fuer Button- und Text-Form identisch.
 - `meta menu`: Icon-only oder dezenter Trigger fuer Kontextaktionen.
 - `menu item`: einzelne Aktion oder Auswahloption.
-- `leading icon`: optionales Icon pro Item.
 - `selected value`: aktueller Wert bei Auswahl-Dropdowns.
 - `placement`: Popover-Position relativ zum Trigger.
 
@@ -419,6 +425,7 @@ Die Sidebar bildet die primaere App-Navigation und mehrere Sidebar-Level ab. Ent
 Varianten und Properties:
 
 - `level`: Level 1 Hauptnavigation, Level 2 Kontext-/Bereichsnavigation.
+- `padding`: Level 1 `24 px` oben/unten und `12 px` seitlich; Level 2 `24 px` vertikal und `16 px` seitlich.
 - `menu item`: Icon, Label, optional Badge/Count.
 - `menu group`: gruppierte Navigation mit optionalem Collapse.
 - `block item`: Blockliste oder Schnellzugriff.
@@ -666,17 +673,20 @@ Page Header strukturieren View-Koepfe mit Titel, Actions, Search, Meta-Controls 
 
 Varianten und Properties:
 
-- `title`: Haupttitel der View.
+- `title`: optionaler Haupttitel; Mapped-Varianten wie Aufgaben lassen den Left Slot leer.
 - `subtitle/meta`: optionaler Kontext.
 - `primary action`: wichtigste Aktion, z. B. Neues Element.
 - `secondary actions`: zusaetzliche Buttons oder Dropdowns.
 - `search`: optionales Search Field.
 - `filter/sort`: optionale Filter- oder Sortiercontrols.
 - `breadcrumb`: optional bei tieferen Kontexten.
+- `sidebar toggle`: Icon-only Tertiary Outline mit `border/default` (gleich wie Meta/Search); Icon `sidebar-left-arrow`, je nach Offen/Geschlossen horizontal gespiegelt (`scaleX(-1)`, ohne Animation).
+- `Fokus` (Aufgaben): Secondary Button mit ausgefülltem `magic-eye` (`fill="on"`).
 
 States:
 
 - `default`: Titel mit ggf. Actions.
+- `titleless`: nur Actions rechts (z. B. Aufgaben Mapped).
 - `with search`: Header enthaelt Suche.
 - `with filters`: Header enthaelt Filter-/Sortierlogik.
 - `empty/no actions`: reduzierte Variante ohne rechte Controls.
@@ -689,6 +699,7 @@ Wichtig fuer Umsetzung:
 - Actions und Search nach bestehender Control-Hoehenleiter ausrichten.
 - Mapped-Varianten beachten, wenn Header in finalen Views genutzt werden.
 - Primaeraktion muss visuell und semantisch eindeutig sein.
+- Utility-Icon-Buttons (Meta, Sidebar-Toggle) teilen sich denselben Border wie Search (`border/default`).
 
 ### 22 UI Shell
 
@@ -833,6 +844,7 @@ Wichtig fuer Umsetzung:
 - Beim Speichern entsteht ein neues `Task List Item` oder Subtask-Item.
 - Escape oder Abbrechen schliesst den aktiven Zustand und verwirft ungespeicherte Inhalte.
 - Enter kann speichern, Shift+Enter sollte in mehrzeiligen Feldern Zeilenumbruch erlauben.
+- Im `active`-Zustand entfaellt der untere Border des unmittelbar vorherigen List Items (bzw. des letzten Items in einem Tree), damit die Formular-Card keine Doppellinie erzeugt. Listen-Container nutzen dafuer die Klasse `fk-task-list`.
 
 ### 27 Task Group Header List Item
 
@@ -948,6 +960,7 @@ Wichtig fuer Umsetzung:
 - Gruppe ist Container-Pattern, nicht nur visuelle Karte.
 - Reordering kann auf Gruppenebene und Item-Ebene stattfinden; beide Logiken muessen sauber getrennt sein.
 - Drag Placeholder muss die Gruppenhoehe bzw. den Drop-Kontext plausibel abbilden.
+- Wenn das Add Item aktiv ist, entfaellt der untere Border des letzten List Items in der Gruppe (siehe Task Add Item).
 
 ### 31 Milestone List Item
 
@@ -1111,12 +1124,13 @@ Varianten und Properties:
 - `BlockTile icon`: austauschbare 24px-Instanz aus dem zentralen Iconset, standardmaessig mit 2px Stroke und `icon/inverse`.
 - `BlockTile badge`: optionale 16px-Badge fuer offene bzw. enthaltene Eintraege.
 - `BlockRail state`: `default` oder `editable`.
+- `padding`: Timeline (`default`) `20 px` oben, `12 px` seitlich, `24 px` unten; Edit Rail unveraendert.
 - `activeId`: markiert den aktuell gewaehlten Block und wird ueber `onActiveChange` aktualisiert.
 - `emptySlots`: Anzahl der freien Edit-Slots; Figma zeigt sechs Positionen.
 
 States:
 
-- `default/timeline`: 72 x 840px, ruhige `surface/subtle`-Flaeche, sechs Blocks oben und Edit-Aktion unten.
+- `default/timeline`: 72 x 840px, ruhige `surface/subtle`-Flaeche, Top-Padding 20px, sechs Blocks oben und Edit-Aktion unten.
 - `editable`: 72 x 645px, weisse Card-Flaeche, 20px Radius, weicher Shadow und 8px innenliegende Schmucklinie.
 - `selected`: der aktive Block wird semantisch ueber `aria-pressed` markiert; die Kategorie-Kachel bleibt visuell ruhig und unveraendert.
 - `empty`: 40 x 40px freier Slot mit `surface/subtle`, 12px Radius und neutralem Verlauf-Stroke.

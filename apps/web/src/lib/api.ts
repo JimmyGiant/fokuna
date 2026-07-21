@@ -9,7 +9,7 @@ export async function apiGet<T>(path: string): Promise<T> {
 
 export async function apiSend<T>(
   path: string,
-  method: "POST" | "PATCH" | "PUT",
+  method: "POST" | "PATCH" | "PUT" | "DELETE",
   body?: unknown,
 ): Promise<T> {
   const response = await fetch(path, {
@@ -19,6 +19,9 @@ export async function apiSend<T>(
   });
   if (!response.ok) {
     throw new Error(`Request failed: ${response.status}`);
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   const payload = (await response.json()) as { data: T };
   return payload.data;

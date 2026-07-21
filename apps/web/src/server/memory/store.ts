@@ -106,7 +106,10 @@ interface MemoryStore {
 
 const globalStore = globalThis as typeof globalThis & {
   __fokunaMemoryStore?: MemoryStore;
+  __fokunaMemoryStoreVersion?: number;
 };
+
+const MEMORY_STORE_VERSION = 5;
 
 function createStore(): MemoryStore {
   const store: MemoryStore = {
@@ -122,6 +125,10 @@ function createStore(): MemoryStore {
 
   const demoUser = ensureDemoSeedUser();
   const now = new Date().toISOString();
+  const today = now.slice(0, 10);
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrow = tomorrowDate.toISOString().slice(0, 10);
 
   const goalId = createId("goal");
   store.goals.set(goalId, {
@@ -138,19 +145,34 @@ function createStore(): MemoryStore {
     updatedAt: now,
   });
 
-  const taskA = createId("task");
-  store.tasks.set(taskA, {
-    id: taskA,
+  const marathonGoalId = createId("goal");
+  store.goals.set(marathonGoalId, {
+    id: marathonGoalId,
+    userId: demoUser.id,
+    title: "Berlin Marathon",
+    description: "Vorbereitung und Training",
+    motivation: "Durchhalten",
+    status: "active",
+    imageUrl: null,
+    onboardingStep: null,
+    sortOrder: 1,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const rootTaskId = createId("task");
+  store.tasks.set(rootTaskId, {
+    id: rootTaskId,
     userId: demoUser.id,
     goalId,
     milestoneId: null,
     parentTaskId: null,
-    groupKey: "today",
+    groupKey: "root",
     title: "Pattern Library freigeben",
     description: "Visuelle Abnahme der V1.1 Komponenten",
     priority: "high",
     estimateMinutes: 60,
-    dueDate: now.slice(0, 10),
+    dueDate: today,
     isFavorite: true,
     isCompleted: false,
     completedAt: null,
@@ -161,9 +183,101 @@ function createStore(): MemoryStore {
     updatedAt: now,
   });
 
-  const taskB = createId("task");
-  store.tasks.set(taskB, {
-    id: taskB,
+  const sectionParentId = createId("task");
+  store.tasks.set(sectionParentId, {
+    id: sectionParentId,
+    userId: demoUser.id,
+    goalId: marathonGoalId,
+    milestoneId: null,
+    parentTaskId: null,
+    groupKey: "abschnitt-4",
+    title: "Trainingsplan finalisieren",
+    description: null,
+    priority: "high",
+    estimateMinutes: 90,
+    dueDate: tomorrow,
+    isFavorite: false,
+    isCompleted: false,
+    completedAt: null,
+    sortOrder: 0,
+    tags: ["Training", "Fokus"],
+    archivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const subtaskA = createId("task");
+  store.tasks.set(subtaskA, {
+    id: subtaskA,
+    userId: demoUser.id,
+    goalId: marathonGoalId,
+    milestoneId: null,
+    parentTaskId: sectionParentId,
+    groupKey: "abschnitt-4",
+    title: "Intervall-Einheiten eintragen",
+    description: null,
+    priority: "medium",
+    estimateMinutes: 30,
+    dueDate: null,
+    isFavorite: false,
+    isCompleted: false,
+    completedAt: null,
+    sortOrder: 0,
+    tags: [],
+    archivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const nestedSubtask = createId("task");
+  store.tasks.set(nestedSubtask, {
+    id: nestedSubtask,
+    userId: demoUser.id,
+    goalId: marathonGoalId,
+    milestoneId: null,
+    parentTaskId: subtaskA,
+    groupKey: "abschnitt-4",
+    title: "Dienstag 8x1000m planen",
+    description: null,
+    priority: "none",
+    estimateMinutes: null,
+    dueDate: null,
+    isFavorite: false,
+    isCompleted: false,
+    completedAt: null,
+    sortOrder: 0,
+    tags: [],
+    archivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const subtaskB = createId("task");
+  store.tasks.set(subtaskB, {
+    id: subtaskB,
+    userId: demoUser.id,
+    goalId: marathonGoalId,
+    milestoneId: null,
+    parentTaskId: sectionParentId,
+    groupKey: "abschnitt-4",
+    title: "Regeneration planen",
+    description: null,
+    priority: "low",
+    estimateMinutes: 20,
+    dueDate: null,
+    isFavorite: false,
+    isCompleted: false,
+    completedAt: null,
+    sortOrder: 1,
+    tags: [],
+    archivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const inboxTaskId = createId("task");
+  store.tasks.set(inboxTaskId, {
+    id: inboxTaskId,
     userId: demoUser.id,
     goalId: null,
     milestoneId: null,
@@ -178,15 +292,38 @@ function createStore(): MemoryStore {
     isCompleted: false,
     completedAt: null,
     sortOrder: 0,
-    tags: [],
+    tags: ["Etikettenname"],
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
   });
 
-  const blockId = createId("block");
-  store.blocks.set(blockId, {
-    id: blockId,
+  const rootSecondaryId = createId("task");
+  store.tasks.set(rootSecondaryId, {
+    id: rootSecondaryId,
+    userId: demoUser.id,
+    goalId: null,
+    milestoneId: null,
+    parentTaskId: null,
+    groupKey: "root",
+    title: "Release-Notes skizzieren",
+    description: null,
+    priority: "low",
+    estimateMinutes: 30,
+    dueDate: null,
+    isFavorite: true,
+    isCompleted: false,
+    completedAt: null,
+    sortOrder: 1,
+    tags: ["Launch"],
+    archivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const blockDeep = createId("block");
+  store.blocks.set(blockDeep, {
+    id: blockDeep,
     userId: demoUser.id,
     goalId,
     categoryId: null,
@@ -201,6 +338,116 @@ function createStore(): MemoryStore {
     createdAt: now,
     updatedAt: now,
   });
+
+  const blockRead = createId("block");
+  store.blocks.set(blockRead, {
+    id: blockRead,
+    userId: demoUser.id,
+    goalId: null,
+    categoryId: null,
+    title: "Lesen",
+    description: null,
+    durationMinutes: 30,
+    icon: "newspaper",
+    colorToken: "category.coral",
+    isTemplate: true,
+    isPreset: true,
+    sortOrder: 1,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const blockFood = createId("block");
+  store.blocks.set(blockFood, {
+    id: blockFood,
+    userId: demoUser.id,
+    goalId: null,
+    categoryId: null,
+    title: "Mittagessen",
+    description: null,
+    durationMinutes: 45,
+    icon: "fork-spoon",
+    colorToken: "category.purple",
+    isTemplate: true,
+    isPreset: true,
+    sortOrder: 2,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const dayStart = new Date();
+  dayStart.setHours(7, 20, 0, 0);
+
+  function addHours(base: Date, hours: number, minutes = 0) {
+    const next = new Date(base);
+    next.setHours(hours, minutes, 0, 0);
+    return next;
+  }
+
+  const calendarSeeds: Array<{
+    source: MemoryCalendarEntry["source"];
+    title: string;
+    startsAt: Date;
+    endsAt: Date;
+    taskId?: string;
+    blockId?: string;
+    description?: string;
+  }> = [
+    {
+      source: "task",
+      title: "Pattern Library freigeben",
+      startsAt: addHours(dayStart, 8, 0),
+      endsAt: addHours(dayStart, 9, 0),
+      taskId: rootTaskId,
+    },
+    {
+      source: "manual",
+      title: "Privat",
+      startsAt: addHours(dayStart, 10, 0),
+      endsAt: addHours(dayStart, 11, 0),
+      description: "Importierter Kalender",
+    },
+    {
+      source: "block",
+      title: "Deep Work",
+      startsAt: addHours(dayStart, 12, 0),
+      endsAt: addHours(dayStart, 13, 0),
+      blockId: blockDeep,
+      description: "Arbeit",
+    },
+    {
+      source: "block",
+      title: "Lesen",
+      startsAt: addHours(dayStart, 14, 0),
+      endsAt: addHours(dayStart, 15, 0),
+      blockId: blockRead,
+    },
+    {
+      source: "block",
+      title: "Mittagessen",
+      startsAt: addHours(dayStart, 16, 0),
+      endsAt: addHours(dayStart, 17, 0),
+      blockId: blockFood,
+    },
+  ];
+
+  for (const seed of calendarSeeds) {
+    const id = createId("cal");
+    store.calendarEntries.set(id, {
+      id,
+      userId: demoUser.id,
+      source: seed.source,
+      taskId: seed.taskId ?? null,
+      blockId: seed.blockId ?? null,
+      title: seed.title,
+      description: seed.description ?? null,
+      startsAt: seed.startsAt.toISOString(),
+      endsAt: seed.endsAt.toISOString(),
+      allDay: false,
+      timezone: "Europe/Berlin",
+      recurrenceRule: null,
+    });
+  }
 
   const templateId = createId("jtpl");
   store.journalTemplates.set(templateId, {
@@ -235,8 +482,12 @@ function createStore(): MemoryStore {
 }
 
 export function getMemoryStore(): MemoryStore {
-  if (!globalStore.__fokunaMemoryStore) {
+  if (
+    !globalStore.__fokunaMemoryStore ||
+    globalStore.__fokunaMemoryStoreVersion !== MEMORY_STORE_VERSION
+  ) {
     globalStore.__fokunaMemoryStore = createStore();
+    globalStore.__fokunaMemoryStoreVersion = MEMORY_STORE_VERSION;
   }
   return globalStore.__fokunaMemoryStore;
 }

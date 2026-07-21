@@ -20,4 +20,25 @@ describe("Dropdown", () => {
 
     expect(screen.getByRole("combobox")).toHaveTextContent("Zeitraum:Woche");
   });
+
+  it("marks icon and text appearance variants on the trigger", () => {
+    const { rerender } = render(
+      <Dropdown appearance="text" leadingIcon="diamond" options={options} value="day" />,
+    );
+
+    const trigger = screen.getByRole("combobox");
+    expect(trigger).toHaveAttribute("data-appearance", "text");
+    expect(trigger).toHaveAttribute("data-type", "icon");
+    expect(trigger.querySelector(".fk-dropdown__leading")).toBeInTheDocument();
+
+    rerender(<Dropdown controlSize="xl" options={options} value="week" />);
+    expect(screen.getByRole("combobox")).toHaveAttribute("data-size", "xl");
+    expect(screen.getByRole("combobox")).toHaveAttribute("data-type", "single");
+
+    rerender(
+      <Dropdown appearance="text" controlSize="lg" options={options} value="week" />,
+    );
+    expect(screen.getByRole("combobox")).toHaveAttribute("data-appearance", "text");
+    expect(screen.getByRole("combobox")).toHaveAttribute("data-size", "lg");
+  });
 });

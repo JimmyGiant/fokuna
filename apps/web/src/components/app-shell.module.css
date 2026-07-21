@@ -1,14 +1,28 @@
 .shell {
-  min-height: 100vh;
-  background: var(--fk-surface-canvas, var(--fk-color-surface-canvas, #f6f4ef));
+  min-height: 100dvh;
+  background: var(--fk-color-surface-subtle);
 }
 
 .content {
   display: flex;
-  min-height: 100vh;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
   flex-direction: column;
-  gap: 24px;
-  padding: 24px 32px 40px;
+  overflow: hidden;
+  height: 100%;
+  width: 100%;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: var(--fk-color-surface-raised, #fff);
+  color: var(--fk-color-icon-secondary, #6b6963);
 }
 
 .empty {

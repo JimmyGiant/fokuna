@@ -1,7 +1,23 @@
-import { FokunaIcon, iconNames } from "@fokuna/icons";
+import { FokunaIcon, iconNames, iconRecords, type IconFill, type IconName } from "@fokuna/icons";
 import Link from "next/link";
 
 import styles from "../pattern-library.module.css";
+
+const filledIconNames = new Set<IconName>(
+  iconRecords.filter((record) => record.fill === "on").map((record) => record.name),
+);
+
+const iconCatalog: Array<{ name: IconName; fill: IconFill; label: string }> = iconNames.flatMap(
+  (name) => {
+    const entries: Array<{ name: IconName; fill: IconFill; label: string }> = [
+      { name, fill: "off", label: name },
+    ];
+    if (filledIconNames.has(name)) {
+      entries.push({ name, fill: "on", label: `${name} · fill` });
+    }
+    return entries;
+  },
+);
 
 export default function IconsPage() {
   return (
@@ -12,10 +28,13 @@ export default function IconsPage() {
           <h1>Icon-Übersicht</h1>
           <p>
             Alle kuratierten Icons aus <code>src/icons</code>, nutzbar über <code>FokunaIcon</code>{" "}
-            in <code>@fokuna/icons</code>.
+            in <code>@fokuna/icons</code>. Fill-Varianten erscheinen als <code>name · fill</code> und
+            werden mit <code>fill=&quot;on&quot;</code> angesprochen.
           </p>
         </div>
-        <div className={styles.sourceBadge}>{iconNames.length} names · 16 / 24 px</div>
+        <div className={styles.sourceBadge}>
+          {iconNames.length} names · {iconCatalog.length} glyphs · 16 / 24 px
+        </div>
       </header>
 
       <section className={styles.detailSection}>
@@ -23,17 +42,18 @@ export default function IconsPage() {
           <p className={styles.sectionLabel}>Registry</p>
           <h2>Verfügbare Icons</h2>
           <p>
-            Darstellung in 24px, Stroke 1.5. Name entspricht dem Prop <code>name</code>.
+            Darstellung in 24px, Stroke 1.5. Name entspricht dem Prop <code>name</code>; Fill-Tiles
+            nutzen zusätzlich <code>fill=&quot;on&quot;</code>.
           </p>
         </header>
 
         <ul className={styles.iconGrid}>
-          {iconNames.map((name) => (
-            <li key={name}>
+          {iconCatalog.map((entry) => (
+            <li key={`${entry.name}-${entry.fill}`}>
               <span aria-hidden="true" className={styles.iconGridGlyph}>
-                <FokunaIcon name={name} size={24} stroke={1.5} />
+                <FokunaIcon fill={entry.fill} name={entry.name} size={24} stroke={1.5} />
               </span>
-              <code>{name}</code>
+              <code>{entry.label}</code>
             </li>
           ))}
         </ul>

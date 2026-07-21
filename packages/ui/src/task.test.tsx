@@ -72,6 +72,18 @@ describe("task composition patterns", () => {
     expect(child).toHaveAttribute("data-milestone-task", "true");
   });
 
+  it("submits a new task title from the active add form", async () => {
+    const onSubmit = vi.fn();
+    render(<AddTask defaultExpanded focusOnExpand={false} onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Aufgabenname" }), {
+      target: { value: "Neue Aufgabe" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Aufgabe hinzufügen" }));
+
+    expect(onSubmit).toHaveBeenCalledWith({ title: "Neue Aufgabe", description: "" });
+  });
+
   it("offers only the inactive and active add-task states", () => {
     const inactive = render(<AddTask focusOnExpand={false} />);
     fireEvent.click(screen.getByRole("button", { name: "Aufgabe hinzufügen" }));

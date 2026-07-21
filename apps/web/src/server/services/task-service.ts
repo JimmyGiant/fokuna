@@ -41,3 +41,7 @@ export async function reorderUserTasks(
   const input = reorderTasksInputSchema.parse(raw);
   return taskRepository.reorderTasks(userId, input.groupKey, input.orderedIds);
 }
+
+export async function archiveUserTask(userId: string, taskId: string) {
+  return taskRepository.archiveTask(userId, taskId);
+}

@@ -13,9 +13,11 @@ import {
   Callout,
   Card,
   Checkbox,
+  collapseBreadcrumbItems,
   DatePicker,
   Dropdown,
   FilterBar,
+  getCalendarEntryPosition,
   GoalCard,
   InsightActivityCard,
   InsightBarList,
@@ -39,6 +41,7 @@ import {
   RadioGroupRoot,
   SearchField,
   Sidebar,
+  SidebarAvatar,
   Slider,
   Switch,
   Switcher,
@@ -112,9 +115,7 @@ function AufgabenSidebar() {
     <Sidebar
       activeId="tasks"
       footer={
-        <span className={styles.sidebarAvatar}>
-          <FokunaIcon name="user" />
-        </span>
+        <SidebarAvatar alt="Demo Nutzer" src="/pattern-library/demo-profile.png" />
       }
       footerItems={[{ id: "settings", label: "Einstellungen", href: "#", icon: "settings-gear" }]}
       items={[
@@ -211,11 +212,55 @@ function HeaderSearch() {
   return <SearchField collapsedWidth={152} expandedWidth={240} placeholder="Suchen..." />;
 }
 
+function AufgabenPageHeaderSpecimen() {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  return (
+    <PageHeader
+      actions={
+        <>
+          <HeaderMetaMenu />
+          <HeaderSearch />
+          <Button
+            intent="secondary"
+            leadingIcon={<FokunaIcon fill="on" name="magic-eye" size={16} />}
+            trailingIcon={null}
+          >
+            Fokus
+          </Button>
+          <Button
+            aria-label={drawerOpen ? "Kalenderleiste schließen" : "Kalenderleiste öffnen"}
+            aria-pressed={drawerOpen}
+            buttonType="outline"
+            iconOnly
+            intent="tertiary"
+            leadingIcon={
+              <FokunaIcon
+                name="sidebar-left-arrow"
+                size={16}
+                style={drawerOpen ? { transform: "scaleX(-1)" } : undefined}
+              />
+            }
+            onClick={() => setDrawerOpen((value) => !value)}
+          >
+            Kalenderleiste
+          </Button>
+        </>
+      }
+    />
+  );
+}
+
 function CalendarItemSpecimen({ kind }: { kind: "task" | "event" | "block" }) {
   const content = {
-    task: { title: "Landingpage prüfen", meta: "Ziel: Launch", tone: "teal" as const },
+    task: { title: "Landingpage prüfen", meta: "Ziel: Launch", tone: "neutral" as const },
     event: { title: "Weekly Sync", meta: "Google Calendar", tone: "teal" as const },
-    block: { title: "Deep Work", meta: "Pomodoro 25 min", tone: "purple" as const },
+    block: {
+      title: "Deep Work",
+      meta: "Pomodoro 25 min",
+      tone: "purple" as const,
+      icon: "clock" as const,
+    },
   }[kind];
 
   return (
@@ -774,45 +819,91 @@ export function PatternSpecimen({ slug }: { slug: string }) {
         </div>
       );
 
-    case "calendar-drawer":
+    case "calendar-drawer": {
+      const specimenDay = new Date(2026, 6, 2);
+      const specimenRange = { startHour: 7, hourCount: 11 } as const;
+      const entryAt = (hour: number, minute: number, durationMinutes: number) => {
+        const startsAt = new Date(specimenDay);
+        startsAt.setHours(hour, minute, 0, 0);
+        const endsAt = new Date(startsAt.getTime() + durationMinutes * 60_000);
+        return getCalendarEntryPosition(startsAt, endsAt, specimenRange);
+      };
+
       return (
-        <CalendarDrawer
-          actions={<Switcher size="sm" value="20. Juli" />}
-          viewControl={
-            <Dropdown
-              aria-label="Kalenderansicht"
-              controlSize="sm"
-              defaultValue="day"
-              options={[
-                { value: "day", label: "Tag" },
-                { value: "week", label: "Woche" },
-              ]}
+        <div className={styles.calendarDrawerSpecimen}>
+          <CalendarDrawer
+            actions={<Switcher size="md" value="Do, 2. Juli 2026" />}
+            endHour={18}
+            startHour={7}
+            viewControl={
+              <Dropdown
+                appearance="text"
+                aria-label="Kalenderfilter"
+                controlSize="md"
+                defaultValue="all"
+                leadingIcon="calendar"
+                options={[
+                  { value: "all", label: "Alle" },
+                  { value: "tasks", label: "Aufgaben" },
+                  { value: "blocks", label: "Blocks" },
+                ]}
+              />
+            }
+          >
+            <CalendarItem
+              kind="task"
+              meta="Ziel: Launch"
+              style={entryAt(7, 20, 55)}
+              time="07:20"
+              title="Aufgabenname"
             />
-          }
-        >
-          <CalendarItem
-            kind="task"
-            meta="Ziel: Launch"
-            title="Landingpage prüfen"
-            time="09:00"
-            tone="teal"
-          />
-          <CalendarItem
-            kind="event"
-            meta="Google Calendar"
-            title="Weekly Sync"
-            time="11:30"
-            tone="blue"
-          />
-          <CalendarItem
-            kind="block"
-            meta="Pomodoro 25 min"
-            title="Deep Work"
-            time="13:00"
-            tone="purple"
-          />
-        </CalendarDrawer>
+            <CalendarItem
+              kind="event"
+              meta="Privat"
+              style={entryAt(8, 45, 50)}
+              time="08:45"
+              title="Kalendereintrag"
+              tone="neutral"
+            />
+            <CalendarItem
+              icon="tennis"
+              kind="block"
+              meta="Sport"
+              style={entryAt(10, 0, 60)}
+              time="10:00"
+              title="Blockname"
+              tone="teal"
+            />
+            <CalendarItem
+              kind="event"
+              meta="Arbeit"
+              style={entryAt(13, 0, 60)}
+              time="13:00"
+              title="Kalendereintrag"
+              tone="teal"
+            />
+            <CalendarItem
+              icon="newspaper"
+              kind="block"
+              meta="Lesen"
+              style={entryAt(12, 0, 55)}
+              time="12:00"
+              title="Blockname"
+              tone="coral"
+            />
+            <CalendarItem
+              icon="fork-spoon"
+              kind="block"
+              meta="Essen"
+              style={entryAt(14, 30, 55)}
+              time="14:30"
+              title="Blockname"
+              tone="purple"
+            />
+          </CalendarDrawer>
+        </div>
       );
+    }
 
     case "checkbox":
       return (
@@ -918,28 +1009,21 @@ export function PatternSpecimen({ slug }: { slug: string }) {
     case "breadcrumb":
       return (
         <Matrix>
-          <MatrixRow label="Default">
+          <MatrixRow label="Default (≤2)">
             <Breadcrumb
               items={[
                 { label: "Aufgaben", href: "#" },
-                { label: "Alle Aufgaben", href: "#" },
                 { label: "Heute" },
               ]}
             />
           </MatrixRow>
-          <MatrixRow label="Collapsed">
+          <MatrixRow label="Collapsed (≥3)">
             <Breadcrumb
-              items={[
-                { label: "Fokuna", href: "#" },
-                {
-                  label: "…",
-                  menuItems: [
-                    { label: "Documentation", href: "#" },
-                    { label: "Building Your Application", href: "#" },
-                  ],
-                },
-                { label: "Aufgabe bearbeiten" },
-              ]}
+              items={collapseBreadcrumbItems([
+                { label: "Trainingsplan finalisieren", href: "#" },
+                { label: "Intervall-Einheiten eintragen", href: "#" },
+                { label: "Dienstag 8x1000m planen" },
+              ])}
             />
           </MatrixRow>
         </Matrix>
@@ -1046,7 +1130,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
     case "dropdown":
       return (
         <Matrix>
-          <MatrixRow label="state=default">
+          <MatrixRow label="form=button · type=single">
             {sizes.map((size) => (
               <SizeSample key={size} size={size}>
                 <Dropdown
@@ -1057,22 +1141,98 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                     { value: "week", label: "Woche" },
                     { value: "month", label: "Monat" },
                   ]}
+                  placeholder="Choose"
                   value={dropdown}
+                />
+              </SizeSample>
+            ))}
+          </MatrixRow>
+          <MatrixRow label="form=button · type=icon">
+            {sizes.map((size) => (
+              <SizeSample key={size} size={size}>
+                <Dropdown
+                  controlSize={size}
+                  defaultValue="alpha"
+                  leadingIcon="diamond"
+                  options={[
+                    { value: "alpha", label: "Alphabetically" },
+                    { value: "recent", label: "Neueste zuerst" },
+                  ]}
+                />
+              </SizeSample>
+            ))}
+          </MatrixRow>
+          <MatrixRow label="form=button · type=key-value">
+            {sizes.map((size) => (
+              <SizeSample key={size} size={size}>
+                <Dropdown
+                  controlSize={size}
+                  defaultValue="popular"
+                  keyLabel="Sort"
+                  options={[
+                    { value: "popular", label: "Alphabetically" },
+                    { value: "recent", label: "Neueste zuerst" },
+                  ]}
+                />
+              </SizeSample>
+            ))}
+          </MatrixRow>
+          <MatrixRow label="form=text · type=single">
+            {sizes.map((size) => (
+              <SizeSample key={size} size={size}>
+                <Dropdown
+                  appearance="text"
+                  controlSize={size}
+                  defaultValue="week"
+                  options={[
+                    { value: "day", label: "Tag" },
+                    { value: "week", label: "Choose" },
+                    { value: "month", label: "Monat" },
+                  ]}
+                />
+              </SizeSample>
+            ))}
+          </MatrixRow>
+          <MatrixRow label="form=text · type=icon">
+            {sizes.map((size) => (
+              <SizeSample key={size} size={size}>
+                <Dropdown
+                  appearance="text"
+                  controlSize={size}
+                  defaultValue="alpha"
+                  leadingIcon="diamond"
+                  options={[
+                    { value: "alpha", label: "Alphabetically" },
+                    { value: "recent", label: "Neueste zuerst" },
+                  ]}
+                />
+              </SizeSample>
+            ))}
+          </MatrixRow>
+          <MatrixRow label="form=text · type=key-value">
+            {sizes.map((size) => (
+              <SizeSample key={size} size={size}>
+                <Dropdown
+                  appearance="text"
+                  controlSize={size}
+                  defaultValue="popular"
+                  keyLabel="Sort"
+                  options={[
+                    { value: "popular", label: "Alphabetically" },
+                    { value: "recent", label: "Neueste zuerst" },
+                  ]}
                 />
               </SizeSample>
             ))}
           </MatrixRow>
           <MatrixRow label="state=disabled">
             <Dropdown disabled options={[{ value: "day", label: "Tag" }]} placeholder="Woche" />
-          </MatrixRow>
-          <MatrixRow label="type=key-value-pair">
             <Dropdown
-              defaultValue="popular"
-              keyLabel="Sortierung"
-              options={[
-                { value: "popular", label: "Beliebtheit" },
-                { value: "recent", label: "Neueste zuerst" },
-              ]}
+              appearance="text"
+              disabled
+              leadingIcon="diamond"
+              options={[{ value: "day", label: "Alphabetically" }]}
+              value="day"
             />
           </MatrixRow>
           <MatrixRow label="Meta menu">
@@ -1665,27 +1825,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
             />
           </MatrixRow>
           <MatrixRow label="Alle Aufgaben">
-            <PageHeader
-              actions={
-                <>
-                  <HeaderMetaMenu />
-                  <HeaderSearch />
-                  <Button intent="secondary" leadingIcon="magic-eye" trailingIcon={null}>
-                    Fokus
-                  </Button>
-                  <Button
-                    aria-label="Seitenleiste umschalten"
-                    buttonType="outline"
-                    iconOnly
-                    intent="tertiary"
-                    leadingIcon="sidebar-left-arrow"
-                  >
-                    Seitenleiste umschalten
-                  </Button>
-                </>
-              }
-              title="Alle Aufgaben"
-            />
+            <AufgabenPageHeaderSpecimen />
           </MatrixRow>
           <MatrixRow label="Zeitblöcke">
             <PageHeader
@@ -1808,6 +1948,12 @@ export function PatternSpecimen({ slug }: { slug: string }) {
           </MatrixRow>
           <MatrixRow label="Active">
             <AddTask defaultExpanded focusOnExpand={false} />
+          </MatrixRow>
+          <MatrixRow label="Active after list item">
+            <div className="fk-task-list">
+              <TaskListItem title="Aufgabenname" />
+              <AddTask defaultExpanded focusOnExpand={false} />
+            </div>
           </MatrixRow>
         </Matrix>
       );

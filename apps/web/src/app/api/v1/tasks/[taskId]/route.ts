@@ -34,3 +34,17 @@ export async function PATCH(request: Request, context: { params: Promise<{ taskI
     return handleRouteError(error);
   }
 }
+
+export async function DELETE(_request: Request, context: { params: Promise<{ taskId: string }> }) {
+  try {
+    const session = await requireAppSession();
+    const { taskId } = await context.params;
+    const task = await taskService.archiveUserTask(session.user.id, taskId);
+    if (!task) {
+      return jsonError(404, "not_found", "Aufgabe nicht gefunden");
+    }
+    return jsonOk({ data: task });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}

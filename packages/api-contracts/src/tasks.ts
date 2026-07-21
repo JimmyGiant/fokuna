@@ -43,9 +43,26 @@ export const createTaskInputSchema = z.object({
   isFavorite: z.boolean().default(false),
 });
 
-export const updateTaskInputSchema = createTaskInputSchema
-  .partial()
-  .extend({
+/** Partial update — no `.default()` so omitted fields stay untouched (e.g. tags when only priority changes). */
+export const updateTaskInputSchema = z
+  .object({
+    title: z.string().trim().min(1).max(200).optional(),
+    description: z.string().trim().max(5000).nullable().optional(),
+    groupKey: z.string().trim().min(1).max(100).optional(),
+    goalId: z.string().optional(),
+    milestoneId: z.string().optional(),
+    parentTaskId: z.string().optional(),
+    priority: taskPrioritySchema.optional(),
+    estimateMinutes: z
+      .number()
+      .int()
+      .positive()
+      .max(24 * 60)
+      .nullable()
+      .optional(),
+    dueDate: z.string().date().nullable().optional(),
+    tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+    isFavorite: z.boolean().optional(),
     isCompleted: z.boolean().optional(),
     sortOrder: z.number().int().optional(),
   })

@@ -167,29 +167,34 @@ export async function updateTask(
   }
 
   const db = getDatabase();
+  const patch: Partial<typeof taskTable.$inferInsert> = {
+    updatedAt: now,
+  };
+
+  if (input.title !== undefined) patch.title = input.title;
+  if (input.description !== undefined) patch.description = input.description;
+  if (input.groupKey !== undefined) patch.groupKey = input.groupKey;
+  if (input.goalId !== undefined) patch.goalId = input.goalId;
+  if (input.milestoneId !== undefined) patch.milestoneId = input.milestoneId;
+  if (input.parentTaskId !== undefined) patch.parentTaskId = input.parentTaskId;
+  if (input.priority !== undefined) patch.priority = input.priority;
+  if (input.estimateMinutes !== undefined) patch.estimateMinutes = input.estimateMinutes;
+  if (input.dueDate !== undefined) patch.dueDate = input.dueDate;
+  if (input.isFavorite !== undefined) patch.isFavorite = input.isFavorite;
+  if (input.tags !== undefined) patch.tags = input.tags;
+  if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder;
+  if (input.isCompleted !== undefined) {
+    patch.isCompleted = nextCompleted;
+    patch.completedAt = nextCompleted
+      ? existing.completedAt
+        ? new Date(existing.completedAt)
+        : now
+      : null;
+  }
+
   const [row] = await db
     .update(taskTable)
-    .set({
-      title: input.title,
-      description: input.description,
-      groupKey: input.groupKey,
-      goalId: input.goalId,
-      milestoneId: input.milestoneId,
-      parentTaskId: input.parentTaskId,
-      priority: input.priority,
-      estimateMinutes: input.estimateMinutes,
-      dueDate: input.dueDate,
-      isFavorite: input.isFavorite,
-      tags: input.tags,
-      sortOrder: input.sortOrder,
-      isCompleted: nextCompleted,
-      completedAt: nextCompleted
-        ? existing.completedAt
-          ? new Date(existing.completedAt)
-          : now
-        : null,
-      updatedAt: now,
-    })
+    .set(patch)
     .where(and(eq(taskTable.id, taskId), eq(taskTable.userId, userId)))
     .returning();
 
@@ -225,4 +230,32 @@ export async function reorderTasks(
   );
 
   return listTasks(userId, { groupKey });
+}
+
+export async function archiveTask(userId: string, taskId: string): Promise<TaskDto | null> {
+  const existing = await getTask(userId, taskId);
+  if (!existing) {
+    return null;
+  }
+
+  const now = new Date();
+
+  if (getDataDriver() === "memory") {
+    const updated: TaskDto = {
+      ...existing,
+      archivedAt: now.toISOString(),
+      updatedAt: now.toISOString(),
+    };
+    getMemoryStore().tasks.set(taskId, updated);
+    return updated;
+  }
+
+  const db = getDatabase();
+  const [row] = await db
+    .update(taskTable)
+    .set({ archivedAt: now, updatedAt: now })
+    .where(and(eq(taskTable.id, taskId), eq(taskTable.userId, userId)))
+    .returning();
+
+  return row ? mapDbTask(row) : null;
 }

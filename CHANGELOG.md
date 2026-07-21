@@ -17,9 +17,12 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
 - App Shell mit Modulrouten, Demo-/Better-Auth, `/api/v1` für Tasks, Goals, Blocks, Calendar, Focus, Journal, Insights, Integrations und Stripe-Webhook-Stub.
 - Produktviews für Aufgaben (dnd-kit), Blocks, Kalender (FullCalendar), Ziele, Fokus, Journal, Insights und Einstellungen.
 - `apps/admin` Skelett und Launch-/Hardening-Checklisten unter `docs/launch/`.
+- Alle-Aufgaben-View näher an Figma: Level-2-Nav (Favoriten/Heute/Eingang + Abschnitte), Page Header mit Suche/Fokus/Drawer-Toggle, Calendar Drawer, Block-Rail, Inline-Add und Demo-Seed.
+- Task-Modal verdrahtet: Öffnen per Klick/`?task=`, Priorität/Fälligkeit/Schätzung/Tags, Unteraufgaben, Soft-Delete.
 
 ### Changed
 
+- `AddTask`/`TaskGroup` akzeptieren jetzt `onSubmit`/`onAddSubmit` für echte Erstellung statt nur UI-Zustand.
 - Goal Card mit frueher ausblendendem Schmuckrand, konkaver Progress-Aussparung, animiertem SVG-Progressring ab 12 Uhr, vertikal korrigierten Meilensteinen, gemeinsamem Task-Subtask-Icon, dynamischer Drei-Schritte-Vorschau und quarternaerem Fahnen-Empty-State mit gruener Anlege-Aktion an die Layout-Vorgabe angeglichen.
 
 ### Added

@@ -1,5 +1,11 @@
 import { FokunaIcon } from "@fokuna/icons";
-import { Sidebar, UiShell, type SidebarItem, type SidebarSecondarySection } from "@fokuna/ui";
+import {
+  Sidebar,
+  SidebarAvatar,
+  UiShell,
+  type SidebarItem,
+  type SidebarSecondarySection,
+} from "@fokuna/ui";
 import Image from "next/image";
 import type { ReactNode } from "react";
 
@@ -17,15 +23,94 @@ const footerItems: SidebarItem[] = [
   { id: "settings", label: "Einstellungen", href: "/app/einstellungen", icon: "settings-gear" },
 ];
 
-const tasksSecondary: SidebarSecondarySection[] = [
+const tasksSecondaryItems = [
+  { id: "all", label: "Alle Aufgaben", href: "/app/aufgaben", icon: "checklist" as const },
   {
-    id: "lists",
-    label: "Listen",
+    id: "favorites",
+    label: "Favoriten",
+    href: "/app/aufgaben?filter=favorites",
+    icon: "star" as const,
+  },
+  {
+    id: "today",
+    label: "Heute",
+    href: "/app/aufgaben?filter=today",
+    icon: "calendar-today" as const,
+  },
+  {
+    id: "inbox",
+    label: "Eingang",
+    href: "/app/aufgaben?filter=inbox",
+    icon: "inbox-empty" as const,
+  },
+];
+
+const tasksSecondarySections: SidebarSecondarySection[] = [
+  {
+    id: "categories",
+    label: "Kategorien",
     items: [
-      { id: "all", label: "Alle Aufgaben", href: "/app/aufgaben", icon: "checklist" },
-      { id: "goals-tab", label: "Ziele", href: "/app/aufgaben/ziele", icon: "focus-target" },
-      { id: "blocks", label: "Blocks", href: "/app/aufgaben/blocks", icon: "layers" },
-      { id: "focus", label: "Fokusmodus", href: "/app/fokus", icon: "focus-target" },
+      {
+        id: "buy",
+        label: "Kaufen",
+        href: "/app/aufgaben?category=buy",
+        badge: "1",
+        color: "var(--fk-color-category-teal)",
+      },
+      {
+        id: "rent",
+        label: "Mieten",
+        href: "/app/aufgaben?category=rent",
+        badge: "5",
+        color: "var(--fk-color-category-coral)",
+      },
+    ],
+  },
+  {
+    id: "goals",
+    label: "Ziele",
+    items: [
+      {
+        id: "marathon",
+        label: "Berlin Marathon",
+        href: "/app/aufgaben/ziele",
+        icon: "focus-target",
+        badge: "12",
+      },
+      {
+        id: "novel",
+        label: "Roman schreiben",
+        href: "/app/aufgaben/ziele",
+        icon: "focus-target",
+        badge: "5",
+      },
+      {
+        id: "my-goal",
+        label: "Mein Ziel",
+        href: "/app/aufgaben/ziele",
+        icon: "focus-target",
+        badge: "7",
+      },
+    ],
+  },
+  {
+    id: "labels",
+    label: "Labels",
+    items: [
+      {
+        id: "label-buy",
+        label: "Kaufen",
+        href: "/app/aufgaben?label=kaufen",
+        icon: "tag",
+        badge: "2",
+      },
+      {
+        id: "label-rent",
+        label: "Mieten",
+        href: "/app/aufgaben?label=mieten",
+        icon: "tag",
+        badge: "3",
+      },
     ],
   },
 ];
@@ -48,14 +133,15 @@ export function AppShell({
       sidebar={
         <Sidebar
           activeId={activeId}
+          footer={<SidebarAvatar alt="Demo Nutzer" src="/pattern-library/demo-profile.png" />}
           footerItems={footerItems}
           items={primaryItems}
           logo={
             <Image alt="Fokuna" height={32} src="/branding/fokuna_logo_no-text.svg" width={34} />
           }
           secondaryActiveId={secondaryActiveId}
-          secondarySections={activeId === "tasks" ? tasksSecondary : undefined}
-          secondaryTitle={activeId === "tasks" ? "Aufgaben" : undefined}
+          secondaryItems={activeId === "tasks" ? tasksSecondaryItems : undefined}
+          secondarySections={activeId === "tasks" ? tasksSecondarySections : undefined}
         />
       }
     >

@@ -1,0 +1,17 @@
+.overflow {
+  align-items: center;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--fk-color-icon-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  width: 28px;
+}
+
+.overflow:hover {
+  background: var(--fk-color-surface-subtle);
+}

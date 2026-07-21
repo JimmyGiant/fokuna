@@ -426,6 +426,17 @@
   padding: clamp(24px, 4vw, 56px);
 }
 
+.calendarDrawerSpecimen {
+  background: var(--fk-color-surface-subtle);
+  flex: 0 0 auto;
+  height: 840px;
+  width: 336px;
+}
+
+.calendarDrawerSpecimen :global(.fk-calendar-drawer) {
+  height: 100%;
+}
+
 .specimenMatrix {
   display: grid;
   gap: 1px;
@@ -891,17 +902,6 @@
 
 .sidebarSpecimen {
   width: 328px;
-}
-
-.sidebarAvatar {
-  align-items: center;
-  background: var(--fk-color-surface-brand-secondary-25);
-  border-radius: 999px;
-  color: var(--fk-color-icon-action-secondary);
-  display: inline-flex;
-  height: 32px;
-  justify-content: center;
-  width: 32px;
 }
 
 .pageHeaderVariants {

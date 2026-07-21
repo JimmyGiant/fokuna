@@ -7,6 +7,9 @@ import { useState, type ComponentPropsWithoutRef, type ReactNode } from "react";
 import type { ControlSize } from "./button";
 import { cn } from "./utils";
 
+export type DropdownAppearance = "button" | "text";
+export type DropdownType = "single" | "key-value" | "icon";
+
 export interface DropdownOption {
   value: string;
   label: ReactNode;
@@ -18,16 +21,29 @@ export interface DropdownProps extends ComponentPropsWithoutRef<typeof Select.Ro
   options: DropdownOption[];
   placeholder?: string;
   controlSize?: ControlSize;
+  /** Figma `form`: bordered button vs borderless text trigger. */
+  appearance?: DropdownAppearance;
   keyLabel?: ReactNode;
   leadingIcon?: IconName;
   className?: string;
   "aria-label"?: string;
 }
 
+function resolveDropdownType(keyLabel?: ReactNode, leadingIcon?: IconName): DropdownType {
+  if (leadingIcon) return "icon";
+  if (keyLabel) return "key-value";
+  return "single";
+}
+
+function leadingIconSize(controlSize: ControlSize): 16 | 24 {
+  return controlSize === "lg" || controlSize === "xl" ? 24 : 16;
+}
+
 export function Dropdown({
   options,
   placeholder = "Auswählen",
   controlSize = "md",
+  appearance = "button",
   keyLabel,
   leadingIcon,
   className,
@@ -39,6 +55,7 @@ export function Dropdown({
   const [internalValue, setInternalValue] = useState(defaultValue);
   const selectedValue = value ?? internalValue;
   const selectedOption = options.find((option) => option.value === selectedValue);
+  const dropdownType = resolveDropdownType(keyLabel, leadingIcon);
 
   return (
     <Select.Root
@@ -53,15 +70,21 @@ export function Dropdown({
       <Select.Trigger
         aria-label={props["aria-label"] ?? placeholder}
         className={cn("fk-dropdown__trigger", className)}
+        data-appearance={appearance}
         data-size={controlSize}
+        data-type={dropdownType}
       >
         <span className="fk-dropdown__value">
-          {leadingIcon ? <FokunaIcon name={leadingIcon} /> : null}
+          {leadingIcon ? (
+            <span className="fk-dropdown__leading">
+              <FokunaIcon name={leadingIcon} size={leadingIconSize(controlSize)} stroke={1.5} />
+            </span>
+          ) : null}
           {keyLabel ? <span className="fk-dropdown__key">{keyLabel}</span> : null}
           <Select.Value placeholder={placeholder}>{selectedOption?.label}</Select.Value>
         </span>
         <Select.Icon className="fk-dropdown__chevron">
-          <FokunaIcon name="chevron-down-small" />
+          <FokunaIcon name="chevron-down-small" size={16} stroke={1.5} />
         </Select.Icon>
       </Select.Trigger>
       <Select.Portal>
@@ -74,10 +97,10 @@ export function Dropdown({
                 key={option.value}
                 value={option.value}
               >
-                {option.icon ? <FokunaIcon name={option.icon} /> : null}
+                {option.icon ? <FokunaIcon name={option.icon} size={16} stroke={1.5} /> : null}
                 <Select.ItemText>{option.label}</Select.ItemText>
                 <Select.ItemIndicator className="fk-menu__indicator">
-                  <FokunaIcon name="check-small" />
+                  <FokunaIcon name="check-small" size={16} stroke={1.5} />
                 </Select.ItemIndicator>
               </Select.Item>
             ))}
@@ -119,7 +142,7 @@ export function MetaMenu({
             data-size={controlSize}
             type="button"
           >
-            <FokunaIcon name="more-vertical" />
+            <FokunaIcon name="more-vertical" size={16} stroke={1.5} />
           </button>
         )}
       </DropdownMenu.Trigger>
@@ -133,7 +156,7 @@ export function MetaMenu({
               key={`${String(item.label)}-${index}`}
               onSelect={item.onSelect}
             >
-              {item.icon ? <FokunaIcon name={item.icon} /> : null}
+              {item.icon ? <FokunaIcon name={item.icon} size={16} stroke={1.5} /> : null}
               {item.label}
             </DropdownMenu.Item>
           ))}

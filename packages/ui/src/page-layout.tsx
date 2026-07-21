@@ -4,7 +4,8 @@ import { cn } from "./utils";
 
 export interface PageHeaderProps extends HTMLAttributes<HTMLElement> {
   variant?: "content" | "calendar";
-  title: string;
+  /** Omit for mapped views like Aufgaben where the left slot stays empty. */
+  title?: string;
   subtitle?: string;
   breadcrumb?: ReactNode;
   actions?: ReactNode;
@@ -23,15 +24,24 @@ export function PageHeader({
   className,
   ...props
 }: PageHeaderProps) {
+  const hasTitleBlock = Boolean(title || subtitle);
+  const hasMain = Boolean(breadcrumb || hasTitleBlock);
+
   return (
     <header {...props} className={cn("fk-page-header", className)} data-variant={variant}>
-      <div className="fk-page-header__main">
-        {breadcrumb}
-        <div>
-          <h1>{title}</h1>
-          {subtitle ? <p>{subtitle}</p> : null}
+      {hasMain ? (
+        <div className="fk-page-header__main">
+          {breadcrumb}
+          {hasTitleBlock ? (
+            <div>
+              {title ? <h1>{title}</h1> : null}
+              {subtitle ? <p>{subtitle}</p> : null}
+            </div>
+          ) : null}
         </div>
-      </div>
+      ) : (
+        <div aria-hidden="true" className="fk-page-header__main" />
+      )}
       {center ? <div className="fk-page-header__center">{center}</div> : null}
       {actions ? <div className="fk-page-header__actions">{actions}</div> : null}
       {controls ? <div className="fk-page-header__controls">{controls}</div> : null}

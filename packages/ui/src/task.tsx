@@ -1,8 +1,8 @@
 "use client";
 
 import { FokunaIcon } from "@fokuna/icons";
-import { Popover } from "radix-ui";
-import { useState, type HTMLAttributes, type ReactNode } from "react";
+import { Dialog, Popover } from "radix-ui";
+import { Children, useState, type HTMLAttributes, type ReactNode } from "react";
 
 import { Button } from "./button";
 import { Checkbox } from "./selection-control";
@@ -87,15 +87,23 @@ export function TaskListItem({
       draggable
     >
       <div className="fk-task-item__primary-row">
-        <button aria-label="Aufgabe verschieben" className="fk-task-item__drag" type="button">
-          <FokunaIcon name="drag-handle-grid" />
+        <button
+          aria-label="Aufgabe verschieben"
+          className="fk-task-item__drag"
+          onClick={(event) => event.stopPropagation()}
+          type="button"
+        >
+          <FokunaIcon name="drag-handle-grid" size={16} stroke={1.5} />
         </button>
         {isExpandable ? (
           <button
             aria-expanded={isExpanded}
             aria-label={isExpanded ? "Aufgabendetails ausblenden" : "Aufgabendetails einblenden"}
             className="fk-task-item__expand"
-            onClick={() => setExpanded(!isExpanded)}
+            onClick={(event) => {
+              event.stopPropagation();
+              setExpanded(!isExpanded);
+            }}
             type="button"
           >
             <FokunaIcon
@@ -107,7 +115,11 @@ export function TaskListItem({
         ) : (
           <span className="fk-task-item__expand-spacer" />
         )}
-        <span data-no-drag>
+        <span
+          data-no-drag
+          onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => event.stopPropagation()}
+        >
           <Checkbox
             checked={completed}
             controlSize="md"
@@ -143,7 +155,8 @@ export function TaskListItem({
           aria-label={isFavorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}
           className="fk-task-item__favorite"
           data-favorite={isFavorite || undefined}
-          onClick={() => {
+          onClick={(event) => {
+            event.stopPropagation();
             const next = !isFavorite;
             if (!onFavoriteChange) setInternalFavorite(next);
             onFavoriteChange?.(next);
@@ -156,7 +169,8 @@ export function TaskListItem({
     </div>
   );
 
-  if (!children) return item;
+  // Empty arrays are truthy — only wrap when there are real child nodes.
+  if (Children.count(children) === 0) return item;
 
   return (
     <div className="fk-task-item-tree" data-expanded={isExpanded}>
@@ -227,6 +241,7 @@ export interface TaskGroupProps extends HTMLAttributes<HTMLElement> {
   milestone?: boolean;
   actions?: ReactNode;
   onExpandedChange?: (expanded: boolean) => void;
+  onAddSubmit?: (payload: AddTaskSubmitPayload) => void | Promise<void>;
 }
 
 export function TaskGroup({
@@ -240,6 +255,7 @@ export function TaskGroup({
   milestone,
   actions,
   onExpandedChange,
+  onAddSubmit,
   className,
   children,
   ...props
@@ -270,13 +286,14 @@ export function TaskGroup({
         title={title}
       />
       {expanded ? (
-        <div className="fk-task-group__items" data-adding={adding || undefined}>
+        <div className="fk-task-group__items fk-task-list" data-adding={adding || undefined}>
           {children}
           {adding ? (
             <AddTask
               expanded
               namePlaceholder={addNamePlaceholder}
               onExpandedChange={setAdding}
+              onSubmit={onAddSubmit}
               submitLabel={addLabel}
             />
           ) : (
@@ -384,7 +401,12 @@ export function MilestoneTaskGroup({
   );
 }
 
-export interface AddTaskProps extends HTMLAttributes<HTMLDivElement> {
+export interface AddTaskSubmitPayload {
+  title: string;
+  description: string;
+}
+
+export interface AddTaskProps extends Omit<HTMLAttributes<HTMLDivElement>, "onSubmit"> {
   expanded?: boolean;
   defaultExpanded?: boolean;
   actions?: ReactNode;
@@ -393,6 +415,7 @@ export interface AddTaskProps extends HTMLAttributes<HTMLDivElement> {
   submitLabel?: string;
   triggerLabel?: string;
   onExpandedChange?: (expanded: boolean) => void;
+  onSubmit?: (payload: AddTaskSubmitPayload) => void | Promise<void>;
 }
 
 export function AddTask({
@@ -404,16 +427,38 @@ export function AddTask({
   submitLabel,
   triggerLabel = "Aufgabe hinzufügen",
   onExpandedChange,
+  onSubmit,
   className,
   ...props
 }: AddTaskProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const expanded = expandedProp ?? internalExpanded;
 
   function setExpanded(nextExpanded: boolean) {
     if (expandedProp === undefined) setInternalExpanded(nextExpanded);
     onExpandedChange?.(nextExpanded);
+    if (!nextExpanded) {
+      setTitle("");
+      setDescription("");
+    }
+  }
+
+  async function handleSubmit() {
+    const nextTitle = title.trim();
+    if (!nextTitle || submitting) {
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await onSubmit?.({ title: nextTitle, description: description.trim() });
+      setExpanded(false);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (!expanded) {
@@ -435,7 +480,15 @@ export function AddTask({
         <input
           aria-label={namePlaceholder}
           autoFocus={focusOnExpand}
+          onChange={(event) => setTitle(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              void handleSubmit();
+            }
+          }}
           placeholder={namePlaceholder}
+          value={title}
         />
         <div className="fk-add-task__description-row" data-empty={!description || undefined}>
           {!description ? <FokunaIcon name="hamburger-menu" size={16} stroke={1.5} /> : null}
@@ -464,7 +517,12 @@ export function AddTask({
             Abbrechen
           </Button>
           {actions ?? (
-            <Button intent="secondary" onClick={() => setExpanded(false)} size="sm">
+            <Button
+              disabled={!title.trim() || submitting}
+              intent="secondary"
+              onClick={() => void handleSubmit()}
+              size="sm"
+            >
               {submitLabel ?? triggerLabel}
             </Button>
           )}
@@ -482,6 +540,9 @@ export interface TaskModalHeaderProps extends HTMLAttributes<HTMLElement> {
   editing?: boolean;
   defaultEditing?: boolean;
   onEditingChange?: (editing: boolean) => void;
+  onCompletedChange?: (completed: boolean) => void;
+  onFavoriteChange?: (favorite: boolean) => void;
+  onSave?: (payload: { title: string; description: string }) => void | Promise<void>;
   actions?: ReactNode;
 }
 
@@ -493,19 +554,44 @@ export function TaskModalHeader({
   editing,
   defaultEditing = false,
   onEditingChange,
+  onCompletedChange,
+  onFavoriteChange,
+  onSave,
   actions,
   className,
   ...props
 }: TaskModalHeaderProps) {
   const [internalEditing, setInternalEditing] = useState(defaultEditing);
   const [internalFavorite, setInternalFavorite] = useState(Boolean(favorite));
-  const [internalDescription, setInternalDescription] = useState(description ?? "");
+  const [draftTitle, setDraftTitle] = useState(title);
+  const [draftDescription, setDraftDescription] = useState(description ?? "");
+  const [saving, setSaving] = useState(false);
   const isEditing = editing ?? internalEditing;
-  const hasDescription = internalDescription.trim().length > 0;
+  const isFavorite = onFavoriteChange ? Boolean(favorite) : internalFavorite;
+  const shownDescription = isEditing ? draftDescription : (description ?? "");
+  const hasDescription = shownDescription.trim().length > 0;
 
   function setEditing(nextEditing: boolean) {
     if (editing === undefined) setInternalEditing(nextEditing);
     onEditingChange?.(nextEditing);
+    if (nextEditing) {
+      setDraftTitle(title);
+      setDraftDescription(description ?? "");
+    }
+  }
+
+  async function handleSave() {
+    const nextTitle = draftTitle.trim();
+    if (!nextTitle || saving) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSave?.({ title: nextTitle, description: draftDescription.trim() });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -523,18 +609,36 @@ export function TaskModalHeader({
         setEditing(true);
       }}
     >
-      <Checkbox checked={completed} controlSize="md" />
+      <span data-no-drag>
+        <Checkbox
+          checked={completed}
+          controlSize="md"
+          onCheckedChange={(next) => onCompletedChange?.(next === true)}
+        />
+      </span>
       <div className="fk-task-modal-header__content">
         <div className="fk-task-modal-header__title-row">
-          {isEditing ? <input aria-label="Aufgabenname" defaultValue={title} /> : <h2>{title}</h2>}
+          {isEditing ? (
+            <input
+              aria-label="Aufgabenname"
+              onChange={(event) => setDraftTitle(event.target.value)}
+              value={draftTitle}
+            />
+          ) : (
+            <h2>{title}</h2>
+          )}
           <button
-            aria-label={internalFavorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}
+            aria-label={isFavorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}
             className="fk-task-modal-header__favorite"
-            data-favorite={internalFavorite || undefined}
-            onClick={() => setInternalFavorite((current) => !current)}
+            data-favorite={isFavorite || undefined}
+            onClick={() => {
+              const next = !isFavorite;
+              if (!onFavoriteChange) setInternalFavorite(next);
+              onFavoriteChange?.(next);
+            }}
             type="button"
           >
-            <FokunaIcon fill={internalFavorite ? "on" : "off"} name="star" />
+            <FokunaIcon fill={isFavorite ? "on" : "off"} name="star" />
           </button>
         </div>
         <div
@@ -546,13 +650,13 @@ export function TaskModalHeader({
             <textarea
               aria-label="Beschreibung"
               className="fk-task-modal-header__description-input"
-              onChange={(event) => setInternalDescription(event.target.value)}
+              onChange={(event) => setDraftDescription(event.target.value)}
               placeholder="Beschreibung"
               rows={3}
-              value={internalDescription}
+              value={draftDescription}
             />
           ) : (
-            <p>{hasDescription ? internalDescription : "Beschreibung"}</p>
+            <p>{hasDescription ? shownDescription : "Beschreibung"}</p>
           )}
         </div>
         {isEditing ? (
@@ -567,7 +671,12 @@ export function TaskModalHeader({
                 >
                   Abbrechen
                 </Button>
-                <Button intent="secondary" onClick={() => setEditing(false)} size="sm">
+                <Button
+                  disabled={!draftTitle.trim() || saving}
+                  intent="secondary"
+                  onClick={() => void handleSave()}
+                  size="sm"
+                >
                   Speichern
                 </Button>
               </>
@@ -710,5 +819,26 @@ export function TaskModalSlot({
       </div>
       {menu}
     </section>
+  );
+}
+
+export interface TaskModalDialogProps {
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  title: string;
+  children: ReactNode;
+}
+
+export function TaskModalDialog({ open, onOpenChange, title, children }: TaskModalDialogProps) {
+  return (
+    <Dialog.Root onOpenChange={onOpenChange} open={open}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fk-task-modal-dialog__overlay" />
+        <Dialog.Content aria-describedby={undefined} className="fk-task-modal-dialog__content">
+          <Dialog.Title className="fk-sr-only">{title}</Dialog.Title>
+          {children}
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }

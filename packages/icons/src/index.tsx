@@ -2,8 +2,8 @@ import { useId, type SVGProps } from "react";
 
 import { iconNames, iconRecords, type IconName, type IconRecord } from "./registry.generated";
 
-export { iconNames };
-export type { IconName };
+export { iconNames, iconRecords };
+export type { IconName, IconRecord };
 
 export type IconSize = 16 | 24;
 export type IconStroke = 1 | 1.5 | 2;
@@ -63,6 +63,12 @@ export function FokunaIcon({
 }: FokunaIconProps) {
   const titleId = useId();
   const record = resolveIcon(name, { size, stroke, radius, fill, join });
+  // Some glyphs only ship a subset of stroke weights. Remap the path stroke so
+  // callers can still request the design-system weight (e.g. checklist → 1.5).
+  const body =
+    String(record.stroke) === String(stroke)
+      ? record.body
+      : record.body.replaceAll(`stroke-width="${record.stroke}"`, `stroke-width="${stroke}"`);
 
   return (
     <svg
@@ -79,7 +85,7 @@ export function FokunaIcon({
       xmlns="http://www.w3.org/2000/svg"
     >
       {title ? <title id={titleId}>{title}</title> : null}
-      <g dangerouslySetInnerHTML={{ __html: record.body }} />
+      <g dangerouslySetInnerHTML={{ __html: body }} />
     </svg>
   );
 }
