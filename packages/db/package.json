@@ -1,0 +1,33 @@
+{
+  "name": "@fokuna/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "files": [
+    "src",
+    "drizzle.config.ts"
+  ],
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint src --max-warnings=0",
+    "typecheck": "tsc --noEmit",
+    "generate": "drizzle-kit generate",
+    "migrate": "drizzle-kit migrate",
+    "push": "drizzle-kit push",
+    "studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "1.0.2",
+    "drizzle-orm": "0.45.2"
+  },
+  "devDependencies": {
+    "@fokuna/config": "workspace:*",
+    "@types/node": "20.11.30",
+    "drizzle-kit": "0.31.8",
+    "eslint": "9.39.2",
+    "typescript": "5.9.3"
+  }
+}

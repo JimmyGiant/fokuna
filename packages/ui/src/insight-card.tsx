@@ -284,10 +284,7 @@ export function InsightActivityChart({
   );
   const thresholdOffset =
     threshold != null && threshold > 0
-      ? Math.min(
-          plotHeight,
-          threshold * segmentHeight + Math.max(0, threshold - 1) * segmentGap,
-        )
+      ? Math.min(plotHeight, threshold * segmentHeight + Math.max(0, threshold - 1) * segmentGap)
       : null;
 
   return (
@@ -526,24 +523,14 @@ export function InsightProgressRing({ value, className }: InsightProgressRingPro
       <span aria-hidden="true" className="fk-insight-ring__band" />
       <svg aria-hidden="true" className="fk-insight-ring__svg" viewBox="0 0 88 88">
         <circle className="fk-insight-ring__track" cx="44" cy="44" r="40" />
-        <circle
-          className="fk-insight-ring__value"
-          cx="44"
-          cy="44"
-          pathLength="100"
-          r="40"
-        />
+        <circle className="fk-insight-ring__value" cx="44" cy="44" pathLength="100" r="40" />
       </svg>
       <span className="fk-insight-ring__label">{progress}%</span>
     </div>
   );
 }
 
-export function InsightSegmentGauge({
-  value,
-  segments = 40,
-  className,
-}: InsightSegmentGaugeProps) {
+export function InsightSegmentGauge({ value, segments = 40, className }: InsightSegmentGaugeProps) {
   const progress = clamp(value, 0, 100);
   const filled = Math.round((progress / 100) * segments);
 
@@ -624,7 +611,11 @@ export function InsightPrioritiesContent({ items, className }: InsightPriorities
         {ordered.map((item) => (
           <li key={item.id}>
             <span className="fk-insight-priorities__label">
-              <span aria-hidden="true" className="fk-insight-priorities__dot" data-tone={item.tone} />
+              <span
+                aria-hidden="true"
+                className="fk-insight-priorities__dot"
+                data-tone={item.tone}
+              />
               {item.label}
             </span>
             <strong>{item.count}</strong>

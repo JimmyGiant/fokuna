@@ -1,54 +1,59 @@
 # Fokuna
 
-Produktionscode für die Fokuna SaaS-Anwendung und ihre gemeinsame Pattern Library.
+Produktionscode für die Fokuna SaaS-Anwendung, Pattern Library und gemeinsame Domänenpakete.
 
 ## Workspace
 
-- `apps/web`: Next.js-Anwendung und interne Pattern-Library-Route
-- `packages/tokens`: Figma-basierte Design-Tokens und CSS-Theme
-- `packages/icons`: kuratierte, produktionsfertige Icon-Bibliothek
-- `packages/ui`: wiederverwendbare React-Komponenten
-- `context`: freigegebene Design- und Produktübergabe
+- `apps/web`: Next.js Hauptanwendung, API (`/api/v1`), Auth und Pattern Library
+- `apps/admin`: interne Admin-Oberfläche (Port 3001)
+- `packages/tokens`: Design Tokens
+- `packages/icons`: Icon Registry
+- `packages/ui`: Pattern-Library-Komponenten
+- `packages/db`: Drizzle Schema und Neon Client
+- `packages/domain`: reine Domänenregeln
+- `packages/api-contracts`: Zod HTTP-Verträge
+- `context`: Design- und Produktübergabe
 
 ## Entwicklung
 
-Voraussetzungen: Node.js `>=20.11` und Corepack. Die im Repository fixierte pnpm-Version ist
-`9.15.4`; globale pnpm-Installationen sollen nicht verwendet werden.
+Voraussetzungen: Node.js `>=20.11` und Corepack. pnpm ist auf `9.15.4` gepinnt.
 
 ```bash
 corepack pnpm install
+cp .env.example .env
 corepack pnpm dev
 ```
 
-Die Pattern Library ist anschließend unter
-[http://localhost:3000/pattern-library](http://localhost:3000/pattern-library) erreichbar.
+Standardmäßig läuft der **Memory-Driver** (ohne Neon), inkl. Demo-Login:
 
-## Quellen und Generierung
+- E-Mail: `demo@fokuna.app`
+- Passwort: `demo-password-123`
 
-- `context/` ist die freigegebene Design-, UX- und Produktübergabe.
-- `context/00_ui_ux/03_Tokens/` bleibt die Eingabe für die Token-Normalisierung.
-- `packages/tokens/src/` enthält die eingecheckten Produktionsartefakte für CSS, Tailwind und
-  TypeScript. Neu generieren: `corepack pnpm --filter @fokuna/tokens build`.
-- `src/icons/` enthält die kuratierten SVG-Quellen; `packages/icons` erzeugt daraus die typisierte
-  Registry. Neu generieren: `corepack pnpm --filter @fokuna/icons build`.
-- Produktkomponenten verwenden semantische Tokens und typisierte Icons, keine kopierten
-  Figma-Einzelwerte oder freien SVGs.
+App: [http://localhost:3000/app/aufgaben](http://localhost:3000/app/aufgaben)  
+Pattern Library: [http://localhost:3000/pattern-library](http://localhost:3000/pattern-library)  
+Login: [http://localhost:3000/login](http://localhost:3000/login)
 
-## Pattern Library
+### Neon / Better Auth
 
-Die Abnahmeroute zeigt Foundations und alle zentralen Übergabe-Patterns: Buttons, Form Controls,
-Date Picker, Auswahl- und Navigationselemente, Overlays, Kalender-Drag-Zustände, Aufgabenlisten,
-Meilensteine, Task-Modals, Page Header, Sidebar und UI Shell. Neue Komponenten werden zuerst in
-`packages/ui` ergänzt, mit Tests abgesichert und anschließend im Katalog sichtbar gemacht.
+```bash
+# .env
+DATABASE_URL="postgresql://..."
+FOKUNA_DATA_DRIVER=neon
+BETTER_AUTH_SECRET="mindestens-32-zeichen-geheimnis"
+BETTER_AUTH_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 
-Die Pattern Library ist der Abschluss von Phase 1. Produktviews, Backend-Logik, Persistenz und das
-fachliche Datenbankschema gehören bewusst in die folgenden Phasen des PRD.
+corepack pnpm --filter @fokuna/db push
+```
 
-## Qualitätsprüfung
+## Qualität
 
 ```bash
 corepack pnpm check
+corepack pnpm test:e2e
 ```
 
-Der Befehl prüft Format, Lint/Accessibility, TypeScript, Komponententests und den
-Next.js-Produktionsbuild. CI führt denselben Vertrag aus.
+## Architektur
+
+`Route Handler → Service → Repository/Drizzle → PostgreSQL`  
+Server Components dürfen dieselbe Service-Schicht direkt nutzen. Siehe `docs/decisions/`.

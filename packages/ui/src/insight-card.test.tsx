@@ -107,6 +107,8 @@ describe("InsightCard", () => {
       <InsightActivityCard showThresholdControl={false} weeks={[{ label: "KW 21", value: 3 }]} />,
     );
 
-    expect(screen.queryByRole("button", { name: "Schwellenwert festlegen" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Schwellenwert festlegen" }),
+    ).not.toBeInTheDocument();
   });
 });

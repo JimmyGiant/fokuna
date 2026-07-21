@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "@fokuna/tokens/theme.css";
+@import "@fokuna/tokens/tailwind.css";
+@import "@fokuna/ui/styles.css";
+
+body {
+  margin: 0;
+  font-family: var(--fk-type-font-font-family-body-primary), sans-serif;
+  background: var(--fk-color-surface-subtle);
+  color: var(--fk-color-text-primary);
+}

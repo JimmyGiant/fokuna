@@ -16,11 +16,17 @@ describe("TemplateCard", () => {
       />,
     );
 
-    expect(container.querySelector(".fk-template-card")).toHaveAttribute("data-elevation", "subtle");
+    expect(container.querySelector(".fk-template-card")).toHaveAttribute(
+      "data-elevation",
+      "subtle",
+    );
     expect(screen.getByText("Eat that Frog")).toBeInTheDocument();
     expect(screen.getByText("5 Elemente")).toBeInTheDocument();
     expect(screen.getByText("3 Elemente")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Mehr Optionen" })).toHaveAttribute("data-size", "sm");
+    expect(screen.getByRole("button", { name: "Mehr Optionen" })).toHaveAttribute(
+      "data-size",
+      "sm",
+    );
     expect(screen.queryByRole("button", { name: "Mehr" })).not.toBeInTheDocument();
   });
 });

@@ -25,7 +25,10 @@ describe("BlockCard", () => {
     expect(screen.getByText("15 min")).toBeInTheDocument();
     expect(screen.getByText("Pomodoro")).toBeInTheDocument();
     expect(screen.getByText("Woods")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Mehr Optionen" })).toHaveAttribute("data-size", "sm");
+    expect(screen.getByRole("button", { name: "Mehr Optionen" })).toHaveAttribute(
+      "data-size",
+      "sm",
+    );
     expect(screen.queryByRole("button", { name: "Bearbeiten" })).not.toBeInTheDocument();
   });
 });

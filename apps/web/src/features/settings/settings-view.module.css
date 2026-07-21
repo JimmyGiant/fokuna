@@ -1,0 +1,41 @@
+.page {
+  display: grid;
+  gap: 24px;
+  width: min(100%, 840px);
+}
+
+.section {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid var(--fk-color-border-subtle);
+  border-radius: 16px;
+  background: var(--fk-color-surface-base);
+}
+
+.section h2,
+.section p {
+  margin: 0;
+}
+
+.section p {
+  color: var(--fk-color-text-secondary);
+  line-height: 1.5;
+}
+
+.row,
+.integration {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.integration {
+  padding-top: 8px;
+  border-top: 1px solid var(--fk-color-border-subtle);
+}
+
+.integration p {
+  margin: 4px 0 0;
+}

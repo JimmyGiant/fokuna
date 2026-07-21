@@ -4,6 +4,20 @@ Kompakte Begleitdokumentation zur Entwicklung. Git bleibt die vollständige tech
 
 ## Unreleased
 
+### Decisions
+
+- Phase 1 Pattern Library V1.1 ist freigegeben; Produktaufbau startet foundation-first.
+- Auth V1: E-Mail/Passwort (+ Verifizierung/Reset). Kein Magic Link/Social/2FA.
+- Kalender P0: Tag/Woche/Monat; List View und externe Sync folgen danach.
+- Lokaler Default-Datentreiber ist `memory` bis `DATABASE_URL` + `FOKUNA_DATA_DRIVER=neon` gesetzt sind.
+
+### Added
+
+- Phase-2-Foundation: `@fokuna/db`, `@fokuna/domain`, `@fokuna/api-contracts`, ADRs 0002–0004.
+- App Shell mit Modulrouten, Demo-/Better-Auth, `/api/v1` für Tasks, Goals, Blocks, Calendar, Focus, Journal, Insights, Integrations und Stripe-Webhook-Stub.
+- Produktviews für Aufgaben (dnd-kit), Blocks, Kalender (FullCalendar), Ziele, Fokus, Journal, Insights und Einstellungen.
+- `apps/admin` Skelett und Launch-/Hardening-Checklisten unter `docs/launch/`.
+
 ### Changed
 
 - Goal Card mit frueher ausblendendem Schmuckrand, konkaver Progress-Aussparung, animiertem SVG-Progressring ab 12 Uhr, vertikal korrigierten Meilensteinen, gemeinsamem Task-Subtask-Icon, dynamischer Drei-Schritte-Vorschau und quarternaerem Fahnen-Empty-State mit gruener Anlege-Aktion an die Layout-Vorgabe angeglichen.

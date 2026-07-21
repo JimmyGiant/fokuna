@@ -1,0 +1,52 @@
+.page {
+  display: grid;
+  gap: 24px;
+  min-height: calc(100vh - 48px);
+}
+
+.stage {
+  display: grid;
+  gap: 24px;
+  place-items: center;
+  min-height: 560px;
+  padding: 48px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top, rgba(15, 118, 110, 0.16), transparent 45%),
+    var(--fk-color-surface-base);
+  border: 1px solid var(--fk-color-border-subtle);
+}
+
+.label {
+  margin: 0;
+  color: var(--fk-color-text-secondary);
+  font-weight: 600;
+}
+
+.timer {
+  font-size: clamp(64px, 10vw, 120px);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+.page[data-status="paused"] .stage {
+  background:
+    radial-gradient(circle at top, rgba(180, 83, 9, 0.12), transparent 45%),
+    var(--fk-color-surface-base);
+}

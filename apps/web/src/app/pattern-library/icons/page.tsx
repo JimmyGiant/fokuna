@@ -11,8 +11,8 @@ export default function IconsPage() {
           <p className={styles.eyebrow}>Foundations · Icons</p>
           <h1>Icon-Übersicht</h1>
           <p>
-            Alle kuratierten Icons aus <code>src/icons</code>, nutzbar über{" "}
-            <code>FokunaIcon</code> in <code>@fokuna/icons</code>.
+            Alle kuratierten Icons aus <code>src/icons</code>, nutzbar über <code>FokunaIcon</code>{" "}
+            in <code>@fokuna/icons</code>.
           </p>
         </div>
         <div className={styles.sourceBadge}>{iconNames.length} names · 16 / 24 px</div>
@@ -22,7 +22,9 @@ export default function IconsPage() {
         <header>
           <p className={styles.sectionLabel}>Registry</p>
           <h2>Verfügbare Icons</h2>
-          <p>Darstellung in 24px, Stroke 1.5. Name entspricht dem Prop <code>name</code>.</p>
+          <p>
+            Darstellung in 24px, Stroke 1.5. Name entspricht dem Prop <code>name</code>.
+          </p>
         </header>
 
         <ul className={styles.iconGrid}>

@@ -1,0 +1,51 @@
+.page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(15, 118, 110, 0.12), transparent 40%),
+    var(--fk-color-surface-subtle);
+}
+
+.card {
+  display: grid;
+  width: min(100%, 420px);
+  gap: 16px;
+  padding: 32px;
+  border: 1px solid var(--fk-color-border-subtle);
+  border-radius: 20px;
+  background: var(--fk-color-surface-base);
+  box-shadow: var(--fk-shadow-medium, 0 12px 40px rgba(0, 0, 0, 0.06));
+}
+
+.card h1 {
+  margin: 4px 0 0;
+  font-size: 28px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--fk-color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.lead,
+.meta {
+  margin: 0;
+  color: var(--fk-color-text-secondary);
+  line-height: 1.5;
+}
+
+.error {
+  margin: 0;
+  color: var(--fk-color-text-danger, #b42318);
+}
+
+.meta a {
+  color: var(--fk-color-text-brand, #0f766e);
+  font-weight: 600;
+}

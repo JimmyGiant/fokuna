@@ -1,0 +1,29 @@
+.page {
+  display: grid;
+  gap: 24px;
+  width: min(100%, 840px);
+}
+
+.entry,
+.templates {
+  display: grid;
+  gap: 16px;
+}
+
+.entry {
+  padding: 24px;
+  border: 1px solid var(--fk-color-border-subtle);
+  border-radius: 16px;
+  background: var(--fk-color-surface-base);
+}
+
+.entry h2,
+.templates h2 {
+  margin: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
