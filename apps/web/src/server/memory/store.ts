@@ -109,7 +109,7 @@ const globalStore = globalThis as typeof globalThis & {
   __fokunaMemoryStoreVersion?: number;
 };
 
-const MEMORY_STORE_VERSION = 6;
+const MEMORY_STORE_VERSION = 7;
 
 function createStore(): MemoryStore {
   const store: MemoryStore = {
@@ -160,37 +160,61 @@ function createStore(): MemoryStore {
     updatedAt: now,
   });
 
-  const rootTaskId = createId("task");
-  store.tasks.set(rootTaskId, {
-    id: rootTaskId,
+  // All demo tasks land in inbox — no legacy `root` / Abschnitt buckets.
+  const inboxTaskId = createId("task");
+  store.tasks.set(inboxTaskId, {
+    id: inboxTaskId,
     userId: demoUser.id,
-    goalId,
+    goalId: null,
     milestoneId: null,
     parentTaskId: null,
-    groupKey: "root",
-    title: "Pattern Library freigeben",
-    description: "Visuelle Abnahme der V1.1 Komponenten",
-    priority: "high",
-    estimateMinutes: 60,
+    groupKey: "inbox",
+    title: "Kalender-Sync spezifizieren",
+    description: null,
+    priority: "medium",
+    estimateMinutes: 45,
     dueDate: today,
-    isFavorite: true,
+    isFavorite: false,
     isCompleted: false,
     completedAt: null,
     sortOrder: 0,
+    tags: ["Etikettenname"],
+    archivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const favoriteTaskId = createId("task");
+  store.tasks.set(favoriteTaskId, {
+    id: favoriteTaskId,
+    userId: demoUser.id,
+    goalId: null,
+    milestoneId: null,
+    parentTaskId: null,
+    groupKey: "inbox",
+    title: "Release-Notes skizzieren",
+    description: null,
+    priority: "low",
+    estimateMinutes: 30,
+    dueDate: null,
+    isFavorite: true,
+    isCompleted: false,
+    completedAt: null,
+    sortOrder: 1,
     tags: ["Launch"],
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
   });
 
-  const sectionParentId = createId("task");
-  store.tasks.set(sectionParentId, {
-    id: sectionParentId,
+  const nestedParentId = createId("task");
+  store.tasks.set(nestedParentId, {
+    id: nestedParentId,
     userId: demoUser.id,
     goalId: marathonGoalId,
     milestoneId: null,
     parentTaskId: null,
-    groupKey: "abschnitt-4",
+    groupKey: "inbox",
     title: "Trainingsplan finalisieren",
     description: null,
     priority: "high",
@@ -199,7 +223,7 @@ function createStore(): MemoryStore {
     isFavorite: false,
     isCompleted: false,
     completedAt: null,
-    sortOrder: 0,
+    sortOrder: 2,
     tags: ["Training", "Fokus"],
     archivedAt: null,
     createdAt: now,
@@ -212,8 +236,8 @@ function createStore(): MemoryStore {
     userId: demoUser.id,
     goalId: marathonGoalId,
     milestoneId: null,
-    parentTaskId: sectionParentId,
-    groupKey: "abschnitt-4",
+    parentTaskId: nestedParentId,
+    groupKey: "inbox",
     title: "Intervall-Einheiten eintragen",
     description: null,
     priority: "medium",
@@ -236,7 +260,7 @@ function createStore(): MemoryStore {
     goalId: marathonGoalId,
     milestoneId: null,
     parentTaskId: subtaskA,
-    groupKey: "abschnitt-4",
+    groupKey: "inbox",
     title: "Dienstag 8x1000m planen",
     description: null,
     priority: "none",
@@ -258,8 +282,8 @@ function createStore(): MemoryStore {
     userId: demoUser.id,
     goalId: marathonGoalId,
     milestoneId: null,
-    parentTaskId: sectionParentId,
-    groupKey: "abschnitt-4",
+    parentTaskId: nestedParentId,
+    groupKey: "inbox",
     title: "Regeneration planen",
     description: null,
     priority: "low",
@@ -270,52 +294,6 @@ function createStore(): MemoryStore {
     completedAt: null,
     sortOrder: 1,
     tags: [],
-    archivedAt: null,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  const inboxTaskId = createId("task");
-  store.tasks.set(inboxTaskId, {
-    id: inboxTaskId,
-    userId: demoUser.id,
-    goalId: null,
-    milestoneId: null,
-    parentTaskId: null,
-    groupKey: "inbox",
-    title: "Kalender-Sync spezifizieren",
-    description: null,
-    priority: "medium",
-    estimateMinutes: 45,
-    dueDate: null,
-    isFavorite: false,
-    isCompleted: false,
-    completedAt: null,
-    sortOrder: 0,
-    tags: ["Etikettenname"],
-    archivedAt: null,
-    createdAt: now,
-    updatedAt: now,
-  });
-
-  const rootSecondaryId = createId("task");
-  store.tasks.set(rootSecondaryId, {
-    id: rootSecondaryId,
-    userId: demoUser.id,
-    goalId: null,
-    milestoneId: null,
-    parentTaskId: null,
-    groupKey: "root",
-    title: "Release-Notes skizzieren",
-    description: null,
-    priority: "low",
-    estimateMinutes: 30,
-    dueDate: null,
-    isFavorite: true,
-    isCompleted: false,
-    completedAt: null,
-    sortOrder: 1,
-    tags: ["Launch"],
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -395,10 +373,10 @@ function createStore(): MemoryStore {
   }> = [
     {
       source: "task",
-      title: "Pattern Library freigeben",
+      title: "Kalender-Sync spezifizieren",
       startsAt: addHours(dayStart, 8, 0),
       endsAt: addHours(dayStart, 9, 0),
-      taskId: rootTaskId,
+      taskId: inboxTaskId,
     },
     {
       source: "manual",

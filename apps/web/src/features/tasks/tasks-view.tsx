@@ -17,7 +17,6 @@ import {
 import {
   SortableContext,
   arrayMove,
-  defaultAnimateLayoutChanges,
   useSortable,
   verticalListSortingStrategy,
   type AnimateLayoutChanges,
@@ -75,14 +74,14 @@ import styles from "./tasks-view.module.css";
 
 const ROOT_GROUP = "root";
 /**
- * Flat list + primary „Aufgabe hinzufügen“ target for the active sidebar filter.
- * Must match `matchesFilter` — e.g. inbox only shows `groupKey === "inbox"`.
+ * Create target for the active sidebar filter.
+ * New tasks without a category land in Eingang; Heute sets group + dueDate.
  */
-function primaryGroupKeyForFilter(filter: string): string {
-  if (filter === "inbox") return "inbox";
+function createGroupKeyForFilter(filter: string): string {
   if (filter === "today") return "today";
-  return ROOT_GROUP;
+  return "inbox";
 }
+
 /** Todoist-style: full step right = nest, full step left = outdent. */
 const INDENTATION_WIDTH = 48;
 const DRAG_ACTIVATION_DISTANCE = 8;
@@ -108,12 +107,8 @@ function placementsEqual(a: TaskPlacement[], b: TaskPlacement[]): boolean {
   return a.every((placement) => right.get(placement.id) === serialize(placement));
 }
 
-/** Sibling slides only while sorting mid-drag — never after drop (avoids fly-in from top). */
-const animateLayoutChanges: AnimateLayoutChanges = (args) => {
-  if (args.isDragging) return false;
-  if (!args.isSorting) return false;
-  return defaultAnimateLayoutChanges(args);
-};
+/** No layout animation on sort/drop — slot moves are instant (no transform slides). */
+const animateLayoutChanges: AnimateLayoutChanges = () => false;
 
 const toneByToken: Record<string, BlockTone> = {
   "category.coral": "coral",
@@ -143,15 +138,63 @@ function formatDueLabel(dueDate: string | null): string | undefined {
   return due.toLocaleDateString("de-DE", { day: "numeric", month: "short" });
 }
 
-/** Near-term dues may emphasize; other dates stay neutral meta gray. */
+/** Near-term and overdue dues may emphasize; other dates stay neutral meta gray. */
 function dueMetaTone(dueDate: string | null): "coral" | "neutral" {
   if (!dueDate) return "neutral";
   const due = new Date(`${dueDate}T12:00:00`);
   const today = new Date();
   today.setHours(12, 0, 0, 0);
   const diffDays = Math.round((due.getTime() - today.getTime()) / 86_400_000);
-  if (diffDays === 0 || diffDays === 1) return "coral";
+  if (diffDays <= 1) return "coral";
   return "neutral";
+}
+
+function isOverdueDueDate(dueDate: string | null, today: string): boolean {
+  return Boolean(dueDate && dueDate < today);
+}
+
+/** Nested matches whose parent isn't visible become roots (e.g. Favoriten-Subtasks). */
+function promoteOrphanNestedTasks<T extends { id: string; parentTaskId: string | null }>(
+  tasks: T[],
+): T[] {
+  const ids = new Set(tasks.map((task) => task.id));
+  return tasks.map((task) => {
+    if (task.parentTaskId && !ids.has(task.parentTaskId)) {
+      return { ...task, parentTaskId: null };
+    }
+    return task;
+  });
+}
+
+/** Flatten visible tasks for DnD; overdue trees are separate from group buckets on Heute. */
+function flattenTasksForDragList(input: {
+  filter: string;
+  visibleTasks: TaskDto[];
+  expandedById: Record<string, boolean>;
+  orderedGroupKeys: string[];
+  overdueTreeIds: Set<string>;
+  activeId: string | null;
+}): FlatTreeItem[] {
+  const { filter, visibleTasks, expandedById, orderedGroupKeys, overdueTreeIds, activeId } =
+    input;
+
+  const tasksForTree =
+    filter === "favorites" ? promoteOrphanNestedTasks(visibleTasks) : visibleTasks;
+
+  if (filter === "today" && overdueTreeIds.size > 0) {
+    const overdueTasks = tasksForTree.filter((task) => overdueTreeIds.has(task.id));
+    const todayTasks = tasksForTree.filter((task) => !overdueTreeIds.has(task.id));
+    const overdueFlat = flattenTasksForTree(overdueTasks, expandedById, undefined, true);
+    const todayFlat = flattenTasksForTree(todayTasks, expandedById, orderedGroupKeys, true);
+    return removeChildrenOfActive([...overdueFlat, ...todayFlat], activeId);
+  }
+
+  // Alle / Favoriten / Eingang: one continuous list, no Abschnitt buckets.
+  const unifyRoots = filter !== "today";
+  return removeChildrenOfActive(
+    flattenTasksForTree(tasksForTree, expandedById, orderedGroupKeys, unifyRoots),
+    activeId,
+  );
 }
 
 function groupTitle(groupKey: string): string {
@@ -255,9 +298,10 @@ function SortableFlatTask({
   onToggle: (task: TaskDto, completed: boolean) => void;
   onFavorite: (task: TaskDto, favorite: boolean) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, isDragging } = useSortable({
     id: task.id,
     animateLayoutChanges,
+    transition: null,
   });
 
   const indentStyle = {
@@ -278,24 +322,16 @@ function SortableFlatTask({
         }
       : undefined;
 
-  const sortableStyle = sortableItemStyle({
-    transform,
-    transition,
-    layoutControlled: isDragging,
-  });
-
   return (
     <div
       className={styles.sortableRow}
       data-indent={depth || undefined}
+      data-placeholder={isDragging ? "true" : undefined}
       ref={setNodeRef}
       style={{
         ...indentStyle,
-        ...sortableStyle,
-        // Keep L/R indent slides even when transform transition is cleared on the active slot.
-        transition: [sortableStyle.transition, "margin-left 160ms cubic-bezier(0.25, 1, 0.5, 1)", "width 160ms cubic-bezier(0.25, 1, 0.5, 1)"]
-          .filter(Boolean)
-          .join(", "),
+        // Live DOM order owns the slot — never apply sortable transforms/transitions.
+        ...sortableItemStyle({ transform: null, transition: undefined, layoutControlled: true }),
         ...lockedStyle,
       }}
     >
@@ -347,19 +383,17 @@ function listTitleForFilter(filter: string): string {
   return "Alle Aufgaben";
 }
 
-function normalizePriority(priority: TaskDto["priority"]): TaskDto["priority"] {
-  return priority === "high" ? "urgent" : priority;
+/** Section title under Überfällig on the Heute view, e.g. "Mittwoch, 22. Juli". */
+function formatTodaySectionTitle(date = new Date()): string {
+  return date.toLocaleDateString("de-DE", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 }
 
-function countTaskTree(
-  roots: TaskDto[],
-  childrenByParent: Map<string, TaskDto[]>,
-): number {
-  function countNode(task: TaskDto): number {
-    const children = childrenByParent.get(task.id) ?? [];
-    return 1 + children.reduce((sum, child) => sum + countNode(child), 0);
-  }
-  return roots.reduce((sum, task) => sum + countNode(task), 0);
+function normalizePriority(priority: TaskDto["priority"]): TaskDto["priority"] {
+  return priority === "high" ? "urgent" : priority;
 }
 
 export function TasksView() {
@@ -498,7 +532,12 @@ export function TasksView() {
     function matchesFilter(task: TaskDto) {
       if (!showCompleted && task.isCompleted) return false;
       if (filter === "favorites" && !task.isFavorite) return false;
-      if (filter === "today" && task.dueDate !== today && task.groupKey !== "today") return false;
+      if (filter === "today") {
+        const isDueToday = task.dueDate === today;
+        const isTodayGroup = task.groupKey === "today";
+        const isOverdue = isOverdueDueDate(task.dueDate, today);
+        if (!isDueToday && !isTodayGroup && !isOverdue) return false;
+      }
       if (filter === "inbox" && task.groupKey !== "inbox") return false;
       return matchesSearch(task);
     }
@@ -507,6 +546,11 @@ export function TasksView() {
     const matchedRootIds = new Set(matchedRoots.map((task) => task.id));
     const matchedSelf = all.filter((task) => matchesFilter(task));
     const matchedIds = new Set(matchedSelf.map((task) => task.id));
+
+    // Favoriten: only starred tasks (nested ones are promoted to roots when flattening).
+    if (filter === "favorites") {
+      return matchedSelf;
+    }
 
     return all.filter((task) => {
       if (matchedIds.has(task.id)) return true;
@@ -531,10 +575,44 @@ export function TasksView() {
     return map;
   }, [visibleTasks]);
 
+  const overdueTreeIds = useMemo(() => {
+    if (filter !== "today") return new Set<string>();
+    const today = todayIsoDate();
+    const byId = new Map(visibleTasks.map((task) => [task.id, task]));
+    const ids = new Set<string>();
+    for (const task of visibleTasks) {
+      let root = task;
+      while (root.parentTaskId) {
+        const parent = byId.get(root.parentTaskId);
+        if (!parent) break;
+        root = parent;
+      }
+      if (isOverdueDueDate(root.dueDate, today)) {
+        ids.add(task.id);
+      }
+    }
+    return ids;
+  }, [filter, visibleTasks]);
+
+  const overdueRootCount = useMemo(() => {
+    if (filter !== "today") return 0;
+    return visibleTasks.filter(
+      (task) => !task.parentTaskId && overdueTreeIds.has(task.id),
+    ).length;
+  }, [filter, overdueTreeIds, visibleTasks]);
+
+  const todayRootCount = useMemo(() => {
+    if (filter !== "today") return 0;
+    return visibleTasks.filter(
+      (task) => !task.parentTaskId && !overdueTreeIds.has(task.id),
+    ).length;
+  }, [filter, overdueTreeIds, visibleTasks]);
+
   const rootTasksByGroup = useMemo(() => {
     const map = new Map<string, TaskDto[]>();
     for (const task of visibleTasks) {
       if (task.parentTaskId) continue;
+      if (overdueTreeIds.has(task.id)) continue;
       const list = map.get(task.groupKey) ?? [];
       list.push(task);
       map.set(task.groupKey, list);
@@ -543,28 +621,37 @@ export function TasksView() {
       list.sort((a, b) => a.sortOrder - b.sortOrder);
     }
     return map;
-  }, [visibleTasks]);
+  }, [overdueTreeIds, visibleTasks]);
 
-  const primaryGroupKey = primaryGroupKeyForFilter(filter);
+  const createGroupKey = createGroupKeyForFilter(filter);
+  const unifyFlatList = filter !== "today";
 
   const orderedGroupKeys = useMemo(() => {
     const keys = [...rootTasksByGroup.keys()];
     keys.sort((a, b) => {
-      if (a === primaryGroupKey) return -1;
-      if (b === primaryGroupKey) return 1;
+      if (a === createGroupKey) return -1;
+      if (b === createGroupKey) return 1;
       return a.localeCompare(b, "de");
     });
-    if (!keys.includes(primaryGroupKey)) {
-      keys.unshift(primaryGroupKey);
+    if (!keys.includes(createGroupKey)) {
+      keys.unshift(createGroupKey);
     }
     return keys;
-  }, [primaryGroupKey, rootTasksByGroup]);
+  }, [createGroupKey, rootTasksByGroup]);
 
   /** Base flat tree (children of active hidden while dragging). */
-  const dragFlatBase = useMemo(() => {
-    const flat = flattenTasksForTree(visibleTasks, expandedById, orderedGroupKeys);
-    return removeChildrenOfActive(flat, activeId);
-  }, [activeId, expandedById, orderedGroupKeys, visibleTasks]);
+  const dragFlatBase = useMemo(
+    () =>
+      flattenTasksForDragList({
+        filter,
+        visibleTasks,
+        expandedById,
+        orderedGroupKeys,
+        overdueTreeIds,
+        activeId,
+      }),
+    [activeId, expandedById, filter, orderedGroupKeys, overdueTreeIds, visibleTasks],
+  );
 
   /** Live-reordered flat items — DOM order tracks the placeholder slot. */
   const dragFlatItems = useMemo(() => {
@@ -590,6 +677,8 @@ export function TasksView() {
           overId,
           offsetLeft,
           INDENTATION_WIDTH,
+          undefined,
+          !unifyFlatList,
         )
       : null;
 
@@ -694,12 +783,11 @@ export function TasksView() {
     const overIndex = ids.indexOf(input.overId);
     if (activeIndex < 0 || overIndex < 0) return;
 
-    // Live reorder only within the same Abschnitt (cross-group commits on drop).
+    // Live reorder: Abschnitte only on Heute; flat filters allow any visible pair.
     const activeMeta = dragFlatBase.find((item) => item.id === input.activeId);
     const overMeta = dragFlatBase.find((item) => item.id === input.overId);
-    if (!activeMeta || !overMeta || activeMeta.groupKey !== overMeta.groupKey) {
-      return;
-    }
+    if (!activeMeta || !overMeta) return;
+    if (!unifyFlatList && activeMeta.groupKey !== overMeta.groupKey) return;
 
     let nextIndex: number;
 
@@ -733,10 +821,14 @@ export function TasksView() {
     const id = String(event.active.id);
     const tasks = tasksQuery.data ?? [];
     const snapshot = tasks.find((task) => task.id === id) ?? null;
-    const flat = removeChildrenOfActive(
-      flattenTasksForTree(visibleTasks, expandedById, orderedGroupKeys),
-      id,
-    );
+    const flat = flattenTasksForDragList({
+      filter,
+      visibleTasks,
+      expandedById,
+      orderedGroupKeys,
+      overdueTreeIds,
+      activeId: id,
+    });
     const orderedIds = flat.map((item) => item.id);
     dragOrderedIdsRef.current = orderedIds;
     lastInsertIndexRef.current = orderedIds.indexOf(id);
@@ -845,6 +937,8 @@ export function TasksView() {
       over,
       offsetSnapshot,
       INDENTATION_WIDTH,
+      undefined,
+      !unifyFlatList,
     );
     if (!projected) return;
 
@@ -855,6 +949,7 @@ export function TasksView() {
       overId: over,
       projected,
       liveOrderedIds,
+      preserveGroupKeys: unifyFlatList,
     });
     if (patch.length === 0) return;
 
@@ -966,25 +1061,23 @@ export function TasksView() {
     ];
   }
 
-  function renderFlatGroup(groupKey: string) {
+  function renderFlatRows(predicate: (item: FlatTreeItem) => boolean) {
     const tasksByVisibleId = new Map(visibleTasks.map((task) => [task.id, task]));
-    const flatRows: FlatTaskRow[] = dragFlatItems
-      .filter((item) => item.groupKey === groupKey)
-      .flatMap((item) => {
-        const task = tasksByVisibleId.get(item.id);
-        if (!task) return [];
-        const baseDepth =
-          activeId === item.id && dragProjection ? dragProjection.depth : item.depth;
-        const depth = Math.min(baseDepth, TASK_MAX_INDENT_LEVEL) as TaskIndentLevel;
-        const childList = childrenByParent.get(task.id) ?? [];
-        return [
-          {
-            task,
-            depth,
-            hasChildren: childList.length > 0,
-          },
-        ];
-      });
+    const flatRows: FlatTaskRow[] = dragFlatItems.filter(predicate).flatMap((item) => {
+      const task = tasksByVisibleId.get(item.id);
+      if (!task) return [];
+      const baseDepth =
+        activeId === item.id && dragProjection ? dragProjection.depth : item.depth;
+      const depth = Math.min(baseDepth, TASK_MAX_INDENT_LEVEL) as TaskIndentLevel;
+      const childList = childrenByParent.get(task.id) ?? [];
+      return [
+        {
+          task,
+          depth,
+          hasChildren: childList.length > 0,
+        },
+      ];
+    });
 
     return flatRows.map(({ task, depth, hasChildren }) => {
       const childList = childrenByParent.get(task.id) ?? [];
@@ -1017,6 +1110,17 @@ export function TasksView() {
           task={task}
         />
       );
+    });
+  }
+
+  const createDueDate = filter === "today" ? todayIsoDate() : undefined;
+
+  async function submitNewTask(title: string, description: string, groupKey = createGroupKey) {
+    await createMutation.mutateAsync({
+      title,
+      description: description || undefined,
+      groupKey,
+      ...(createDueDate ? { dueDate: createDueDate } : {}),
     });
   }
 
@@ -1099,42 +1203,54 @@ export function TasksView() {
               sensors={sensors}
             >
               <SortableContext items={allSortableIds} strategy={verticalListSortingStrategy}>
-                {orderedGroupKeys.map((groupKey) => {
-                  const tasks = rootTasksByGroup.get(groupKey) ?? [];
-                  if (groupKey === primaryGroupKey) {
-                    return (
-                      <div className={`${styles.rootList} fk-task-list`} key={groupKey}>
-                        {renderFlatGroup(groupKey)}
+                {filter === "today" ? (
+                  <>
+                    {overdueRootCount > 0 ? (
+                      <TaskGroup
+                        count={overdueRootCount}
+                        defaultExpanded
+                        key="overdue"
+                        showAdd={false}
+                        title="Überfällig"
+                      >
+                        {renderFlatRows((item) => overdueTreeIds.has(item.id))}
+                      </TaskGroup>
+                    ) : null}
+                    {overdueRootCount > 0 ? (
+                      <TaskGroup
+                        count={todayRootCount}
+                        defaultExpanded
+                        key="today-section"
+                        onAddSubmit={async ({ title, description }) => {
+                          await submitNewTask(title, description);
+                        }}
+                        title={formatTodaySectionTitle()}
+                      >
+                        {renderFlatRows((item) => !overdueTreeIds.has(item.id))}
+                      </TaskGroup>
+                    ) : (
+                      <div className={`${styles.rootList} fk-task-list`} key="today-flat">
+                        {renderFlatRows((item) => !overdueTreeIds.has(item.id))}
                         <AddTask
+                          keepOpenOnSubmit
                           onSubmit={async ({ title, description }) => {
-                            await createMutation.mutateAsync({
-                              title,
-                              description: description || undefined,
-                              groupKey: primaryGroupKey,
-                            });
+                            await submitNewTask(title, description);
                           }}
                         />
                       </div>
-                    );
-                  }
-
-                  return (
-                    <TaskGroup
-                      count={countTaskTree(tasks, childrenByParent)}
-                      key={groupKey}
-                      onAddSubmit={async ({ title, description }) => {
-                        await createMutation.mutateAsync({
-                          title,
-                          description: description || undefined,
-                          groupKey,
-                        });
+                    )}
+                  </>
+                ) : (
+                  <div className={`${styles.rootList} fk-task-list`} key="flat-list">
+                    {renderFlatRows(() => true)}
+                    <AddTask
+                      keepOpenOnSubmit
+                      onSubmit={async ({ title, description }) => {
+                        await submitNewTask(title, description);
                       }}
-                      title={groupTitle(groupKey)}
-                    >
-                      {renderFlatGroup(groupKey)}
-                    </TaskGroup>
-                  );
-                })}
+                    />
+                  </div>
+                )}
               </SortableContext>
               <DragOverlay dropAnimation={null}>
                 {activeTask ? (
@@ -1249,7 +1365,7 @@ export function TasksView() {
           await createMutation.mutateAsync({
             title,
             description,
-            groupKey: parent?.groupKey ?? ROOT_GROUP,
+            groupKey: parent?.groupKey ?? "inbox",
             parentTaskId,
           });
         }}

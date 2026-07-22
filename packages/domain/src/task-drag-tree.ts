@@ -81,14 +81,19 @@ export function maxIndentForSubtreeHeight(subtreeHeight: number): number {
 /**
  * Flatten tasks in document order for one or more groups.
  * Expanded parents include children; collapsed parents hide them.
+ *
+ * When `unifyRoots` is true, all roots are sorted together by sortOrder
+ * (single list — no Abschnitt buckets).
  */
 export function flattenTasksForTree(
   tasks: TaskDragNode[],
   expandedById: Record<string, boolean>,
   groupKeys?: string[],
+  unifyRoots = false,
 ): FlatTreeItem[] {
   const childrenByParent = new Map<string, TaskDragNode[]>();
   const rootsByGroup = new Map<string, TaskDragNode[]>();
+  const roots: TaskDragNode[] = [];
 
   for (const task of sortTasks(tasks)) {
     if (task.parentTaskId) {
@@ -96,19 +101,12 @@ export function flattenTasksForTree(
       list.push(task);
       childrenByParent.set(task.parentTaskId, list);
     } else {
+      roots.push(task);
       const list = rootsByGroup.get(task.groupKey) ?? [];
       list.push(task);
       rootsByGroup.set(task.groupKey, list);
     }
   }
-
-  const keys =
-    groupKeys ??
-    [...rootsByGroup.keys()].sort((a, b) => {
-      if (a === "root") return -1;
-      if (b === "root") return 1;
-      return a.localeCompare(b, "de");
-    });
 
   const rows: FlatTreeItem[] = [];
 
@@ -129,6 +127,21 @@ export function flattenTasksForTree(
       walk(child, depth + 1, task.id);
     }
   }
+
+  if (unifyRoots) {
+    for (const root of sortTasks(roots)) {
+      walk(root, 0, null);
+    }
+    return rows;
+  }
+
+  const keys =
+    groupKeys ??
+    [...rootsByGroup.keys()].sort((a, b) => {
+      if (a === "root") return -1;
+      if (b === "root") return 1;
+      return a.localeCompare(b, "de");
+    });
 
   for (const groupKey of keys) {
     for (const root of rootsByGroup.get(groupKey) ?? []) {
@@ -185,6 +198,7 @@ export function getTaskTreeProjection(
   dragOffsetX: number,
   indentationWidth: number,
   maxDepth = TASK_MAX_DEPTH - 1,
+  constrainToGroupKey = true,
 ): TreeProjection | null {
   const overItemIndex = items.findIndex((item) => item.id === overId);
   const activeItemIndex = items.findIndex((item) => item.id === activeId);
@@ -193,8 +207,11 @@ export function getTaskTreeProjection(
   const activeItem = items[activeItemIndex]!;
   const overItem = items[overItemIndex]!;
 
-  // Stay within the same Abschnitt while projecting.
-  if (activeItem.groupKey !== overItem.groupKey) {
+  // Stay within the same Abschnitt while projecting (skip in unified flat lists).
+  if (
+    constrainToGroupKey &&
+    activeItem.groupKey !== overItem.groupKey
+  ) {
     return {
       depth: 0,
       maxDepth: 0,
@@ -264,14 +281,25 @@ export function commitTaskTreeMove(input: {
   projected: TreeProjection;
   /** Visible flat order at drop (already live-reordered; no active descendants). */
   liveOrderedIds: string[];
+  /** When true, keep each task’s groupKey (unified All/Favorites lists). */
+  preserveGroupKeys?: boolean;
 }): TaskPlacement[] {
-  const { tasks, activeId, overId, projected, liveOrderedIds } = input;
+  const {
+    tasks,
+    activeId,
+    overId,
+    projected,
+    liveOrderedIds,
+    preserveGroupKeys = false,
+  } = input;
   const byId = new Map(tasks.map((task) => [task.id, task]));
   const active = byId.get(activeId);
   if (!active || liveOrderedIds.length === 0) return [];
 
   const over = byId.get(overId);
-  const resolvedGroupKey = over?.groupKey ?? active.groupKey;
+  const resolvedGroupKey = preserveGroupKeys
+    ? active.groupKey
+    : (over?.groupKey ?? active.groupKey);
 
   const childrenByParent = new Map<string, TaskDragNode[]>();
   for (const task of sortTasks(tasks)) {

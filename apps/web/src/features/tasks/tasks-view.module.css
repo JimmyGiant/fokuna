@@ -51,6 +51,13 @@
   --fk-task-indent-step: 24px;
   box-sizing: border-box;
   min-width: 0;
+  position: relative;
+}
+
+/* Placeholder owns its layout slot — keep it above any residual paint. */
+.sortableRow[data-placeholder="true"] {
+  isolation: isolate;
+  z-index: 1;
 }
 
 .nestTarget {

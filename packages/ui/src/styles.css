@@ -3578,7 +3578,7 @@
      * Indent axis (Todoist-aligned):
      * chevron col = checkbox col = 16px, gap = 8px → step = 24px.
      * Indent via margin-left so the row shrinks and starts at the handle —
-     * placeholder can slide L/R with projected depth during drag.
+     * placeholder shifts L/R with projected depth during drag (no slide animation).
      */
     --fk-task-indent-step: 24px;
     --fk-task-indent-level: 0;
@@ -3594,10 +3594,7 @@
     padding: 8px;
     transition:
       background var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
-      box-shadow var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
-      transform var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
-      margin-left var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
-      width var(--fk-motion-duration-fast) var(--fk-motion-ease-standard);
+      box-shadow var(--fk-motion-duration-fast) var(--fk-motion-ease-standard);
     width: calc(
       var(--fk-task-column-width) - (var(--fk-task-indent-level) * var(--fk-task-indent-step))
     );
@@ -3655,6 +3652,9 @@
       var(--fk-task-column-width, 800px) - (var(--fk-task-indent-level) * var(--fk-task-indent-step))
     );
     pointer-events: none;
+    /* Opaque slot so neighbors never read as “behind” the placeholder. */
+    position: relative;
+    z-index: 1;
   }
 
   /* When an explicit height is locked in (inline), don't let has-meta inflate further. */

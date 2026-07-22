@@ -99,6 +99,45 @@ describe("task composition patterns", () => {
     expect(onSubmit).toHaveBeenCalledWith({ title: "Neue Aufgabe", description: "" });
   });
 
+  it("keeps the add form open after submit for rapid entry", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<AddTask defaultExpanded focusOnExpand={false} onSubmit={onSubmit} />);
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Aufgabenname" }), {
+      target: { value: "Erste Aufgabe" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Aufgabe hinzufügen" }));
+
+    await vi.waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole("textbox", { name: "Aufgabenname" })).toHaveValue("");
+    });
+    expect(screen.getByRole("textbox", { name: "Aufgabenname" })).toBeInTheDocument();
+  });
+
+  it("closes the add form after submit when keepOpenOnSubmit is false", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <AddTask
+        defaultExpanded
+        focusOnExpand={false}
+        keepOpenOnSubmit={false}
+        onSubmit={onSubmit}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Aufgabenname" }), {
+      target: { value: "Nur eine" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Aufgabe hinzufügen" }));
+
+    await vi.waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole("textbox", { name: "Aufgabenname" })).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Aufgabe hinzufügen" })).toBeInTheDocument();
+  });
+
   it("offers only the inactive and active add-task states", () => {
     const inactive = render(<AddTask focusOnExpand={false} />);
     fireEvent.click(screen.getByRole("button", { name: "Aufgabe hinzufügen" }));

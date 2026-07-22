@@ -7,7 +7,7 @@ import {
   type TaskIndentLevel,
 } from "@fokuna/domain";
 import { Dialog, Popover } from "radix-ui";
-import { Children, useState, type HTMLAttributes, type ReactNode } from "react";
+import { Children, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 
 import { Button } from "./button";
 import {
@@ -381,6 +381,7 @@ export function TaskGroup({
             adding ? (
               <AddTask
                 expanded
+                keepOpenOnSubmit
                 namePlaceholder={addNamePlaceholder}
                 onExpandedChange={setAdding}
                 onSubmit={onAddSubmit}
@@ -502,6 +503,8 @@ export interface AddTaskProps extends Omit<HTMLAttributes<HTMLDivElement>, "onSu
   defaultExpanded?: boolean;
   actions?: ReactNode;
   focusOnExpand?: boolean;
+  /** After a successful submit, keep the form open and clear fields for rapid entry. */
+  keepOpenOnSubmit?: boolean;
   namePlaceholder?: string;
   submitLabel?: string;
   triggerLabel?: string;
@@ -514,6 +517,7 @@ export function AddTask({
   defaultExpanded = false,
   actions,
   focusOnExpand = true,
+  keepOpenOnSubmit = true,
   namePlaceholder = "Aufgabenname",
   submitLabel,
   triggerLabel = "Aufgabe hinzufügen",
@@ -526,6 +530,7 @@ export function AddTask({
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const expanded = expandedProp ?? internalExpanded;
 
   function setExpanded(nextExpanded: boolean) {
@@ -537,6 +542,12 @@ export function AddTask({
     }
   }
 
+  function resetFieldsAndFocus() {
+    setTitle("");
+    setDescription("");
+    queueMicrotask(() => titleInputRef.current?.focus());
+  }
+
   async function handleSubmit() {
     const nextTitle = title.trim();
     if (!nextTitle || submitting) {
@@ -546,7 +557,11 @@ export function AddTask({
     setSubmitting(true);
     try {
       await onSubmit?.({ title: nextTitle, description: description.trim() });
-      setExpanded(false);
+      if (keepOpenOnSubmit) {
+        resetFieldsAndFocus();
+      } else {
+        setExpanded(false);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -569,6 +584,7 @@ export function AddTask({
     <div {...props} className={cn("fk-add-task", className)}>
       <div className="fk-add-task__fields">
         <input
+          ref={titleInputRef}
           aria-label={namePlaceholder}
           autoFocus={focusOnExpand}
           onChange={(event) => setTitle(event.target.value)}
