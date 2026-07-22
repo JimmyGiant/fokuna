@@ -1,5 +1,9 @@
 import { TASK_MAX_DEPTH } from "./task-hierarchy";
-import type { TaskDragNode, TaskPlacement } from "./task-drag-layout";
+import {
+  canMoveUnderParent,
+  type TaskDragNode,
+  type TaskPlacement,
+} from "./task-drag-layout";
 
 function arrayMove<T>(items: T[], from: number, to: number): T[] {
   const next = [...items];
@@ -17,6 +21,11 @@ export type FlatTreeItem = {
   groupKey: string;
   /** Direct + nested descendant ids (for hiding subtree while dragging). */
   descendantIds: string[];
+  /**
+   * Height of this node’s subtree (self = 1). Used to cap nest depth so
+   * parentDepth + subtreeHeight − 1 ≤ TASK_MAX_DEPTH.
+   */
+  subtreeHeight: number;
 };
 
 export type TreeProjection = {
@@ -45,6 +54,28 @@ function collectDescendantIds(
     ids.push(child.id, ...collectDescendantIds(child.id, childrenByParent));
   }
   return ids;
+}
+
+function subtreeHeightOf(
+  parentId: string,
+  childrenByParent: Map<string, TaskDragNode[]>,
+): number {
+  const children = childrenByParent.get(parentId) ?? [];
+  if (children.length === 0) return 1;
+  return (
+    1 +
+    Math.max(
+      ...children.map((child) => subtreeHeightOf(child.id, childrenByParent)),
+    )
+  );
+}
+
+/**
+ * Max 0-based indent for `active` so the deepest leaf stays within TASK_MAX_DEPTH.
+ * Leaf (height 1) → 4; height 5 chain → 0 (root only).
+ */
+export function maxIndentForSubtreeHeight(subtreeHeight: number): number {
+  return Math.max(0, TASK_MAX_DEPTH - subtreeHeight);
 }
 
 /**
@@ -88,6 +119,7 @@ export function flattenTasksForTree(
       depth,
       groupKey: task.groupKey,
       descendantIds: collectDescendantIds(task.id, childrenByParent),
+      subtreeHeight: subtreeHeightOf(task.id, childrenByParent),
     });
 
     const expanded = expandedById[task.id] !== false;
@@ -144,6 +176,7 @@ function getMinDepth(nextItem: FlatTreeItem | undefined) {
  * - Vertical position = order (sibling under the previous row by default)
  * - Drag right (≥ 1× indentation) = nest under the previous row
  * - Drag left = outdent toward the next item's minimum depth
+ * - Nest depth is also capped by the active subtree height (max 5 levels total)
  */
 export function getTaskTreeProjection(
   items: FlatTreeItem[],
@@ -173,16 +206,18 @@ export function getTaskTreeProjection(
   const reordered = arrayMove(items, activeItemIndex, overItemIndex);
   const previousItem = reordered[overItemIndex - 1];
   const nextItem = reordered[overItemIndex + 1];
-  const max = getMaxDepth(previousItem, maxDepth);
+  const depthBudget = maxIndentForSubtreeHeight(activeItem.subtreeHeight);
+  const structuralMax = getMaxDepth(previousItem, maxDepth);
+  const max = Math.min(structuralMax, depthBudget);
   const min = getMinDepth(nextItem);
 
   // Baseline = same level as the row above (sibling). Horizontal offset adjusts.
   const baselineDepth = previousItem ? previousItem.depth : 0;
   const projectedDepth = baselineDepth + getDepthDelta(dragOffsetX, indentationWidth);
 
-  let depth = projectedDepth;
-  if (projectedDepth >= max) depth = max;
-  else if (projectedDepth < min) depth = min;
+  // Prefer depth budget over next-item min when they conflict (illegal nest zone).
+  const depth =
+    max < min ? max : Math.min(max, Math.max(min, projectedDepth));
 
   let parentId: string | null = null;
   if (depth > 0 && previousItem) {
@@ -202,7 +237,12 @@ export function getTaskTreeProjection(
   // Never parent under self / own descendant.
   if (parentId === activeId || activeItem.descendantIds.includes(parentId ?? "")) {
     parentId = previousItem?.parentId ?? null;
-    depth = previousItem ? previousItem.depth : 0;
+    let safeDepth = previousItem ? previousItem.depth : 0;
+    if (safeDepth > depthBudget) {
+      parentId = null;
+      safeDepth = depthBudget;
+    }
+    return { depth: safeDepth, maxDepth: max, minDepth: min, parentId };
   }
 
   return { depth, maxDepth: max, minDepth: min, parentId };
@@ -213,6 +253,8 @@ export function getTaskTreeProjection(
  * Re-inserts the active subtree after the active row, applies projection to active,
  * then emits placements. Using a fully expanded flatten + overIndex caused jump-back
  * because visible indices ≠ full-tree indices.
+ *
+ * Returns [] when the projected parent would exceed max nesting depth.
  */
 export function commitTaskTreeMove(input: {
   tasks: TaskDragNode[];
@@ -248,6 +290,10 @@ export function commitTaskTreeMove(input: {
     (activeParentId != null && activeDescendants.has(activeParentId))
   ) {
     activeParentId = null;
+  }
+
+  if (!canMoveUnderParent(byId, activeId, activeParentId)) {
+    return [];
   }
 
   function appendHiddenSubtree(parentId: string, into: string[]) {
@@ -304,4 +350,53 @@ export function mergePlacements(
     byId.set(placement.id, placement);
   }
   return [...byId.values()];
+}
+
+/**
+ * True when every root→leaf path in the placement graph is ≤ TASK_MAX_DEPTH.
+ * Used as a relocate safety net (UI should already prevent illegal nests).
+ */
+export function placementsRespectMaxDepth(
+  tasks: TaskDragNode[],
+  placements: TaskPlacement[],
+): boolean {
+  const parentById = new Map(tasks.map((task) => [task.id, task.parentTaskId]));
+  for (const placement of placements) {
+    parentById.set(placement.id, placement.parentTaskId);
+  }
+
+  const childrenByParent = new Map<string | null, string[]>();
+  for (const id of parentById.keys()) {
+    const parentId = parentById.get(id) ?? null;
+    const list = childrenByParent.get(parentId) ?? [];
+    list.push(id);
+    childrenByParent.set(parentId, list);
+  }
+
+  const known = new Set(parentById.keys());
+
+  function walk(id: string, depth: number, stack: Set<string>): boolean {
+    if (depth > TASK_MAX_DEPTH) return false;
+    if (stack.has(id)) return false;
+    stack.add(id);
+    for (const childId of childrenByParent.get(id) ?? []) {
+      if (!known.has(childId)) continue;
+      if (!walk(childId, depth + 1, stack)) return false;
+    }
+    stack.delete(id);
+    return true;
+  }
+
+  for (const id of childrenByParent.get(null) ?? []) {
+    if (!walk(id, 1, new Set())) return false;
+  }
+
+  // Nodes whose parent is missing from the set — walk as if rooted.
+  for (const id of known) {
+    const parentId = parentById.get(id) ?? null;
+    if (parentId == null || known.has(parentId)) continue;
+    if (!walk(id, 1, new Set())) return false;
+  }
+
+  return true;
 }

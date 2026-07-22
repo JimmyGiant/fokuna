@@ -1,6 +1,6 @@
 import type { CreateTaskInput, TaskDto, UpdateTaskInput } from "@fokuna/api-contracts";
 import { and, asc, eq, isNull, task as taskTable } from "@fokuna/db";
-import { canCreateSubtaskAtDepth, createId, TASK_MAX_DEPTH } from "@fokuna/domain";
+import { canCreateSubtaskAtDepth, createId, placementsRespectMaxDepth, TASK_MAX_DEPTH } from "@fokuna/domain";
 
 import { getDatabase } from "../db";
 import { getDataDriver } from "../env";
@@ -257,6 +257,21 @@ export async function relocateTasks(
     sortOrder: number;
   }>,
 ): Promise<TaskDto[]> {
+  const existing = await listTasks(userId);
+  if (
+    !placementsRespectMaxDepth(
+      existing.map((task) => ({
+        id: task.id,
+        parentTaskId: task.parentTaskId,
+        groupKey: task.groupKey,
+        sortOrder: task.sortOrder,
+      })),
+      placements,
+    )
+  ) {
+    throw new Error(`Tasks cannot nest deeper than ${TASK_MAX_DEPTH} levels`);
+  }
+
   const now = new Date();
 
   if (getDataDriver() === "memory") {

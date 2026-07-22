@@ -143,4 +143,75 @@ describe("task-drag-tree", () => {
     expect(placements.find((placement) => placement.id === "a1")?.parentTaskId).toBe("a");
     expect(placements.find((placement) => placement.id === "a2")?.parentTaskId).toBe("a");
   });
+
+  it("records subtreeHeight for nested chains", () => {
+    const chain = [
+      { id: "a", parentTaskId: null, groupKey: "inbox", sortOrder: 0 },
+      { id: "b", parentTaskId: "a", groupKey: "inbox", sortOrder: 0 },
+      { id: "c", parentTaskId: "b", groupKey: "inbox", sortOrder: 0 },
+      { id: "d", parentTaskId: "c", groupKey: "inbox", sortOrder: 0 },
+      { id: "e", parentTaskId: "d", groupKey: "inbox", sortOrder: 0 },
+    ];
+    const flat = flattenTasksForTree(chain, {});
+    expect(flat.find((item) => item.id === "a")?.subtreeHeight).toBe(5);
+    expect(flat.find((item) => item.id === "c")?.subtreeHeight).toBe(3);
+    expect(flat.find((item) => item.id === "e")?.subtreeHeight).toBe(1);
+  });
+
+  it("blocks nesting a max-height subtree under another root (A–G case)", () => {
+    // A B, then C→D→E→F→G (height 5). Nesting C under B would make depth 6.
+    const chain = [
+      { id: "a", parentTaskId: null, groupKey: "inbox", sortOrder: 0 },
+      { id: "b", parentTaskId: null, groupKey: "inbox", sortOrder: 1 },
+      { id: "c", parentTaskId: null, groupKey: "inbox", sortOrder: 2 },
+      { id: "d", parentTaskId: "c", groupKey: "inbox", sortOrder: 0 },
+      { id: "e", parentTaskId: "d", groupKey: "inbox", sortOrder: 0 },
+      { id: "f", parentTaskId: "e", groupKey: "inbox", sortOrder: 0 },
+      { id: "g", parentTaskId: "f", groupKey: "inbox", sortOrder: 0 },
+    ];
+    const flat = flattenTasksForTree(chain, {});
+    const visible = removeChildrenOfActive(flat, "c");
+    // Live order: a, b, c (descendants hidden). Drag right after b.
+    const projection = getTaskTreeProjection(visible, "c", "c", 48, 48);
+    expect(flat.find((item) => item.id === "c")?.subtreeHeight).toBe(5);
+    expect(projection).toMatchObject({ depth: 0, parentId: null, maxDepth: 0 });
+
+    const placements = commitTaskTreeMove({
+      tasks: chain,
+      expandedById: {},
+      activeId: "c",
+      overId: "c",
+      projected: { depth: 1, maxDepth: 1, minDepth: 0, parentId: "b" },
+      liveOrderedIds: ["a", "b", "c"],
+    });
+    expect(placements).toEqual([]);
+  });
+
+  it("allows nesting when subtree still fits under max depth", () => {
+    // A B C, then D→E→F→G (height 4). Nesting D under C fits exactly at depth 5.
+    const chain = [
+      { id: "a", parentTaskId: null, groupKey: "inbox", sortOrder: 0 },
+      { id: "b", parentTaskId: null, groupKey: "inbox", sortOrder: 1 },
+      { id: "c", parentTaskId: null, groupKey: "inbox", sortOrder: 2 },
+      { id: "d", parentTaskId: null, groupKey: "inbox", sortOrder: 3 },
+      { id: "e", parentTaskId: "d", groupKey: "inbox", sortOrder: 0 },
+      { id: "f", parentTaskId: "e", groupKey: "inbox", sortOrder: 0 },
+      { id: "g", parentTaskId: "f", groupKey: "inbox", sortOrder: 0 },
+    ];
+    const flat = flattenTasksForTree(chain, {});
+    const visible = removeChildrenOfActive(flat, "d");
+    const projection = getTaskTreeProjection(visible, "d", "d", 48, 48);
+    expect(flat.find((item) => item.id === "d")?.subtreeHeight).toBe(4);
+    expect(projection).toMatchObject({ depth: 1, parentId: "c" });
+
+    const placements = commitTaskTreeMove({
+      tasks: chain,
+      expandedById: {},
+      activeId: "d",
+      overId: "d",
+      projected: projection!,
+      liveOrderedIds: ["a", "b", "c", "d"],
+    });
+    expect(placements.find((placement) => placement.id === "d")?.parentTaskId).toBe("c");
+  });
 });

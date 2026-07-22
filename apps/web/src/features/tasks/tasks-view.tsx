@@ -74,6 +74,15 @@ import { priorityOptions } from "./task-property-options";
 import styles from "./tasks-view.module.css";
 
 const ROOT_GROUP = "root";
+/**
+ * Flat list + primary „Aufgabe hinzufügen“ target for the active sidebar filter.
+ * Must match `matchesFilter` — e.g. inbox only shows `groupKey === "inbox"`.
+ */
+function primaryGroupKeyForFilter(filter: string): string {
+  if (filter === "inbox") return "inbox";
+  if (filter === "today") return "today";
+  return ROOT_GROUP;
+}
 /** Todoist-style: full step right = nest, full step left = outdent. */
 const INDENTATION_WIDTH = 48;
 const DRAG_ACTIVATION_DISTANCE = 8;
@@ -251,6 +260,12 @@ function SortableFlatTask({
     animateLayoutChanges,
   });
 
+  const indentStyle = {
+    boxSizing: "border-box" as const,
+    marginLeft: `calc(${depth} * var(--fk-task-indent-step, 24px))`,
+    width: `calc(var(--fk-task-column-width, 800px) - (${depth} * var(--fk-task-indent-step, 24px)))`,
+  };
+
   const lockedStyle =
     isDragging && lockedHeight
       ? {
@@ -263,15 +278,24 @@ function SortableFlatTask({
         }
       : undefined;
 
+  const sortableStyle = sortableItemStyle({
+    transform,
+    transition,
+    layoutControlled: isDragging,
+  });
+
   return (
     <div
+      className={styles.sortableRow}
+      data-indent={depth || undefined}
       ref={setNodeRef}
       style={{
-        ...sortableItemStyle({
-          transform,
-          transition,
-          layoutControlled: isDragging,
-        }),
+        ...indentStyle,
+        ...sortableStyle,
+        // Keep L/R indent slides even when transform transition is cleared on the active slot.
+        transition: [sortableStyle.transition, "margin-left 160ms cubic-bezier(0.25, 1, 0.5, 1)", "width 160ms cubic-bezier(0.25, 1, 0.5, 1)"]
+          .filter(Boolean)
+          .join(", "),
         ...lockedStyle,
       }}
     >
@@ -296,7 +320,12 @@ function SortableFlatTask({
         }
         rowDragProps={isDragging ? undefined : { ...attributes, ...listeners }}
         state={isDragging ? "placeholder" : "default"}
-        style={lockedStyle}
+        style={{
+          marginLeft: 0,
+          width: "100%",
+          flex: "none",
+          ...lockedStyle,
+        }}
         subtasks={subtaskLabel}
         tags={task.tags}
         title={task.title}
@@ -516,18 +545,20 @@ export function TasksView() {
     return map;
   }, [visibleTasks]);
 
+  const primaryGroupKey = primaryGroupKeyForFilter(filter);
+
   const orderedGroupKeys = useMemo(() => {
     const keys = [...rootTasksByGroup.keys()];
     keys.sort((a, b) => {
-      if (a === ROOT_GROUP) return -1;
-      if (b === ROOT_GROUP) return 1;
+      if (a === primaryGroupKey) return -1;
+      if (b === primaryGroupKey) return 1;
       return a.localeCompare(b, "de");
     });
-    if (!keys.includes(ROOT_GROUP)) {
-      keys.unshift(ROOT_GROUP);
+    if (!keys.includes(primaryGroupKey)) {
+      keys.unshift(primaryGroupKey);
     }
     return keys;
-  }, [rootTasksByGroup]);
+  }, [primaryGroupKey, rootTasksByGroup]);
 
   /** Base flat tree (children of active hidden while dragging). */
   const dragFlatBase = useMemo(() => {
@@ -1070,7 +1101,7 @@ export function TasksView() {
               <SortableContext items={allSortableIds} strategy={verticalListSortingStrategy}>
                 {orderedGroupKeys.map((groupKey) => {
                   const tasks = rootTasksByGroup.get(groupKey) ?? [];
-                  if (groupKey === ROOT_GROUP) {
+                  if (groupKey === primaryGroupKey) {
                     return (
                       <div className={`${styles.rootList} fk-task-list`} key={groupKey}>
                         {renderFlatGroup(groupKey)}
@@ -1079,7 +1110,7 @@ export function TasksView() {
                             await createMutation.mutateAsync({
                               title,
                               description: description || undefined,
-                              groupKey: ROOT_GROUP,
+                              groupKey: primaryGroupKey,
                             });
                           }}
                         />

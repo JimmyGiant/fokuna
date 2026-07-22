@@ -3577,24 +3577,30 @@
     /*
      * Indent axis (Todoist-aligned):
      * chevron col = checkbox col = 16px, gap = 8px → step = 24px.
-     * Child chevron center ↔ parent checkbox center;
-     * parent title left ↔ child checkbox left.
+     * Indent via margin-left so the row shrinks and starts at the handle —
+     * placeholder can slide L/R with projected depth during drag.
      */
     --fk-task-indent-step: 24px;
     --fk-task-indent-level: 0;
     background: transparent;
     border-bottom: 1px solid var(--fk-color-border-default);
+    box-sizing: border-box;
     color: var(--fk-color-text-primary);
     display: grid;
+    flex: 0 0 auto;
     gap: 4px;
+    margin-left: calc(var(--fk-task-indent-level) * var(--fk-task-indent-step));
     min-height: 40px;
     padding: 8px;
-    width: var(--fk-task-column-width);
-    flex: 0 0 var(--fk-task-column-width);
     transition:
       background var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
       box-shadow var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
-      transform var(--fk-motion-duration-fast) var(--fk-motion-ease-standard);
+      transform var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
+      margin-left var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
+      width var(--fk-motion-duration-fast) var(--fk-motion-ease-standard);
+    width: calc(
+      var(--fk-task-column-width) - (var(--fk-task-indent-level) * var(--fk-task-indent-step))
+    );
   }
 
   .fk-task-item[data-has-meta="true"] {
@@ -3644,7 +3650,10 @@
     background: var(--fk-color-surface-muted);
     border: 1px solid transparent;
     border-radius: 8px;
-    width: var(--fk-task-column-width, 800px);
+    /* Same shrink-with-indent width as normal rows (not full column). */
+    width: calc(
+      var(--fk-task-column-width, 800px) - (var(--fk-task-indent-level) * var(--fk-task-indent-step))
+    );
     pointer-events: none;
   }
 
@@ -3678,7 +3687,6 @@
     gap: 8px;
     grid-template-columns: 16px 16px 16px minmax(0, 1fr) 16px;
     min-height: 24px;
-    padding-left: calc(var(--fk-task-indent-level) * var(--fk-task-indent-step));
   }
 
   .fk-task-item__drag,
