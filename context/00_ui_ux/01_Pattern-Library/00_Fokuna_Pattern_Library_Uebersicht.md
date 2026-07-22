@@ -454,6 +454,7 @@ Wichtig fuer Umsetzung:
 - Aktive Zustaende, Tags und Blocklisten brauchen klare visuelle Prioritaet.
 - Icon-Squircles arbeiten mit Category-/Surface-Logik und inverse Icons.
 - Navigation muss semantisch als Navigation ausgezeichnet werden.
+- L2-Abschnitte Kategorien, Labels und Ziele sind jeweils innerhalb ihres Abschnitts per Drag & Drop sortierbar (`sortOrder`); Task-Drops auf Kategorie/Label bleiben davon getrennt.
 
 ### 14 Switch
 
@@ -846,7 +847,7 @@ Wichtig fuer Umsetzung:
 
 - Der Wechsel von inactive zu active soll die Liste nicht unkontrolliert verschieben.
 - Beim Speichern entsteht ein neues `Task List Item` oder Subtask-Item.
-- Escape oder Abbrechen schliesst den aktiven Zustand und verwirft ungespeicherte Inhalte. Abbrechen ist ein Link-Button ohne Trailing-Icon.
+- Escape, Klick ausserhalb oder Abbrechen schliesst den aktiven Zustand und verwirft ungespeicherte Inhalte (Listen und Aufgaben-Modal). Offene Quick-Property-Popovers schliessen zuerst per Escape. Abbrechen ist ein Link-Button ohne Trailing-Icon.
 - Quick Properties links: `Prioritaet` und `Datum` oeffnen Popovers (Prioritaetsmenue bzw. DatePicker mit Quick-Chips Heute/Morgen/Kein).
 - Enter kann speichern, Shift+Enter sollte in mehrzeiligen Feldern Zeilenumbruch erlauben.
 - Im `active`-Zustand entfaellt der untere Border des unmittelbar vorherigen List Items (bzw. des letzten Items in einem Tree), damit die Formular-Card keine Doppellinie erzeugt. Listen-Container nutzen dafuer die Klasse `fk-task-list`.
@@ -919,7 +920,7 @@ Varianten und Properties:
 - `favorite`: `false`, `true`.
 - `checkbox`: erledigt/nicht erledigt.
 - `title`: Aufgabenname.
-- `metadata`: Subtask-Count, Datum, Ziel, Etiketten.
+- `metadata`: Subtask-Count, Datum, Ziel, Labels.
 - `drag handle`: fuer Reordering.
 
 States:
@@ -945,7 +946,7 @@ Wichtig fuer Umsetzung:
 - Im Aufgaben-Modal entfaellt auf Ebene 5 der gesamte Unteraufgaben-Block.
 - Task-Titel (`strong`) erhalten `padding-top: 1px` fuer die optische Vertikalzentrierung zur Checkbox.
 - Listen-/Gruppenbreite der Aufgaben-View: `--fk-task-column-width` (Default `800px`); Modal-Subtasks bleiben fluid (`width: auto` / `100%`).
-- Rechtsklick oeffnet ein Kontextmenue: Bearbeiten (Modal), Prioritaet (Submenu mit farbigen Flag-Icons), Faelligkeit, Zeitschaetzung und Tags (Level-2-Panels mit denselben Controls wie die Modal-Rail: Quick-Picks + DatePicker bzw. Dauer-Dropdown bzw. Tag-Suche/Liste), Verschieben, Duplizieren, Loeschen.
+- Rechtsklick oeffnet ein Kontextmenue: Bearbeiten (Modal), Prioritaet (Submenu mit farbigen Flag-Icons), Faelligkeit, Zeitschaetzung und Labels (Level-2-Panels mit denselben Controls wie die Modal-Rail: Quick-Picks + DatePicker bzw. Dauer-Dropdown bzw. Label-Suche/Liste), Verschieben, Duplizieren, Loeschen.
 - Prioritaets-Submenu und Modal-Rail nutzen dieselben farbigen `flag`-Icons; Faelligkeit/Zeitschaetzung sind eingebettete Submenu-Panels (nicht separate Popovers). Verschieben listet vorhandene Gruppen (`groupKey`). Loeschen steht separat als destruktive Aktion.
 - Das Dauer-Dropdown innerhalb des Zeitschaetzungs-Submenus muss oberhalb des Kontextmenues stacken (`.fk-menu--select` ueber `.fk-menu--submenu`).
 
@@ -1073,14 +1074,14 @@ Wichtig fuer Umsetzung:
 
 Screenshot: [34_Aufgaben_Modal_Menu_Rechts.png](34_Aufgaben_Modal_Menu_Rechts.png)
 
-`C - Aufgaben - Modal - Menu rechts` ist die rechte Eigenschaftsleiste im Aufgabenmodal. Sie sammelt strukturierte Task-Properties wie Prioritaet, Faelligkeit, Zeitschaetzung und Tags.
+`C - Aufgaben - Modal - Menu rechts` ist die rechte Eigenschaftsleiste im Aufgabenmodal. Sie sammelt strukturierte Task-Properties wie Prioritaet, Faelligkeit, Zeitschaetzung und Labels.
 
 Varianten und Properties:
 
 - `priority`: aufklappbarer Property-Bereich.
 - `due date`: Faelligkeit/Datum.
 - `time estimate`: Zeitschaetzung.
-- `tags`: Etiketten.
+- `labels`: Labels (Taxonomie; Chip-Komponente bleibt §18 Tags).
 - `plus action`: oeffnet bzw. erweitert den jeweiligen Bereich.
 
 States:
@@ -1094,6 +1095,7 @@ States:
 Wichtig fuer Umsetzung:
 
 - Aufgeklappte Bereiche sollen bestehende Komponenten nutzen: Dropdown, Date Picker, Tags, Slider/Input je nach Property.
+- Property-Popovers haben keinen eigenen Titel und kein Close-X — die Rail-Zeile benennt die Aktion bereits (analog zu den Level-2-Panels im Aufgaben-Kontextmenue). Klick ausserhalb oder Escape schliesst nur das Popover, nicht das Task-Modal.
 - Plus ist eine Add-/Open-Aktion, kein reiner Dekorationshinweis.
 - Property-Werte muessen in der Task-Datenstruktur gespeichert werden und auch in List Items erscheinen koennen.
 

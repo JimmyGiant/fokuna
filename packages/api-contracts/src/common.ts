@@ -19,3 +19,10 @@ export function apiError(code: string, message: string, details?: unknown): ApiE
     },
   };
 }
+
+/** Shared batch reorder payload for categories, labels, goals, etc. */
+export const reorderIdsInputSchema = z.object({
+  orderedIds: z.array(z.string().min(1)).min(1),
+});
+
+export type ReorderIdsInput = z.infer<typeof reorderIdsInputSchema>;

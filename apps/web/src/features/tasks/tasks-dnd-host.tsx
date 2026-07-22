@@ -24,18 +24,36 @@ import {
   type ReactNode,
 } from "react";
 
-import { parseSidebarDropTarget } from "./taxonomy";
+import {
+  isSidebarTaxonomyDrag,
+  parseSidebarDropTarget,
+  parseSidebarTaxonomySortableId,
+} from "./taxonomy";
+
+function isTaxonomyDragActive(active: { id: unknown; data: { current?: unknown } }) {
+  return (
+    isSidebarTaxonomyDrag(active.data.current) ||
+    Boolean(parseSidebarTaxonomySortableId(String(active.id)))
+  );
+}
 
 const measuring = {
   droppable: { strategy: MeasuringStrategy.Always },
 };
 
 const collisionDetection: CollisionDetection = (args) => {
-  const pointerHits = pointerWithin(args);
+  // Taxonomy live-reorder: ignore the active placeholder rect so `over` can
+  // advance to the neighbor under the pointer (placeholder has no hit target).
+  const containers = isTaxonomyDragActive(args.active)
+    ? args.droppableContainers.filter((entry) => entry.id !== args.active.id)
+    : args.droppableContainers;
+  const scoped = { ...args, droppableContainers: containers };
+
+  const pointerHits = pointerWithin(scoped);
   if (pointerHits.length > 0) {
     return [pointerHits[pointerHits.length - 1]!];
   }
-  return closestCenter(args);
+  return closestCenter(scoped);
 };
 
 export type TasksListDndHandlers = {
@@ -72,11 +90,15 @@ export function useTasksListDndRegistration(handlers: TasksListDndHandlers) {
 export function TasksDndHost({
   children,
   onSidebarDrop,
+  onTaxonomyReorder,
 }: {
   children: ReactNode;
   onSidebarDrop: (taskId: string, overId: string) => Promise<boolean> | boolean;
+  onTaxonomyReorder?: (event: DragEndEvent) => void;
 }) {
   const listHandlersRef = useRef<TasksListDndHandlers | null>(null);
+  const taxonomyReorderRef = useRef(onTaxonomyReorder);
+  taxonomyReorderRef.current = onTaxonomyReorder;
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
@@ -101,9 +123,15 @@ export function TasksDndHost({
         collisionDetection={collisionDetection}
         measuring={measuring}
         onDragCancel={(event) => {
+          if (isTaxonomyDragActive(event.active)) return;
           listHandlersRef.current?.onDragCancel(event);
         }}
         onDragEnd={(event) => {
+          if (isTaxonomyDragActive(event.active)) {
+            taxonomyReorderRef.current?.(event);
+            return;
+          }
+
           const overId = event.over ? String(event.over.id) : null;
           const target = parseSidebarDropTarget(overId);
           if (target && event.active) {
@@ -115,18 +143,21 @@ export function TasksDndHost({
           listHandlersRef.current?.onDragEnd(event);
         }}
         onDragMove={(event) => {
+          if (isTaxonomyDragActive(event.active)) return;
           if (parseSidebarDropTarget(event.over ? String(event.over.id) : null)) {
             return;
           }
           listHandlersRef.current?.onDragMove(event);
         }}
         onDragOver={(event) => {
+          if (isTaxonomyDragActive(event.active)) return;
           if (parseSidebarDropTarget(event.over ? String(event.over.id) : null)) {
             return;
           }
           listHandlersRef.current?.onDragOver(event);
         }}
         onDragStart={(event) => {
+          if (isTaxonomyDragActive(event.active)) return;
           listHandlersRef.current?.onDragStart(event);
         }}
         sensors={sensors}

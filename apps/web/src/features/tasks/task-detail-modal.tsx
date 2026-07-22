@@ -1,6 +1,7 @@
 "use client";
 
 import type { LabelDto, TaskDto } from "@fokuna/api-contracts";
+import { toIsoDateString } from "@fokuna/domain";
 import { FokunaIcon } from "@fokuna/icons";
 import {
   Breadcrumb,
@@ -21,14 +22,14 @@ import { useMemo, useState } from "react";
 import { useTaskTaxonomy } from "./aufgaben-shell";
 import styles from "./task-detail-modal.module.css";
 import { colorTokenToTone } from "./taxonomy";
-import { TaskTagsMenuPanel } from "./task-property-editor";
+import { TaskLabelsMenuPanel } from "./task-property-editor";
 import { estimateOptions, priorityOptions } from "./task-property-options";
 import {
   ConfirmDeleteModal,
   deleteConfirmCopy,
 } from "@/components/confirm-delete-modal";
 
-type OpenProperty = "priority" | "due-date" | "estimate" | "tags" | null;
+type OpenProperty = "priority" | "due-date" | "estimate" | "labels" | null;
 
 function formatDueLabel(dueDate: string | null): string | undefined {
   if (!dueDate) return undefined;
@@ -269,10 +270,9 @@ export function TaskDetailModal({
                               void onUpdate(task.id, { dueDate: null });
                             } else {
                               const next = new Date();
-                              next.setHours(12, 0, 0, 0);
                               if (key === "tomorrow") next.setDate(next.getDate() + 1);
                               void onUpdate(task.id, {
-                                dueDate: next.toISOString().slice(0, 10),
+                                dueDate: toIsoDateString(next),
                               });
                             }
                             setOpenProperty(null);
@@ -289,7 +289,7 @@ export function TaskDetailModal({
                       onValueChange={(nextValue) => {
                         if (!(nextValue instanceof Date)) return;
                         void onUpdate(task.id, {
-                          dueDate: nextValue.toISOString().slice(0, 10),
+                          dueDate: toIsoDateString(nextValue),
                         });
                         setOpenProperty(null);
                       }}
@@ -347,11 +347,11 @@ export function TaskDetailModal({
                 ),
               },
               {
-                label: "Tags",
-                onOpenChange: (next) => setOpenProperty(next ? "tags" : null),
-                open: openProperty === "tags",
+                label: "Labels",
+                onOpenChange: (next) => setOpenProperty(next ? "labels" : null),
+                open: openProperty === "labels",
                 value: selectedLabels.length ? (
-                  <div aria-label="Ausgewählte Etiketten" className="fk-task-rail-tags">
+                  <div aria-label="Ausgewählte Labels" className="fk-task-rail-tags">
                     {selectedLabels.map((tag) => (
                       <Tag
                         icon="tag"
@@ -371,7 +371,7 @@ export function TaskDetailModal({
                   </div>
                 ) : undefined,
                 content: (
-                  <TaskTagsMenuPanel
+                  <TaskLabelsMenuPanel
                     onManageLabels={
                       onManageLabels
                         ? () => {

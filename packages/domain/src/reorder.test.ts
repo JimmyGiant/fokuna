@@ -16,6 +16,8 @@ describe("reorder", () => {
       { id: "a", sortOrder: 0 },
       { id: "b", sortOrder: 1 },
     ];
-    expect(applySortOrders(items, ["b", "a"]).map((item) => item.id)).toEqual(["b", "a"]);
+    const reordered = applySortOrders(items, ["b", "a"]);
+    expect(reordered.map((item) => item.id)).toEqual(["b", "a"]);
+    expect(reordered.map((item) => item.sortOrder)).toEqual([0, 1]);
   });
 });

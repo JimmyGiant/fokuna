@@ -1,7 +1,20 @@
 "use client";
 
-import { useDroppable } from "@dnd-kit/core";
-import type { CategoryDto, LabelDto, TaskDto } from "@fokuna/api-contracts";
+import {
+  DragOverlay,
+  useDndContext,
+  useDndMonitor,
+  useDroppable,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+  type AnimateLayoutChanges,
+} from "@dnd-kit/sortable";
+import type { CategoryDto, GoalDto, LabelDto, TaskDto } from "@fokuna/api-contracts";
+import { applySortOrders, todayIsoDateString } from "@fokuna/domain";
 import { FokunaIcon } from "@fokuna/icons";
 import {
   SecondaryNavItem,
@@ -19,7 +32,9 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -30,10 +45,35 @@ import {
   deleteConfirmCopy,
   type DeleteEntityKind,
 } from "@/components/confirm-delete-modal";
+import { DnDGhostShell } from "@/components/dnd/dnd-ghost-shell";
+import { resolveSortableInsertIndex } from "@/components/dnd/sortable-insert-index";
+import { sortableItemStyle } from "@/components/dnd/sortable-styles";
 import { apiGet, apiSend } from "@/lib/api";
 import { TaxonomyCreateModal, TaxonomyOrganizeModal } from "./taxonomy-manager-modal";
-import { SIDEBAR_DROP, collectCategoryDeleteTaskIds, colorTokenToCssVar, parseSidebarDropTarget } from "./taxonomy";
+import {
+  SIDEBAR_DROP,
+  collectCategoryDeleteTaskIds,
+  colorTokenToCssVar,
+  isSidebarTaxonomyDrag,
+  parseSidebarDropTarget,
+  parseSidebarTaxonomySortableId,
+  type SidebarTaxonomyDragData,
+  type SidebarTaxonomySection,
+} from "./taxonomy";
 import { TasksDndHost } from "./tasks-dnd-host";
+
+type ShellSecondaryItem = SidebarSecondaryItem & {
+  sortableId: string;
+  entityId: string;
+};
+
+type ShellSecondarySection = Omit<SidebarSecondarySection, "id" | "items"> & {
+  id: SidebarTaxonomySection;
+  items: ShellSecondaryItem[];
+};
+
+/** No post-drop layout slide — list order updates instantly after commit. */
+const taxonomyAnimateLayoutChanges: AnimateLayoutChanges = () => false;
 
 const primaryItems: SidebarItem[] = [
   { id: "calendar", label: "Kalender", href: "/app/kalender", icon: "calendar" },
@@ -92,14 +132,300 @@ function DroppableNavItem({
   );
 }
 
+function SortableTaxonomyNavItem({
+  item,
+  activeId,
+  section,
+}: {
+  item: ShellSecondaryItem;
+  activeId?: string;
+  section: SidebarTaxonomySection;
+}) {
+  const { active } = useDndContext();
+  const { attributes, listeners, setNodeRef, isDragging, isOver } = useSortable({
+    id: item.sortableId,
+    animateLayoutChanges: taxonomyAnimateLayoutChanges,
+    transition: null,
+    data: {
+      type: "sidebar-taxonomy",
+      section,
+      entityId: item.entityId,
+    } satisfies SidebarTaxonomyDragData,
+  });
+
+  const isTaskDropOver =
+    Boolean(item.droppableId) &&
+    isOver &&
+    active != null &&
+    !isSidebarTaxonomyDrag(active.data.current);
+
+  return (
+    <SecondaryNavItem
+      activeId={activeId}
+      item={{ ...item, dropOver: isTaskDropOver || undefined }}
+      itemRef={setNodeRef}
+      liProps={{ ...attributes, ...listeners }}
+      placeholder={isDragging}
+      style={sortableItemStyle({
+        // Live DOM order owns the slot — same as task list.
+        transform: null,
+        transition: undefined,
+        layoutControlled: true,
+      })}
+    />
+  );
+}
+
+function isTaxonomyDragActive(active: { id: unknown; data: { current?: unknown } }) {
+  return (
+    isSidebarTaxonomyDrag(active.data.current) ||
+    Boolean(parseSidebarTaxonomySortableId(String(active.id)))
+  );
+}
+
+/** Free-floating ghost — same DnD language as task DragOverlay. */
+function SidebarTaxonomyDragOverlay({
+  itemsBySortableId,
+}: {
+  itemsBySortableId: Map<string, ShellSecondaryItem>;
+}) {
+  const [activeSortableId, setActiveSortableId] = useState<string | null>(null);
+  const [width, setWidth] = useState<number | undefined>();
+
+  useDndMonitor({
+    onDragStart(event) {
+      if (!isTaxonomyDragActive(event.active)) return;
+      setActiveSortableId(String(event.active.id));
+      const initial = event.active.rect.current.initial;
+      setWidth(initial?.width);
+    },
+    onDragEnd() {
+      setActiveSortableId(null);
+      setWidth(undefined);
+    },
+    onDragCancel() {
+      setActiveSortableId(null);
+      setWidth(undefined);
+    },
+  });
+
+  const item = activeSortableId ? itemsBySortableId.get(activeSortableId) : null;
+
+  return (
+    <DragOverlay dropAnimation={null}>
+      {item ? (
+        <DnDGhostShell>
+          <ul
+            className="fk-sidebar__secondary-list"
+            style={{ margin: 0, padding: 0, width: width ?? undefined }}
+          >
+            <SecondaryNavItem dragging item={item} />
+          </ul>
+        </DnDGhostShell>
+      ) : null}
+    </DragOverlay>
+  );
+}
+
 function SecondarySectionDroppable({
   section,
   activeId,
+  onReorderCommit,
 }: {
-  section: SidebarSecondarySection;
+  section: ShellSecondarySection;
   activeId?: string;
+  onReorderCommit: (
+    section: SidebarTaxonomySection,
+    orderedEntityIds: string[],
+  ) => void | Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(true);
+  const baseSortableIds = useMemo(
+    () => section.items.map((item) => item.sortableId),
+    [section.items],
+  );
+  const [liveSortableIds, setLiveSortableIds] = useState<string[] | null>(null);
+  const liveIdsRef = useRef<string[] | null>(null);
+  const dragActiveRef = useRef(false);
+  const overIdRef = useRef<string | null>(null);
+  const lastInsertIndexRef = useRef<number | null>(null);
+  const lastOverRectRef = useRef<{ top: number; height: number } | null>(null);
+  const lastSyncedOverIdRef = useRef<string | null>(null);
+  const itemsBySortableId = useMemo(() => {
+    const map = new Map(section.items.map((item) => [item.sortableId, item]));
+    return map;
+  }, [section.items]);
+
+  // Clear live order only after drag ends and query data matches.
+  // Must not run during drag: at start live === base, clearing freezes the placeholder.
+  useEffect(() => {
+    if (dragActiveRef.current || !liveSortableIds) return;
+    if (
+      baseSortableIds.length === liveSortableIds.length &&
+      baseSortableIds.every((id, index) => id === liveSortableIds[index])
+    ) {
+      setLiveSortableIds(null);
+      liveIdsRef.current = null;
+    }
+  }, [baseSortableIds, liveSortableIds]);
+
+  function applyLiveSort(input: {
+    activeId: string;
+    overId: string;
+    dragCenterY: number;
+    overRect: { top: number; height: number };
+    overChanged: boolean;
+  }) {
+    const ids = liveIdsRef.current;
+    if (!ids || !dragActiveRef.current) return;
+
+    const activeIndex = ids.indexOf(input.activeId);
+    const overIndex = ids.indexOf(input.overId);
+    if (activeIndex < 0 || overIndex < 0) return;
+
+    const overMeta = parseSidebarTaxonomySortableId(input.overId);
+    if (!overMeta || overMeta.section !== section.id) return;
+
+    let nextIndex: number;
+    if (input.overChanged || lastSyncedOverIdRef.current !== input.overId) {
+      nextIndex = overIndex;
+      lastSyncedOverIdRef.current = input.overId;
+    } else {
+      nextIndex = resolveSortableInsertIndex({
+        activeIndex,
+        overIndex,
+        dragCenterY: input.dragCenterY,
+        overRect: input.overRect,
+        lastInsertIndex: lastInsertIndexRef.current,
+      });
+    }
+
+    if (nextIndex === activeIndex) {
+      lastInsertIndexRef.current = nextIndex;
+      return;
+    }
+    if (lastInsertIndexRef.current === nextIndex) return;
+
+    const next = arrayMove(ids, activeIndex, nextIndex);
+    liveIdsRef.current = next;
+    lastInsertIndexRef.current = nextIndex;
+    setLiveSortableIds(next);
+  }
+
+  useDndMonitor({
+    onDragStart(event) {
+      if (!isTaxonomyDragActive(event.active)) return;
+      const meta =
+        (isSidebarTaxonomyDrag(event.active.data.current)
+          ? event.active.data.current
+          : null) ?? parseSidebarTaxonomySortableId(String(event.active.id));
+      if (!meta || meta.section !== section.id) return;
+
+      const ids = section.items.map((item) => item.sortableId);
+      const draggedId = String(event.active.id);
+      dragActiveRef.current = true;
+      liveIdsRef.current = ids;
+      overIdRef.current = draggedId;
+      lastSyncedOverIdRef.current = draggedId;
+      lastInsertIndexRef.current = ids.indexOf(draggedId);
+      lastOverRectRef.current = null;
+      setLiveSortableIds(ids);
+    },
+    onDragOver(event) {
+      if (!dragActiveRef.current || !liveIdsRef.current) return;
+      if (!isTaxonomyDragActive(event.active)) return;
+
+      const nextOver = event.over ? String(event.over.id) : null;
+      const overChanged = nextOver != null && nextOver !== overIdRef.current;
+      overIdRef.current = nextOver;
+
+      if (!event.over || !nextOver) {
+        lastOverRectRef.current = null;
+        return;
+      }
+
+      lastOverRectRef.current = {
+        top: event.over.rect.top,
+        height: event.over.rect.height,
+      };
+      const translated = event.active.rect.current.translated;
+      const dragCenterY = translated
+        ? translated.top + translated.height / 2
+        : event.over.rect.top + event.over.rect.height / 2;
+
+      applyLiveSort({
+        activeId: String(event.active.id),
+        overId: nextOver,
+        dragCenterY,
+        overRect: lastOverRectRef.current,
+        overChanged,
+      });
+    },
+    onDragMove(event) {
+      if (!dragActiveRef.current || !liveIdsRef.current) return;
+      if (!isTaxonomyDragActive(event.active)) return;
+
+      const currentOver = overIdRef.current;
+      const overRect = lastOverRectRef.current;
+      const translated = event.active.rect.current.translated;
+      if (!currentOver || !overRect || !translated) return;
+
+      applyLiveSort({
+        activeId: String(event.active.id),
+        overId: currentOver,
+        dragCenterY: translated.top + translated.height / 2,
+        overRect,
+        overChanged: false,
+      });
+    },
+    onDragEnd() {
+      if (!dragActiveRef.current) return;
+      dragActiveRef.current = false;
+      overIdRef.current = null;
+      lastOverRectRef.current = null;
+      lastSyncedOverIdRef.current = null;
+
+      const live = liveIdsRef.current;
+      if (!live) return;
+
+      const changed = live.some((id, index) => id !== baseSortableIds[index]);
+      if (!changed) {
+        liveIdsRef.current = null;
+        setLiveSortableIds(null);
+        return;
+      }
+
+      const orderedEntityIds = live
+        .map((id) => itemsBySortableId.get(id)?.entityId)
+        .filter((id): id is string => Boolean(id));
+      if (orderedEntityIds.length !== live.length) return;
+
+      // Keep live order visible until baseSortableIds catches up (effect).
+      void Promise.resolve(onReorderCommit(section.id, orderedEntityIds)).catch(() => {
+        liveIdsRef.current = null;
+        setLiveSortableIds(null);
+      });
+    },
+    onDragCancel() {
+      if (!dragActiveRef.current) return;
+      dragActiveRef.current = false;
+      overIdRef.current = null;
+      lastOverRectRef.current = null;
+      lastSyncedOverIdRef.current = null;
+      lastInsertIndexRef.current = null;
+      liveIdsRef.current = null;
+      setLiveSortableIds(null);
+    },
+  });
+
+  const sortableIds = liveSortableIds ?? baseSortableIds;
+  const displayItems = useMemo(
+    () =>
+      sortableIds
+        .map((id) => itemsBySortableId.get(id))
+        .filter((item): item is ShellSecondaryItem => Boolean(item)),
+    [itemsBySortableId, sortableIds],
+  );
 
   return (
     <section
@@ -125,13 +451,36 @@ function SecondarySectionDroppable({
         </button>
       </header>
       {expanded ? (
-        <ul className="fk-sidebar__secondary-list">
-          {section.items.map((item) => (
-            <DroppableNavItem activeId={activeId} item={item} key={item.id} />
-          ))}
-        </ul>
+        <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
+          <ul className="fk-sidebar__secondary-list">
+            {displayItems.map((item) => (
+              <SortableTaxonomyNavItem
+                activeId={activeId}
+                item={item}
+                key={item.id}
+                section={section.id}
+              />
+            ))}
+          </ul>
+        </SortableContext>
       ) : null}
     </section>
+  );
+}
+
+function sortBySortOrderThenName<T extends { sortOrder: number; name: string }>(items: T[]): T[] {
+  return [...items].sort(
+    (a, b) =>
+      a.sortOrder - b.sortOrder ||
+      a.name.localeCompare(b.name, "de", { sensitivity: "base" }),
+  );
+}
+
+function sortGoals(items: GoalDto[]): GoalDto[] {
+  return [...items].sort(
+    (a, b) =>
+      a.sortOrder - b.sortOrder ||
+      a.title.localeCompare(b.title, "de", { sensitivity: "base" }),
   );
 }
 
@@ -140,9 +489,7 @@ function countOpenTasks(tasks: TaskDto[], predicate: (task: TaskDto) => boolean)
 }
 
 function todayIsoDate() {
-  const today = new Date();
-  today.setHours(12, 0, 0, 0);
-  return today.toISOString().slice(0, 10);
+  return todayIsoDateString();
 }
 
 export function AufgabenShell({
@@ -178,25 +525,19 @@ export function AufgabenShell({
   });
   const goalsQuery = useQuery({
     queryKey: ["goals"],
-    queryFn: () => apiGet<Array<{ id: string; title: string }>>("/api/v1/goals"),
+    queryFn: () => apiGet<GoalDto[]>("/api/v1/goals"),
   });
 
   const tasks = tasksQuery.data ?? [];
   const categories = useMemo(
-    () =>
-      [...(categoriesQuery.data ?? [])].sort((a, b) =>
-        a.name.localeCompare(b.name, "de", { sensitivity: "base" }),
-      ),
+    () => sortBySortOrderThenName(categoriesQuery.data ?? []),
     [categoriesQuery.data],
   );
   const labels = useMemo(
-    () =>
-      [...(labelsQuery.data ?? [])].sort((a, b) =>
-        a.name.localeCompare(b.name, "de", { sensitivity: "base" }),
-      ),
+    () => sortBySortOrderThenName(labelsQuery.data ?? []),
     [labelsQuery.data],
   );
-  const goals = goalsQuery.data ?? [];
+  const goals = useMemo(() => sortGoals(goalsQuery.data ?? []), [goalsQuery.data]);
 
   const createCategory = useMutation({
     mutationFn: (payload: { name: string; colorToken: CategoryDto["colorToken"] }) =>
@@ -306,7 +647,7 @@ export function AufgabenShell({
     [],
   );
 
-  const secondarySections: SidebarSecondarySection[] = useMemo(
+  const secondarySections: ShellSecondarySection[] = useMemo(
     () => [
       {
         id: "categories",
@@ -314,6 +655,8 @@ export function AufgabenShell({
         onAdd: () => setTaxonomyUi({ kind: "category", view: "create" }),
         items: categories.map((category) => ({
           id: `category:${category.id}`,
+          sortableId: SIDEBAR_DROP.category(category.id),
+          entityId: category.id,
           label: category.name,
           href: `/app/aufgaben?category=${category.id}`,
           badge: String(countOpenTasks(tasks, (task) => task.categoryId === category.id)),
@@ -351,6 +694,8 @@ export function AufgabenShell({
         label: "Ziele",
         items: goals.map((goal) => ({
           id: `goal:${goal.id}`,
+          sortableId: SIDEBAR_DROP.goal(goal.id),
+          entityId: goal.id,
           label: goal.title,
           href: "/app/aufgaben/ziele",
           icon: "focus-target" as const,
@@ -363,6 +708,8 @@ export function AufgabenShell({
         onAdd: () => setTaxonomyUi({ kind: "label", view: "create" }),
         items: labels.map((label) => ({
           id: `label:${label.id}`,
+          sortableId: SIDEBAR_DROP.label(label.id),
+          entityId: label.id,
           label: label.name,
           href: `/app/aufgaben?label=${label.id}`,
           icon: "tag" as const,
@@ -398,6 +745,80 @@ export function AufgabenShell({
     ],
     [categories, goals, labels, tasks],
   );
+
+  const persistTaxonomyOrder = useCallback(
+    async (section: SidebarTaxonomySection, orderedIds: string[]) => {
+      const path =
+        section === "categories"
+          ? "/api/v1/categories"
+          : section === "labels"
+            ? "/api/v1/labels"
+            : "/api/v1/goals";
+      const queryKey =
+        section === "categories"
+          ? (["categories"] as const)
+          : section === "labels"
+            ? (["labels"] as const)
+            : (["goals"] as const);
+
+      const previous = queryClient.getQueryData(queryKey);
+
+      if (section === "categories") {
+        const current = sortBySortOrderThenName(
+          (queryClient.getQueryData<CategoryDto[]>(queryKey) ?? []).slice(),
+        );
+        queryClient.setQueryData(
+          queryKey,
+          applySortOrders(current, orderedIds),
+        );
+      } else if (section === "labels") {
+        const current = sortBySortOrderThenName(
+          (queryClient.getQueryData<LabelDto[]>(queryKey) ?? []).slice(),
+        );
+        queryClient.setQueryData(queryKey, applySortOrders(current, orderedIds));
+      } else {
+        const current = sortGoals((queryClient.getQueryData<GoalDto[]>(queryKey) ?? []).slice());
+        queryClient.setQueryData(queryKey, applySortOrders(current, orderedIds));
+      }
+
+      try {
+        if (section === "categories") {
+          const next = await apiSend<CategoryDto[]>(path, "PUT", { orderedIds });
+          queryClient.setQueryData(queryKey, next);
+        } else if (section === "labels") {
+          const next = await apiSend<LabelDto[]>(path, "PUT", { orderedIds });
+          queryClient.setQueryData(queryKey, next);
+        } else {
+          const next = await apiSend<GoalDto[]>(path, "PUT", { orderedIds });
+          queryClient.setQueryData(queryKey, next);
+        }
+      } catch (error) {
+        queryClient.setQueryData(queryKey, previous);
+        toast({
+          id: `sidebar-reorder:${section}`,
+          title: "Reihenfolge konnte nicht gespeichert werden",
+        });
+        throw error;
+      }
+    },
+    [queryClient, toast],
+  );
+
+  const handleTaxonomyReorderCommit = useCallback(
+    (section: SidebarTaxonomySection, orderedEntityIds: string[]) =>
+      persistTaxonomyOrder(section, orderedEntityIds),
+    [persistTaxonomyOrder],
+  );
+
+  const taxonomyItemsBySortableId = useMemo(() => {
+    const map = new Map<string, ShellSecondaryItem>();
+    for (const section of secondarySections) {
+      for (const item of section.items) {
+        map.set(item.sortableId, item);
+      }
+    }
+    return map;
+  }, [secondarySections]);
 
   async function handleSidebarDrop(taskId: string, overId: string) {
     const target = parseSidebarDropTarget(overId);
@@ -484,6 +905,7 @@ export function AufgabenShell({
                     <SecondarySectionDroppable
                       activeId={secondaryActiveId}
                       key={section.id}
+                      onReorderCommit={handleTaxonomyReorderCommit}
                       section={section}
                     />
                   ))}
@@ -495,6 +917,7 @@ export function AufgabenShell({
         >
           <div className={styles.content}>{children}</div>
         </UiShell>
+        <SidebarTaxonomyDragOverlay itemsBySortableId={taxonomyItemsBySortableId} />
       </TasksDndHost>
 
       <TaxonomyCreateModal

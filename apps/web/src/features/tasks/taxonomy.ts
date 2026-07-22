@@ -40,7 +40,43 @@ export const SIDEBAR_DROP = {
   inbox: "rail-eingang",
   category: (id: string) => `cat:${id}`,
   label: (id: string) => `label:${id}`,
+  goal: (id: string) => `goal:${id}`,
 } as const;
+
+export type SidebarTaxonomySection = "categories" | "labels" | "goals";
+
+export type SidebarTaxonomyDragData = {
+  type: "sidebar-taxonomy";
+  section: SidebarTaxonomySection;
+  entityId: string;
+};
+
+export function isSidebarTaxonomyDrag(
+  data: unknown,
+): data is SidebarTaxonomyDragData {
+  return (
+    Boolean(data) &&
+    typeof data === "object" &&
+    (data as { type?: string }).type === "sidebar-taxonomy"
+  );
+}
+
+/** Resolve entity id from a sidebar sortable/droppable id (`cat:…` / `label:…` / `goal:…`). */
+export function parseSidebarTaxonomySortableId(
+  sortableId: string | null | undefined,
+): { section: SidebarTaxonomySection; entityId: string } | null {
+  if (!sortableId) return null;
+  if (sortableId.startsWith("cat:")) {
+    return { section: "categories", entityId: sortableId.slice(4) };
+  }
+  if (sortableId.startsWith("label:")) {
+    return { section: "labels", entityId: sortableId.slice(6) };
+  }
+  if (sortableId.startsWith("goal:")) {
+    return { section: "goals", entityId: sortableId.slice(5) };
+  }
+  return null;
+}
 
 export function parseSidebarDropTarget(overId: string | null | undefined):
   | { type: "favorites" }

@@ -630,11 +630,11 @@ function TaskModalComposition({
               ),
             },
             {
-              label: "Tags",
-              onOpenChange: (open) => setOpenProperty(open ? "tags" : null),
-              open: openProperty === "tags",
+              label: "Labels",
+              onOpenChange: (open) => setOpenProperty(open ? "labels" : null),
+              open: openProperty === "labels",
               value: selectedTags.length ? (
-                <div aria-label="Ausgewählte Etiketten" className={styles.taskRailTags}>
+                <div aria-label="Ausgewählte Labels" className={styles.taskRailTags}>
                   {tags
                     .filter((tag) => selectedTags.includes(tag.label))
                     .map((tag) => (
@@ -658,13 +658,13 @@ function TaskModalComposition({
               content: (
                 <div className={styles.taskTagManager}>
                   <SearchField
-                    aria-label="Tags durchsuchen"
+                    aria-label="Labels durchsuchen"
                     collapsedWidth={278}
                     controlSize="md"
                     expandedWidth={278}
-                    placeholder="Etikett suchen oder erstellen ..."
+                    placeholder="Label suchen oder erstellen ..."
                   />
-                  <div aria-label="Etiketten" className={styles.taskTagManagerList}>
+                  <div aria-label="Labels" className={styles.taskTagManagerList}>
                     {tags.map((tag) => (
                       <button
                         aria-pressed={selectedTags.includes(tag.label)}
@@ -2449,13 +2449,13 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                     },
                     {
                       type: "submenu",
-                      label: "Tags",
+                      label: "Labels",
                       icon: "tag",
                       panel: true,
                       content: (
                         <div className="fk-task-tag-manager">
                           <span style={{ fontSize: 12, color: "var(--fk-color-text-tertiary)" }}>
-                            Suche + Etikettenliste + Tags verwalten (wie Modal-Rail)
+                            Suche + Labels-Liste + Labels verwalten (wie Modal-Rail)
                           </span>
                         </div>
                       ),

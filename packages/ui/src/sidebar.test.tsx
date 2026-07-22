@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { Sidebar, SidebarAvatar } from "./sidebar";
+import { SecondaryNavItem, Sidebar, SidebarAvatar } from "./sidebar";
 
 describe("Sidebar", () => {
   it("renders footer navigation items with the same geometry as primary rail items", () => {
@@ -47,6 +47,19 @@ describe("Sidebar", () => {
 
     expect(screen.queryByRole("link", { name: /Kaufen/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Kategorien ausklappen" })).toBeInTheDocument();
+  });
+
+  it("marks secondary nav items as dragging when requested", () => {
+    const { container } = render(
+      <ul>
+        <SecondaryNavItem
+          dragging
+          item={{ id: "buy", label: "Kaufen", href: "#buy" }}
+        />
+      </ul>,
+    );
+
+    expect(container.querySelector("li")).toHaveAttribute("data-dragging", "true");
   });
 
   it("renders a profile photo when provided and falls back to the user icon", () => {

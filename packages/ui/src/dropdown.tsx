@@ -56,6 +56,10 @@ export function Dropdown({
   const selectedValue = value ?? internalValue;
   const selectedOption = options.find((option) => option.value === selectedValue);
   const dropdownType = resolveDropdownType(keyLabel, leadingIcon);
+  // Unmatched controlled values (e.g. custom estimate minutes) must not blank the
+  // trigger — Radix hides the placeholder whenever `value` is set.
+  const selectValue =
+    value === undefined ? undefined : selectedOption ? value : "";
 
   return (
     <Select.Root
@@ -65,7 +69,7 @@ export function Dropdown({
         setInternalValue(nextValue);
         onValueChange?.(nextValue);
       }}
-      value={value}
+      value={selectValue}
     >
       <Select.Trigger
         aria-label={props["aria-label"] ?? placeholder}
@@ -81,7 +85,11 @@ export function Dropdown({
             </span>
           ) : null}
           {keyLabel ? <span className="fk-dropdown__key">{keyLabel}</span> : null}
-          <Select.Value placeholder={placeholder}>{selectedOption?.label}</Select.Value>
+          {selectedOption ? (
+            <Select.Value>{selectedOption.label}</Select.Value>
+          ) : (
+            <Select.Value placeholder={placeholder} />
+          )}
         </span>
         <Select.Icon className="fk-dropdown__chevron">
           <FokunaIcon name="chevron-down-small" size={16} stroke={1.5} />

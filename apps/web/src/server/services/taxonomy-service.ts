@@ -3,10 +3,11 @@ import type {
   CreateCategoryInput,
   CreateLabelInput,
   LabelDto,
+  ReorderIdsInput,
   UpdateCategoryInput,
   UpdateLabelInput,
 } from "@fokuna/api-contracts";
-import { createId } from "@fokuna/domain";
+import { applySortOrders, createId } from "@fokuna/domain";
 
 import { getMemoryStore } from "../memory/store";
 
@@ -58,6 +59,28 @@ export async function updateCategory(
   };
   getMemoryStore().categories.set(categoryId, updated);
   return updated;
+}
+
+export async function reorderCategories(
+  userId: string,
+  input: ReorderIdsInput,
+): Promise<CategoryDto[]> {
+  const existing = await listCategories(userId);
+  const existingIds = new Set(existing.map((category) => category.id));
+  if (
+    input.orderedIds.length !== existing.length ||
+    input.orderedIds.some((id) => !existingIds.has(id))
+  ) {
+    throw new Error("Invalid category reorder payload");
+  }
+
+  const now = new Date().toISOString();
+  const store = getMemoryStore();
+  const reordered = applySortOrders(existing, input.orderedIds);
+  for (const category of reordered) {
+    store.categories.set(category.id, { ...category, updatedAt: now });
+  }
+  return listCategories(userId);
 }
 
 export async function deleteCategory(userId: string, categoryId: string): Promise<boolean> {
@@ -149,6 +172,28 @@ export async function updateLabel(
   };
   getMemoryStore().labels.set(labelId, updated);
   return updated;
+}
+
+export async function reorderLabels(
+  userId: string,
+  input: ReorderIdsInput,
+): Promise<LabelDto[]> {
+  const existing = await listLabels(userId);
+  const existingIds = new Set(existing.map((label) => label.id));
+  if (
+    input.orderedIds.length !== existing.length ||
+    input.orderedIds.some((id) => !existingIds.has(id))
+  ) {
+    throw new Error("Invalid label reorder payload");
+  }
+
+  const now = new Date().toISOString();
+  const store = getMemoryStore();
+  const reordered = applySortOrders(existing, input.orderedIds);
+  for (const label of reordered) {
+    store.labels.set(label.id, { ...label, updatedAt: now });
+  }
+  return listLabels(userId);
 }
 
 export async function deleteLabel(userId: string, labelId: string): Promise<boolean> {

@@ -9,8 +9,11 @@ import {
   type CreateBlockInput,
   type CreateCalendarEntryInput,
   type CreateGoalInput,
+  type GoalDto,
+  type ReorderIdsInput,
 } from "@fokuna/api-contracts";
 import {
+  applySortOrders,
   canTransitionFocusStatus,
   createId,
   elapsedFocusSeconds,
@@ -22,10 +25,29 @@ import { getMemoryStore } from "../memory/store";
 /** Catalog services currently use the memory store for the vertical slice.
  * Neon repositories follow the same contracts and can replace these call sites. */
 
-export async function listGoals(userId: string) {
+export async function listGoals(userId: string): Promise<GoalDto[]> {
   return [...getMemoryStore().goals.values()]
     .filter((goal) => goal.userId === userId)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.title.localeCompare(b.title));
+}
+
+export async function reorderGoals(userId: string, input: ReorderIdsInput): Promise<GoalDto[]> {
+  const existing = await listGoals(userId);
+  const existingIds = new Set(existing.map((goal) => goal.id));
+  if (
+    input.orderedIds.length !== existing.length ||
+    input.orderedIds.some((id) => !existingIds.has(id))
+  ) {
+    throw new Error("Invalid goal reorder payload");
+  }
+
+  const now = new Date().toISOString();
+  const store = getMemoryStore();
+  const reordered = applySortOrders(existing, input.orderedIds);
+  for (const goal of reordered) {
+    store.goals.set(goal.id, { ...goal, updatedAt: now });
+  }
+  return listGoals(userId);
 }
 
 export async function createGoal(userId: string, raw: CreateGoalInput) {

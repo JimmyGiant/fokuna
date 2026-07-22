@@ -10,7 +10,7 @@
 |--|--|
 | **Aktueller Slice** | A3 Sidebar + Kategorien/Labels — fertig |
 | **Nächster Slice** | A4 Zeitblöcke 05–12 |
-| **Zuletzt fertig** | L2 live (Kategorien/Labels), Manager-Modals, Sidebar-Drops |
+| **Zuletzt fertig** | L2 Taxonomy-Reorder (Kategorien/Labels/Ziele) + Labels-Rename |
 | **Blocker / Fragen** | — |
 
 ---
@@ -41,9 +41,9 @@
 | Modus | Status | Hinweis |
 |-------|--------|---------|
 | Favoriten / Heute / Eingang | `Done` | Filter + Drop-Targets |
-| Kategorien | `Done` | API + `task.categoryId` + L2 Counts + Manager-Modal + Drop |
-| Labels | `Done` | Label-Entity + `labelIds` + L2 + Manager + Drop (append) |
-| Ziele-Liste in L2 | `Scaffold` | Live Counts aus Goals; kein Drop; View A5 |
+| Kategorien | `Done` | API + `task.categoryId` + L2 Counts + Manager-Modal + Drop + DnD-Sort (`sortOrder`) |
+| Labels | `Done` | Label-Entity + `labelIds` + L2 + Manager + Drop (append) + DnD-Sort (`sortOrder`); UI-Begriff Labels (nicht Tags) |
+| Ziele-Liste in L2 | `Scaffold` | Live Counts + DnD-Sort (`sortOrder`); kein Task-Drop; View A5 |
 
 ---
 
@@ -57,6 +57,7 @@
 | Cross-Group Move | `Done` | Live zwischen Containern |
 | Nested / Reparent | `Done` | dnd-kit SortableTree: flatten + projection; Commit erst onDrop |
 | Drop auf Sidebar | `Done` | Favoriten / Heute / Eingang / Kategorie / Label |
+| Sidebar Taxonomy-Reorder | `Done` | Kategorien / Labels / Ziele innerhalb ihres Abschnitts; getrennt von Task-Drops |
 | Blocks Library → Rail | `Not started` | A4 |
 | Task → Calendar Morph | `Deferred` | nach Blocks / Kalender-Gate |
 

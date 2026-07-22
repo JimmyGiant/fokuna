@@ -1,13 +1,21 @@
 "use client";
 
-import { FokunaIcon } from "@fokuna/icons";
 import {
   TASK_MAX_DEPTH,
   TASK_MAX_INDENT_LEVEL,
+  toIsoDateString,
   type TaskIndentLevel,
 } from "@fokuna/domain";
+import { FokunaIcon } from "@fokuna/icons";
 import { Dialog, Popover } from "radix-ui";
-import { Children, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
+import {
+  Children,
+  useEffect,
+  useRef,
+  useState,
+  type HTMLAttributes,
+  type ReactNode,
+} from "react";
 
 import { Button } from "./button";
 import { DatePicker } from "./date-picker";
@@ -567,7 +575,10 @@ export function AddTask({
   const [dueOpen, setDueOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const nestedPopoverOpenRef = useRef(false);
   const expanded = expandedProp ?? internalExpanded;
+  nestedPopoverOpenRef.current = priorityOpen || dueOpen;
 
   const priorityOption =
     ADD_TASK_PRIORITY_OPTIONS.find((option) => option.value === priority) ??
@@ -618,6 +629,51 @@ export function AddTask({
     }
   }
 
+  useEffect(() => {
+    if (!expanded) return;
+
+    function collapse() {
+      if (expandedProp === undefined) setInternalExpanded(false);
+      onExpandedChange?.(false);
+      setTitle("");
+      setDescription("");
+      setPriority("none");
+      setDueDate(null);
+      setPriorityOpen(false);
+      setDueOpen(false);
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (rootRef.current?.contains(target)) return;
+      if (target instanceof Element && target.closest(".fk-add-task__property-popover")) {
+        return;
+      }
+      collapse();
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      // Capture before Dialog/Modal so Escape collapses Add Task instead of closing the shell.
+      event.preventDefault();
+      event.stopPropagation();
+      if (nestedPopoverOpenRef.current) {
+        setPriorityOpen(false);
+        setDueOpen(false);
+        return;
+      }
+      collapse();
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [expanded, expandedProp, onExpandedChange]);
+
   if (!expanded) {
     return (
       <button
@@ -632,7 +688,7 @@ export function AddTask({
   }
 
   return (
-    <div {...props} className={cn("fk-add-task", className)}>
+    <div {...props} className={cn("fk-add-task", className)} ref={rootRef}>
       <div className="fk-add-task__fields">
         <input
           ref={titleInputRef}
@@ -751,9 +807,8 @@ export function AddTask({
                             return;
                           }
                           const next = new Date();
-                          next.setHours(12, 0, 0, 0);
                           if (key === "tomorrow") next.setDate(next.getDate() + 1);
-                          setDueDate(next.toISOString().slice(0, 10));
+                          setDueDate(toIsoDateString(next));
                           setDueOpen(false);
                         }}
                         type="button"
@@ -767,7 +822,7 @@ export function AddTask({
                     inline
                     onValueChange={(nextValue) => {
                       if (!(nextValue instanceof Date)) return;
-                      setDueDate(nextValue.toISOString().slice(0, 10));
+                      setDueDate(toIsoDateString(nextValue));
                       setDueOpen(false);
                     }}
                     value={dueDate ? new Date(`${dueDate}T12:00:00`) : undefined}
@@ -1038,12 +1093,6 @@ export function TaskModalMenu({ items, footer, className, ...props }: TaskModalM
                   side="bottom"
                   sideOffset={8}
                 >
-                  <div className="fk-task-property-popover__header">
-                    <strong>{item.label}</strong>
-                    <Popover.Close aria-label={`${item.label} schließen`}>
-                      <FokunaIcon name="close" />
-                    </Popover.Close>
-                  </div>
                   <div className="fk-task-property-popover__content">{item.content}</div>
                 </Popover.Content>
               </Popover.Portal>

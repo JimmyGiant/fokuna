@@ -24,6 +24,7 @@ import {
   layoutToPlacements,
   mergePlacements,
   removeChildrenOfActive,
+  todayIsoDateString,
   TASK_MAX_INDENT_LEVEL,
   type FlatTreeItem,
   type TaskIndentLevel,
@@ -69,7 +70,7 @@ import { apiGet, apiSend } from "@/lib/api";
 import { useTaskTaxonomy } from "./aufgaben-shell";
 import { colorTokenToCssVar, colorTokenToTone } from "./taxonomy";
 import { TaskDetailModal } from "./task-detail-modal";
-import { TaskDueDateMenuPanel, TaskEstimateMenuPanel, TaskTagsMenuPanel } from "./task-property-editor";
+import { TaskDueDateMenuPanel, TaskEstimateMenuPanel, TaskLabelsMenuPanel } from "./task-property-editor";
 import { priorityOptions } from "./task-property-options";
 import { useTasksListDndRegistration } from "./tasks-dnd-host";
 import styles from "./tasks-view.module.css";
@@ -357,9 +358,7 @@ function SortableFlatTask({
 }
 
 function todayIsoDate() {
-  const today = new Date();
-  today.setHours(12, 0, 0, 0);
-  return today.toISOString().slice(0, 10);
+  return todayIsoDateString();
 }
 
 function listTitleForFilter(
@@ -1094,11 +1093,11 @@ export function TasksView() {
       },
       {
         type: "submenu",
-        label: "Tags",
+        label: "Labels",
         icon: "tag",
         panel: true,
         content: (
-          <TaskTagsMenuPanel
+          <TaskLabelsMenuPanel
             onManageLabels={openLabelManager}
             onUpdate={patchTask}
             task={task}

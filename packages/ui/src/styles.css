@@ -1228,6 +1228,10 @@
     min-width: 0;
   }
 
+  .fk-dropdown__trigger [data-placeholder] {
+    color: var(--fk-color-text-tertiary);
+  }
+
   .fk-dropdown__key {
     color: var(--fk-color-text-secondary);
     font-weight: 600;
@@ -3431,6 +3435,31 @@
     padding: 0;
   }
 
+  /* Lifted ghost (DragOverlay) — same language as task dragged state. */
+  .fk-sidebar__secondary-list > li[data-dragging="true"] {
+    background: var(--fk-color-surface-base);
+    border-radius: 8px;
+    box-shadow: var(--fk-shadow-subtle-element);
+    cursor: grabbing;
+    transform: rotate(-1deg);
+  }
+
+  .fk-sidebar__secondary-list > li[data-dragging="true"] a {
+    background: var(--fk-color-surface-base);
+    cursor: grabbing;
+  }
+
+  /* Source slot while the overlay ghost is free under the pointer. */
+  .fk-sidebar__secondary-list > li[data-placeholder="true"] {
+    background: var(--fk-color-surface-muted);
+    border-radius: 8px;
+    pointer-events: none;
+  }
+
+  .fk-sidebar__secondary-list > li[data-placeholder="true"] a {
+    visibility: hidden;
+  }
+
   .fk-sidebar__secondary-list a {
     align-items: center;
     border-radius: 8px;
@@ -4950,6 +4979,11 @@
     display: grid;
     gap: 12px;
     min-width: 0;
+    width: 100%;
+  }
+
+  .fk-task-property-panel > .fk-dropdown__trigger {
+    justify-content: space-between;
     width: 100%;
   }
 

@@ -1,7 +1,12 @@
 "use client";
 
 import { FokunaIcon, type IconName } from "@fokuna/icons";
-import { useState, type HTMLAttributes, type ReactNode } from "react";
+import {
+  useState,
+  type CSSProperties,
+  type HTMLAttributes,
+  type ReactNode,
+} from "react";
 
 import {
   FokunaContextMenu,
@@ -117,10 +122,19 @@ export function SecondaryNavItem({
   item,
   activeId,
   itemRef,
+  style,
+  dragging,
+  placeholder,
+  liProps,
 }: {
   item: SidebarSecondaryItem;
   activeId?: string;
   itemRef?: (node: HTMLElement | null) => void;
+  style?: CSSProperties;
+  dragging?: boolean;
+  /** Source slot while a DragOverlay ghost is active. */
+  placeholder?: boolean;
+  liProps?: HTMLAttributes<HTMLLIElement>;
 }) {
   const isActive = item.id === activeId;
 
@@ -130,6 +144,9 @@ export function SecondaryNavItem({
       data-drop-over={item.dropOver ? "true" : undefined}
       data-has-badge={item.badge ? "true" : undefined}
       href={item.href}
+      onClick={(event) => {
+        if (dragging || placeholder) event.preventDefault();
+      }}
     >
       {item.color ? (
         <span
@@ -151,7 +168,13 @@ export function SecondaryNavItem({
   );
 
   return (
-    <li ref={itemRef}>
+    <li
+      {...liProps}
+      data-dragging={dragging || undefined}
+      data-placeholder={placeholder || undefined}
+      ref={itemRef}
+      style={style}
+    >
       {item.contextMenuItems && item.contextMenuItems.length > 0 ? (
         <FokunaContextMenu items={item.contextMenuItems}>{link}</FokunaContextMenu>
       ) : (

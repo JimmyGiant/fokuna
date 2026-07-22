@@ -15,6 +15,18 @@ describe("Dropdown", () => {
     expect(screen.getByRole("combobox")).toHaveTextContent("Woche");
   });
 
+  it("shows the placeholder when the controlled value is not in options", () => {
+    render(<Dropdown options={options} placeholder="Dauer wählen" value="40" />);
+
+    expect(screen.getByRole("combobox")).toHaveTextContent("Dauer wählen");
+  });
+
+  it("shows the placeholder when no value is selected", () => {
+    render(<Dropdown options={options} placeholder="Dauer wählen" />);
+
+    expect(screen.getByRole("combobox")).toHaveTextContent("Dauer wählen");
+  });
+
   it("combines key and value in the trigger", () => {
     render(<Dropdown defaultValue="week" keyLabel="Zeitraum:" options={options} />);
 

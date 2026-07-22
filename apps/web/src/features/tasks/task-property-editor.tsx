@@ -1,6 +1,7 @@
 "use client";
 
 import type { TaskDto } from "@fokuna/api-contracts";
+import { toIsoDateString } from "@fokuna/domain";
 import { FokunaIcon } from "@fokuna/icons";
 import {
   Button,
@@ -48,9 +49,8 @@ export function TaskDueDateMenuPanel({
                 return;
               }
               const next = new Date();
-              next.setHours(12, 0, 0, 0);
               if (key === "tomorrow") next.setDate(next.getDate() + 1);
-              commit({ dueDate: next.toISOString().slice(0, 10) });
+              commit({ dueDate: toIsoDateString(next) });
             }}
             type="button"
           >
@@ -63,7 +63,7 @@ export function TaskDueDateMenuPanel({
         inline
         onValueChange={(nextValue) => {
           if (!(nextValue instanceof Date)) return;
-          commit({ dueDate: nextValue.toISOString().slice(0, 10) });
+          commit({ dueDate: toIsoDateString(nextValue) });
         }}
         value={dueDate}
       />
@@ -120,10 +120,10 @@ export function TaskEstimateMenuPanel({
 }
 
 /**
- * Shared Tags picker — Modal rail popover and list context-menu submenu panel.
- * Multi-select stays open while toggling; "Tags verwalten" closes via onManageLabels.
+ * Shared Labels picker — Modal rail popover and list context-menu submenu panel.
+ * Multi-select stays open while toggling; "Labels verwalten" closes via onManageLabels.
  */
-export function TaskTagsMenuPanel({
+export function TaskLabelsMenuPanel({
   task,
   onUpdate,
   onManageLabels,
@@ -134,7 +134,7 @@ export function TaskTagsMenuPanel({
 }) {
   const closeMenu = useFokunaContextMenuClose();
   const { labels } = useTaskTaxonomy();
-  const [tagQuery, setTagQuery] = useState("");
+  const [labelQuery, setLabelQuery] = useState("");
   const selectedLabelIds = task.labelIds ?? [];
 
   const catalog = useMemo(
@@ -148,43 +148,43 @@ export function TaskTagsMenuPanel({
     [labels],
   );
 
-  const filteredTags = useMemo(() => {
-    const query = tagQuery.trim().toLowerCase();
+  const filteredLabels = useMemo(() => {
+    const query = labelQuery.trim().toLowerCase();
     if (!query) return catalog;
-    return catalog.filter((tag) => tag.name.toLowerCase().includes(query));
-  }, [catalog, tagQuery]);
+    return catalog.filter((label) => label.name.toLowerCase().includes(query));
+  }, [catalog, labelQuery]);
 
   return (
     <div className="fk-task-tag-manager">
       <SearchField
-        aria-label="Tags durchsuchen"
+        aria-label="Labels durchsuchen"
         collapsedWidth={278}
         controlSize="md"
         expandedWidth={278}
-        onChange={(event) => setTagQuery(event.target.value)}
-        placeholder="Etikett suchen ..."
-        value={tagQuery}
+        onChange={(event) => setLabelQuery(event.target.value)}
+        placeholder="Label suchen ..."
+        value={labelQuery}
       />
-      <div aria-label="Etiketten" className="fk-task-tag-manager__list">
-        {filteredTags.map((tag) => {
-          const selected = selectedLabelIds.includes(tag.id);
+      <div aria-label="Labels" className="fk-task-tag-manager__list">
+        {filteredLabels.map((label) => {
+          const selected = selectedLabelIds.includes(label.id);
           return (
             <button
               aria-pressed={selected}
               data-selected={selected || undefined}
-              key={tag.id}
+              key={label.id}
               onClick={() =>
                 void onUpdate(task.id, {
                   labelIds: selected
-                    ? selectedLabelIds.filter((id) => id !== tag.id)
-                    : [...selectedLabelIds, tag.id],
+                    ? selectedLabelIds.filter((id) => id !== label.id)
+                    : [...selectedLabelIds, label.id],
                 })
               }
-              style={{ "--task-tag-surface": tag.surface } as CSSProperties}
+              style={{ "--task-tag-surface": label.surface } as CSSProperties}
               type="button"
             >
-              <FokunaIcon name="tag" size={16} style={{ color: tag.color }} />
-              <span>{tag.name}</span>
+              <FokunaIcon name="tag" size={16} style={{ color: label.color }} />
+              <span>{label.name}</span>
               {selected ? <FokunaIcon name="check-small" size={16} stroke={2} /> : null}
             </button>
           );
@@ -202,9 +202,12 @@ export function TaskTagsMenuPanel({
           }}
           type="button"
         >
-          Tags verwalten
+          Labels verwalten
         </Button>
       ) : null}
     </div>
   );
 }
+
+/** @deprecated Use TaskLabelsMenuPanel */
+export const TaskTagsMenuPanel = TaskLabelsMenuPanel;

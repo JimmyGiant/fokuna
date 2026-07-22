@@ -165,6 +165,42 @@ describe("task composition patterns", () => {
     expect(screen.getByRole("textbox", { name: "Aufgabenname" })).toBeInTheDocument();
   });
 
+  it("collapses to inactive on Escape and discards draft input", () => {
+    render(<AddTask defaultExpanded focusOnExpand={false} />);
+    fireEvent.change(screen.getByRole("textbox", { name: "Aufgabenname" }), {
+      target: { value: "Entwurf" },
+    });
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.getByRole("button", { name: "Aufgabe hinzufügen" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Aufgabe hinzufügen" }));
+    expect(screen.getByRole("textbox", { name: "Aufgabenname" })).toHaveValue("");
+  });
+
+  it("collapses to inactive on outside pointerdown", () => {
+    render(
+      <div>
+        <AddTask defaultExpanded focusOnExpand={false} />
+        <button type="button">Außerhalb</button>
+      </div>,
+    );
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Außerhalb" }));
+    expect(screen.getByRole("button", { name: "Aufgabe hinzufügen" })).toBeInTheDocument();
+  });
+
+  it("closes nested property popovers on Escape before collapsing the form", () => {
+    render(<AddTask defaultExpanded focusOnExpand={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "Priorität" }));
+    expect(screen.getByLabelText("Priorität auswählen")).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByLabelText("Priorität auswählen")).not.toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "Aufgabenname" })).toBeInTheDocument();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.getByRole("button", { name: "Aufgabe hinzufügen" })).toBeInTheDocument();
+  });
+
   it("opens and closes the add-task form inside task groups", () => {
     const { container } = render(<TaskGroup title="Abschnitt" />);
 
@@ -310,7 +346,7 @@ describe("task composition patterns", () => {
     expect(container.querySelector(".fk-task-modal-menu__trigger > svg")).toBeInTheDocument();
   });
 
-  it("supports controlled property popovers for single-choice menus", () => {
+  it("supports controlled property popovers without title or close chrome", () => {
     const onOpenChange = vi.fn();
     const { rerender } = render(
       <TaskModalMenu
@@ -326,7 +362,10 @@ describe("task composition patterns", () => {
     );
 
     expect(screen.getByText("Prioritätsauswahl")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Priorität schließen" }));
+    expect(screen.queryByRole("button", { name: "Priorität schließen" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Priorität", { selector: "strong" })).not.toBeInTheDocument();
+
+    fireEvent.keyDown(document.body, { key: "Escape" });
     expect(onOpenChange).toHaveBeenCalledWith(false);
 
     rerender(

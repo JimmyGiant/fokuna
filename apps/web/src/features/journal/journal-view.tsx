@@ -1,5 +1,6 @@
 "use client";
 
+import { todayIsoDateString } from "@fokuna/domain";
 import { Button, InputGroup, PageHeader, TabBar, TemplateCard } from "@fokuna/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -30,7 +31,7 @@ export function JournalView() {
     mutationFn: () =>
       apiSend("/api/v1/journal/entries", "POST", {
         kind,
-        entryDate: new Date().toISOString().slice(0, 10),
+        entryDate: todayIsoDateString(),
         templateId: templatesQuery.data?.[0]?.id,
         answers: { focus: answer },
         mood: 4,

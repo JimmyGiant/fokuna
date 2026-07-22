@@ -1,6 +1,6 @@
-import { createLabelInputSchema } from "@fokuna/api-contracts";
+import { createLabelInputSchema, reorderIdsInputSchema } from "@fokuna/api-contracts";
 
-import { handleRouteError, jsonOk, parseJson } from "@/server/http";
+import { handleRouteError, jsonError, jsonOk, parseJson } from "@/server/http";
 import { requireAppSession } from "@/server/session";
 import * as taxonomy from "@/server/services/taxonomy-service";
 
@@ -22,6 +22,20 @@ export async function POST(request: Request) {
     const label = await taxonomy.createLabel(session.user.id, body);
     return jsonOk({ data: label }, { status: 201 });
   } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const session = await requireAppSession();
+    const body = await parseJson(request, reorderIdsInputSchema);
+    const labels = await taxonomy.reorderLabels(session.user.id, body);
+    return jsonOk({ data: labels });
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith("Invalid ")) {
+      return jsonError(400, "validation_error", error.message);
+    }
     return handleRouteError(error);
   }
 }

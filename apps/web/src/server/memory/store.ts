@@ -1,5 +1,5 @@
 import type { CategoryDto, LabelDto, TaskDto } from "@fokuna/api-contracts";
-import { createId } from "@fokuna/domain";
+import { createId, toIsoDateString, todayIsoDateString } from "@fokuna/domain";
 
 import { ensureDemoSeedUser } from "./demo-auth";
 
@@ -129,10 +129,10 @@ function createStore(): MemoryStore {
 
   const demoUser = ensureDemoSeedUser();
   const now = new Date().toISOString();
-  const today = now.slice(0, 10);
+  const today = todayIsoDateString();
   const tomorrowDate = new Date();
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
-  const tomorrow = tomorrowDate.toISOString().slice(0, 10);
+  const tomorrow = toIsoDateString(tomorrowDate);
 
   const buyCategoryId = createId("cat");
   store.categories.set(buyCategoryId, {
