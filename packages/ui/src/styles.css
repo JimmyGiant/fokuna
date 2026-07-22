@@ -4559,15 +4559,18 @@
     z-index: 80;
   }
 
+  /*
+   * Center with inset + margin — not transform. CSS transform on an ancestor
+   * breaks dnd-kit DragOverlay / droppable measuring (offset into the edit rail).
+   */
   .fk-task-modal-dialog__content {
     height: min(80dvh, 900px);
-    left: 50%;
+    inset: 0;
+    margin: auto;
     max-height: min(80dvh, 900px);
     max-width: calc(100vw - 32px);
     outline: none;
     position: fixed;
-    top: 50%;
-    transform: translate(-50%, -50%);
     width: min(928px, calc(100vw - 32px));
     z-index: 90;
   }
@@ -4674,9 +4677,38 @@
     width: auto;
   }
 
+  /* Must win over the transparent item background above. */
+  .fk-task-modal-slot__body .fk-task-item--placeholder,
+  .fk-task-modal-slot__body .fk-task-item[data-state="placeholder"] {
+    background: var(--fk-color-surface-muted);
+    min-height: 40px;
+    width: 100%;
+  }
+
   .fk-task-modal-slot__body .fk-task-item:hover,
   .fk-task-modal-slot__body .fk-task-item[data-state="hover"] {
     background: transparent;
+  }
+
+  .fk-task-modal-slot__body .fk-task-item--placeholder:hover,
+  .fk-task-modal-slot__body .fk-task-item[data-state="placeholder"]:hover {
+    background: var(--fk-color-surface-muted);
+  }
+
+  /* Ghost mirrors modal row geometry without slot-body padding (that shifted it ~64px). */
+  [data-modal-subtask-ghost] .fk-task-item {
+    padding-left: 24px;
+    width: 100%;
+  }
+
+  [data-modal-subtask-ghost] .fk-task-item__primary-row {
+    grid-template-columns: 16px 16px minmax(0, 1fr);
+  }
+
+  [data-modal-subtask-ghost] .fk-task-item__expand,
+  [data-modal-subtask-ghost] .fk-task-item__expand-spacer,
+  [data-modal-subtask-ghost] .fk-task-item__favorite {
+    display: none;
   }
 
   .fk-task-modal-slot__body .fk-task-item[data-indent] {
@@ -4715,11 +4747,11 @@
     justify-content: flex-end;
   }
 
+  /* Drag + checkbox + content — expand/favorite stay list-only. */
   .fk-task-modal-slot__body .fk-task-item__primary-row {
-    grid-template-columns: 16px minmax(0, 1fr);
+    grid-template-columns: 16px 16px minmax(0, 1fr);
   }
 
-  .fk-task-modal-slot__body .fk-task-item__drag,
   .fk-task-modal-slot__body .fk-task-item__expand,
   .fk-task-modal-slot__body .fk-task-item__expand-spacer,
   .fk-task-modal-slot__body .fk-task-item__favorite {

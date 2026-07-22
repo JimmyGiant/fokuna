@@ -10,16 +10,16 @@ import {
   Dropdown,
   MetaMenu,
   Tag,
-  TaskGroup,
-  TaskListItem,
   TaskModalDialog,
   TaskModalHeader,
   TaskModalMenu,
   TaskModalSlot,
+  type TaskListTag,
 } from "@fokuna/ui";
 import { useMemo, useState } from "react";
 
 import { useTaskTaxonomy } from "./aufgaben-shell";
+import { ModalSubtaskList } from "./modal-subtask-list";
 import styles from "./task-detail-modal.module.css";
 import { colorTokenToTone } from "./taxonomy";
 import { TaskLabelsMenuPanel } from "./task-property-editor";
@@ -60,6 +60,7 @@ export function TaskDetailModal({
   onOpenSubtask,
   onUpdate,
   onCreateSubtask,
+  onReorderSubtasks,
   onDelete,
   onManageLabels,
 }: {
@@ -80,6 +81,7 @@ export function TaskDetailModal({
     title: string;
     description?: string;
   }) => Promise<void>;
+  onReorderSubtasks: (orderedIds: string[]) => void | Promise<void>;
   onDelete: (taskId: string) => Promise<void>;
   /** Close this modal first, then open label management (avoids stacked dialogs). */
   onManageLabels?: () => void;
@@ -110,16 +112,14 @@ export function TaskDetailModal({
     [labelsById, selectedLabelIds],
   );
 
-  function resolveSubtaskTags(labelIds: string[]) {
-    return labelIds
-      .map((id) => {
-        const label = labelsById.get(id);
-        if (!label) return null;
-        return { label: label.name, tone: colorTokenToTone(label.colorToken) };
-      })
-      .filter((tag): tag is { label: string; tone: ReturnType<typeof colorTokenToTone> } =>
-        Boolean(tag),
-      );
+  function resolveSubtaskTags(labelIds: string[]): TaskListTag[] {
+    const tags: TaskListTag[] = [];
+    for (const id of labelIds) {
+      const label = labelsById.get(id);
+      if (!label) continue;
+      tags.push({ label: label.name, tone: colorTokenToTone(label.colorToken) });
+    }
+    return tags;
   }
 
   const breadcrumb = useMemo(() => {
@@ -391,33 +391,17 @@ export function TaskDetailModal({
         onClose={() => onOpenChange(false)}
       >
         {canCreateSubtask ? (
-          <TaskGroup
-            addLabel="Unteraufgabe hinzufügen"
-            addNamePlaceholder="Unteraufgabenname"
-            count={subtasks.length}
-            onAddSubmit={async ({ title, description }) => {
-              await onCreateSubtask({
-                parentTaskId: task.id,
-                title,
-                description: description || undefined,
-              });
+          <ModalSubtaskList
+            onCreateSubtask={onCreateSubtask}
+            onOpenSubtask={(taskId) => onOpenSubtask?.(taskId)}
+            onReorderSubtasks={onReorderSubtasks}
+            onToggleCompleted={(taskId, completed) => {
+              void onUpdate(taskId, { isCompleted: completed });
             }}
-            title="Unteraufgaben"
-          >
-            {subtasks.map((subtask) => (
-              <TaskListItem
-                completed={subtask.isCompleted}
-                due={formatDueLabel(subtask.dueDate)}
-                key={subtask.id}
-                onClick={() => onOpenSubtask?.(subtask.id)}
-                onCompletedChange={(completed) =>
-                  void onUpdate(subtask.id, { isCompleted: completed })
-                }
-                tags={resolveSubtaskTags(subtask.labelIds)}
-                title={subtask.title}
-              />
-            ))}
-          </TaskGroup>
+            parentTaskId={task.id}
+            resolveTags={resolveSubtaskTags}
+            subtasks={subtasks}
+          />
         ) : null}
       </TaskModalSlot>
     </TaskModalDialog>

@@ -1475,6 +1475,16 @@ export function TasksView() {
           if (!open) setTaskQuery(null);
         }}
         onOpenSubtask={(taskId) => setTaskQuery(taskId)}
+        onReorderSubtasks={async (orderedIds) => {
+          if (!selectedTask) return;
+          const placements = orderedIds.map((id, sortOrder) => ({
+            id,
+            groupKey: selectedTask.groupKey,
+            parentTaskId: selectedTask.id,
+            sortOrder,
+          }));
+          await relocateMutation.mutateAsync({ placements });
+        }}
         onUpdate={async (taskId, patch) => {
           await updateMutation.mutateAsync({ id: taskId, ...patch });
         }}
