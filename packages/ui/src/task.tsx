@@ -10,6 +10,7 @@ import { Dialog, Popover } from "radix-ui";
 import { Children, useRef, useState, type HTMLAttributes, type ReactNode } from "react";
 
 import { Button } from "./button";
+import { DatePicker } from "./date-picker";
 import {
   FokunaContextMenu,
   type FokunaContextMenuEntry,
@@ -23,6 +24,13 @@ export { TASK_MAX_DEPTH, TASK_MAX_INDENT_LEVEL, type TaskIndentLevel };
 
 export type TaskItemState = "default" | "hover" | "selected" | "dragged" | "placeholder";
 
+/** List-item tag chip — string keeps legacy specimens; object carries label color. */
+export type TaskListTag = string | { label: string; tone?: TagTone };
+
+function resolveListTag(tag: TaskListTag): { label: string; tone?: TagTone } {
+  return typeof tag === "string" ? { label: tag } : tag;
+}
+
 export interface TaskListItemProps extends HTMLAttributes<HTMLDivElement> {
   title: string;
   description?: string;
@@ -31,7 +39,7 @@ export interface TaskListItemProps extends HTMLAttributes<HTMLDivElement> {
   state?: TaskItemState;
   goal?: string;
   due?: string;
-  tags?: string[];
+  tags?: TaskListTag[];
   subtasks?: string;
   milestone?: boolean;
   milestoneTask?: boolean;
@@ -133,11 +141,14 @@ export function TaskListItem({
                     {due}
                   </Tag>
                 ) : null}
-                {tags.map((tag) => (
-                  <Tag icon="tag" key={tag}>
-                    {tag}
-                  </Tag>
-                ))}
+                {tags.map((tag) => {
+                  const resolved = resolveListTag(tag);
+                  return (
+                    <Tag icon="tag" key={resolved.label} tone={resolved.tone}>
+                      {resolved.label}
+                    </Tag>
+                  );
+                })}
               </span>
             ) : null}
           </span>
@@ -221,11 +232,14 @@ export function TaskListItem({
                   {due}
                 </Tag>
               ) : null}
-              {tags.map((tag) => (
-                <Tag icon="tag" key={tag}>
-                  {tag}
-                </Tag>
-              ))}
+              {tags.map((tag) => {
+                const resolved = resolveListTag(tag);
+                return (
+                  <Tag icon="tag" key={resolved.label} tone={resolved.tone}>
+                    {resolved.label}
+                  </Tag>
+                );
+              })}
             </span>
           ) : null}
         </span>
@@ -406,7 +420,7 @@ export interface MilestoneStage {
   count?: string;
   goal?: string;
   due?: string;
-  tags?: string[];
+  tags?: TaskListTag[];
   favorite?: boolean;
   meta?: ReactNode;
   status?: "upcoming" | "current" | "completed";
@@ -496,6 +510,24 @@ export function MilestoneTaskGroup({
 export interface AddTaskSubmitPayload {
   title: string;
   description: string;
+  priority?: "none" | "low" | "medium" | "urgent";
+  dueDate?: string | null;
+}
+
+const ADD_TASK_PRIORITY_OPTIONS = [
+  { value: "urgent" as const, label: "Hoch", color: "var(--fk-color-task-priority-urgent)" },
+  { value: "medium" as const, label: "Mittel", color: "var(--fk-color-task-priority-medium)" },
+  { value: "low" as const, label: "Niedrig", color: "var(--fk-color-task-priority-low)" },
+  { value: "none" as const, label: "Keine", color: "var(--fk-color-icon-tertiary)" },
+];
+
+function formatAddTaskDueLabel(dueDate: string | null): string {
+  if (!dueDate) return "Datum";
+  const date = new Date(`${dueDate}T12:00:00`);
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "numeric",
+    month: "short",
+  }).format(date);
 }
 
 export interface AddTaskProps extends Omit<HTMLAttributes<HTMLDivElement>, "onSubmit"> {
@@ -529,9 +561,17 @@ export function AddTask({
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [priority, setPriority] = useState<"none" | "low" | "medium" | "urgent">("none");
+  const [dueDate, setDueDate] = useState<string | null>(null);
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const [dueOpen, setDueOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
   const expanded = expandedProp ?? internalExpanded;
+
+  const priorityOption =
+    ADD_TASK_PRIORITY_OPTIONS.find((option) => option.value === priority) ??
+    ADD_TASK_PRIORITY_OPTIONS[ADD_TASK_PRIORITY_OPTIONS.length - 1]!;
 
   function setExpanded(nextExpanded: boolean) {
     if (expandedProp === undefined) setInternalExpanded(nextExpanded);
@@ -539,12 +579,18 @@ export function AddTask({
     if (!nextExpanded) {
       setTitle("");
       setDescription("");
+      setPriority("none");
+      setDueDate(null);
+      setPriorityOpen(false);
+      setDueOpen(false);
     }
   }
 
   function resetFieldsAndFocus() {
     setTitle("");
     setDescription("");
+    setPriority("none");
+    setDueDate(null);
     queueMicrotask(() => titleInputRef.current?.focus());
   }
 
@@ -556,7 +602,12 @@ export function AddTask({
 
     setSubmitting(true);
     try {
-      await onSubmit?.({ title: nextTitle, description: description.trim() });
+      await onSubmit?.({
+        title: nextTitle,
+        description: description.trim(),
+        priority,
+        dueDate,
+      });
       if (keepOpenOnSubmit) {
         resetFieldsAndFocus();
       } else {
@@ -610,17 +661,130 @@ export function AddTask({
       </div>
       <div className="fk-add-task__footer">
         <div className="fk-add-task__meta-actions">
-          <button type="button">
-            <FokunaIcon name="flag" />
-            Priorität
-          </button>
-          <button type="button">
-            <FokunaIcon name="calendar" />
-            Datum
-          </button>
+          <Popover.Root onOpenChange={setPriorityOpen} open={priorityOpen}>
+            <Popover.Trigger asChild>
+              <button data-filled={priority !== "none" || undefined} type="button">
+                <FokunaIcon
+                  fill={priority === "none" ? "off" : "on"}
+                  name="flag"
+                  size={16}
+                  stroke={1.5}
+                  style={priority === "none" ? undefined : { color: priorityOption.color }}
+                />
+                {priority === "none" ? "Priorität" : priorityOption.label}
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                align="start"
+                className="fk-add-task__property-popover"
+                side="top"
+                sideOffset={8}
+              >
+                <div className="fk-task-property-popover__header">
+                  <span>Priorität</span>
+                  <Popover.Close aria-label="Priorität schließen">
+                    <FokunaIcon name="close" size={16} stroke={1.5} />
+                  </Popover.Close>
+                </div>
+                <div aria-label="Priorität auswählen" className="fk-task-property-menu">
+                  {ADD_TASK_PRIORITY_OPTIONS.map((option) => (
+                    <button
+                      data-selected={priority === option.value || undefined}
+                      key={option.value}
+                      onClick={() => {
+                        setPriority(option.value);
+                        setPriorityOpen(false);
+                      }}
+                      type="button"
+                    >
+                      <FokunaIcon
+                        fill={option.value === "none" ? "off" : "on"}
+                        name="flag"
+                        size={16}
+                        stroke={1.5}
+                        style={{ color: option.color }}
+                      />
+                      <span>{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
+
+          <Popover.Root onOpenChange={setDueOpen} open={dueOpen}>
+            <Popover.Trigger asChild>
+              <button data-filled={Boolean(dueDate) || undefined} type="button">
+                <FokunaIcon name="calendar" size={16} stroke={1.5} />
+                {formatAddTaskDueLabel(dueDate)}
+              </button>
+            </Popover.Trigger>
+            <Popover.Portal>
+              <Popover.Content
+                align="start"
+                className="fk-add-task__property-popover fk-add-task__property-popover--wide"
+                side="top"
+                sideOffset={8}
+              >
+                <div className="fk-task-property-popover__header">
+                  <span>Datum</span>
+                  <Popover.Close aria-label="Datum schließen">
+                    <FokunaIcon name="close" size={16} stroke={1.5} />
+                  </Popover.Close>
+                </div>
+                <div className="fk-task-property-panel">
+                  <div className="fk-task-property-quick">
+                    {(
+                      [
+                        ["today", "Heute"],
+                        ["tomorrow", "Morgen"],
+                        ["none", "Kein"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <button
+                        key={key}
+                        onClick={() => {
+                          if (key === "none") {
+                            setDueDate(null);
+                            setDueOpen(false);
+                            return;
+                          }
+                          const next = new Date();
+                          next.setHours(12, 0, 0, 0);
+                          if (key === "tomorrow") next.setDate(next.getDate() + 1);
+                          setDueDate(next.toISOString().slice(0, 10));
+                          setDueOpen(false);
+                        }}
+                        type="button"
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <DatePicker
+                    aria-label="Fälligkeit auswählen"
+                    inline
+                    onValueChange={(nextValue) => {
+                      if (!(nextValue instanceof Date)) return;
+                      setDueDate(nextValue.toISOString().slice(0, 10));
+                      setDueOpen(false);
+                    }}
+                    value={dueDate ? new Date(`${dueDate}T12:00:00`) : undefined}
+                  />
+                </div>
+              </Popover.Content>
+            </Popover.Portal>
+          </Popover.Root>
         </div>
         <div className="fk-add-task__submit-actions">
-          <Button buttonType="link" intent="tertiary" onClick={() => setExpanded(false)} size="sm">
+          <Button
+            buttonType="link"
+            intent="tertiary"
+            onClick={() => setExpanded(false)}
+            size="sm"
+            trailingIcon={null}
+          >
             Abbrechen
           </Button>
           {actions ?? (
@@ -775,6 +939,7 @@ export function TaskModalHeader({
                   intent="tertiary"
                   onClick={() => setEditing(false)}
                   size="sm"
+                  trailingIcon={null}
                 >
                   Abbrechen
                 </Button>

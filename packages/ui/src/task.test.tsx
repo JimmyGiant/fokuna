@@ -96,7 +96,12 @@ describe("task composition patterns", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Aufgabe hinzufügen" }));
 
-    expect(onSubmit).toHaveBeenCalledWith({ title: "Neue Aufgabe", description: "" });
+    expect(onSubmit).toHaveBeenCalledWith({
+      title: "Neue Aufgabe",
+      description: "",
+      priority: "none",
+      dueDate: null,
+    });
   });
 
   it("keeps the add form open after submit for rapid entry", async () => {

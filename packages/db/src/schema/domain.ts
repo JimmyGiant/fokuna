@@ -148,7 +148,7 @@ export const task = pgTable("task", {
   milestoneId: text("milestone_id").references(() => milestone.id, {
     onDelete: "set null",
   }),
-  categoryId: text("category_id").references(() => category.id, { onDelete: "set null" }),
+  categoryId: text("category_id").references(() => category.id, { onDelete: "cascade" }),
   parentTaskId: text("parent_task_id"),
   groupKey: text("group_key").notNull().default("inbox"),
   title: text("title").notNull(),

@@ -3,6 +3,10 @@
 import { FokunaIcon, type IconName } from "@fokuna/icons";
 import { useState, type HTMLAttributes, type ReactNode } from "react";
 
+import {
+  FokunaContextMenu,
+  type FokunaContextMenuEntry,
+} from "./context-menu";
 import { cn } from "./utils";
 
 export interface SidebarItem {
@@ -28,6 +32,8 @@ export interface SidebarSecondaryItem {
   droppableId?: string;
   /** Host-controlled drop highlight (data-drop-over). */
   dropOver?: boolean;
+  /** Right-click actions (e.g. Bearbeiten / Löschen for categories & labels). */
+  contextMenuItems?: FokunaContextMenuEntry[];
 }
 
 export interface SidebarSecondarySection {
@@ -118,31 +124,39 @@ export function SecondaryNavItem({
 }) {
   const isActive = item.id === activeId;
 
+  const link = (
+    <a
+      aria-current={isActive ? "page" : undefined}
+      data-drop-over={item.dropOver ? "true" : undefined}
+      data-has-badge={item.badge ? "true" : undefined}
+      href={item.href}
+    >
+      {item.color ? (
+        <span
+          aria-hidden="true"
+          className="fk-sidebar__color"
+          style={{ background: item.color }}
+        />
+      ) : item.icon ? (
+        <FokunaIcon
+          name={item.icon}
+          size={16}
+          stroke={1.5}
+          style={item.iconColor ? { color: item.iconColor } : undefined}
+        />
+      ) : null}
+      <span>{item.label}</span>
+      {item.badge ? <small>{item.badge}</small> : null}
+    </a>
+  );
+
   return (
     <li ref={itemRef}>
-      <a
-        aria-current={isActive ? "page" : undefined}
-        data-drop-over={item.dropOver ? "true" : undefined}
-        data-has-badge={item.badge ? "true" : undefined}
-        href={item.href}
-      >
-        {item.color ? (
-          <span
-            aria-hidden="true"
-            className="fk-sidebar__color"
-            style={{ background: item.color }}
-          />
-        ) : item.icon ? (
-          <FokunaIcon
-            name={item.icon}
-            size={16}
-            stroke={1.5}
-            style={item.iconColor ? { color: item.iconColor } : undefined}
-          />
-        ) : null}
-        <span>{item.label}</span>
-        {item.badge ? <small>{item.badge}</small> : null}
-      </a>
+      {item.contextMenuItems && item.contextMenuItems.length > 0 ? (
+        <FokunaContextMenu items={item.contextMenuItems}>{link}</FokunaContextMenu>
+      ) : (
+        link
+      )}
     </li>
   );
 }

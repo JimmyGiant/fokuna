@@ -63,17 +63,41 @@ export async function updateCategory(
 export async function deleteCategory(userId: string, categoryId: string): Promise<boolean> {
   const existing = await getCategory(userId, categoryId);
   if (!existing) return false;
-  getMemoryStore().categories.delete(categoryId);
   const store = getMemoryStore();
-  for (const [taskId, task] of store.tasks) {
-    if (task.userId === userId && task.categoryId === categoryId) {
-      store.tasks.set(taskId, {
-        ...task,
-        categoryId: null,
-        updatedAt: new Date().toISOString(),
-      });
+  const userTasks = [...store.tasks.values()].filter((task) => task.userId === userId);
+
+  const childrenByParent = new Map<string, string[]>();
+  for (const task of userTasks) {
+    if (!task.parentTaskId) continue;
+    const list = childrenByParent.get(task.parentTaskId) ?? [];
+    list.push(task.id);
+    childrenByParent.set(task.parentTaskId, list);
+  }
+
+  const deleteIds = new Set<string>();
+  const stack = userTasks
+    .filter((task) => task.categoryId === categoryId)
+    .map((task) => task.id);
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (deleteIds.has(id)) continue;
+    deleteIds.add(id);
+    const children = childrenByParent.get(id);
+    if (children) stack.push(...children);
+  }
+
+  for (const taskId of deleteIds) {
+    store.tasks.delete(taskId);
+  }
+
+  for (const [entryId, entry] of store.calendarEntries) {
+    if (entry.userId === userId && entry.taskId && deleteIds.has(entry.taskId)) {
+      store.calendarEntries.delete(entryId);
     }
   }
+
+  store.categories.delete(categoryId);
+
   for (const [blockId, block] of store.blocks) {
     if (block.userId === userId && block.categoryId === categoryId) {
       store.blocks.set(blockId, { ...block, categoryId: null });

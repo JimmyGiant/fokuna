@@ -1,0 +1,20 @@
+---
+description: Modals must reuse the Pattern Library Modals entry (Organizational, Confirmation, Aufgaben)
+alwaysApply: true
+---
+
+# Modal-Aufbau = Pattern Library
+
+Beim Erstellen oder Anpassen von Modals gilt:
+
+- **Referenz ist Pattern Library §42 Modals** (`/pattern-library/modals`) — Organizational, Confirmation und Aufgaben Modal. Nicht frei erfinden. Cards liegen separat unter §03 Cards & Slots.
+- **Shell-Contract (Organizational / Confirmation auf `Modal` `sm`):**
+  - Header: `padding: 32px 32px 16px` — nur Titel, Close 24 px @ Stroke 1.5; **keine** Description-Sublines
+  - Body: `padding: 0 32px` (bei Footer kein `padding-bottom`); Inhalt einspaltig im Body
+  - Footer: `padding: 24px 32px 32px`; Organizational `space-between` Gap `16 px`; Confirmation `flex-end` Gap `12 px` (Abbrechen direkt links vom Primary)
+- **Typografie nur über Text-Tokens** (keine harten Literale):
+  - Modal-Titel: `Heading/SM` + `heading-primary` Family/Weight
+  - Body-Copy: `body-*`-Tokens; Hervorhebungen z. B. `label-primary`
+- **Aufgaben Modal** nutzt den Task-Modal-Slot (§33–§35 Bausteine); Delete öffnet Confirmation.
+- Vor dem Bau: Docs §42 und Live-Specimen `/pattern-library/modals` prüfen.
+- Ausnahme: View Overlay (§41) ist Fullscreen — eigener Contract.

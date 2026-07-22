@@ -23,6 +23,10 @@ import styles from "./task-detail-modal.module.css";
 import { colorTokenToTone } from "./taxonomy";
 import { TaskTagsMenuPanel } from "./task-property-editor";
 import { estimateOptions, priorityOptions } from "./task-property-options";
+import {
+  ConfirmDeleteModal,
+  deleteConfirmCopy,
+} from "@/components/confirm-delete-modal";
 
 type OpenProperty = "priority" | "due-date" | "estimate" | "tags" | null;
 
@@ -81,6 +85,7 @@ export function TaskDetailModal({
 }) {
   const { labelsById } = useTaskTaxonomy();
   const [openProperty, setOpenProperty] = useState<OpenProperty>(null);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   const selectablePriorities = priorityOptions;
   const displayPriority = task?.priority === "high" ? "urgent" : (task?.priority ?? "none");
@@ -104,10 +109,16 @@ export function TaskDetailModal({
     [labelsById, selectedLabelIds],
   );
 
-  function resolveLabelNames(labelIds: string[]): string[] {
+  function resolveSubtaskTags(labelIds: string[]) {
     return labelIds
-      .map((id) => labelsById.get(id)?.name)
-      .filter((name): name is string => Boolean(name));
+      .map((id) => {
+        const label = labelsById.get(id);
+        if (!label) return null;
+        return { label: label.name, tone: colorTokenToTone(label.colorToken) };
+      })
+      .filter((tag): tag is { label: string; tone: ReturnType<typeof colorTokenToTone> } =>
+        Boolean(tag),
+      );
   }
 
   const breadcrumb = useMemo(() => {
@@ -129,9 +140,13 @@ export function TaskDetailModal({
   }
 
   return (
+    <>
     <TaskModalDialog
       onOpenChange={(next) => {
-        if (!next) setOpenProperty(null);
+        if (!next) {
+          setOpenProperty(null);
+          setConfirmDeleteOpen(false);
+        }
         onOpenChange(next);
       }}
       open={open}
@@ -146,7 +161,7 @@ export function TaskDetailModal({
                 icon: "delete",
                 destructive: true,
                 onSelect: () => {
-                  void onDelete(task.id);
+                  setConfirmDeleteOpen(true);
                 },
               },
             ]}
@@ -398,7 +413,7 @@ export function TaskDetailModal({
                 onCompletedChange={(completed) =>
                   void onUpdate(subtask.id, { isCompleted: completed })
                 }
-                tags={resolveLabelNames(subtask.labelIds)}
+                tags={resolveSubtaskTags(subtask.labelIds)}
                 title={subtask.title}
               />
             ))}
@@ -406,5 +421,14 @@ export function TaskDetailModal({
         ) : null}
       </TaskModalSlot>
     </TaskModalDialog>
+    <ConfirmDeleteModal
+      {...deleteConfirmCopy("task", task.title)}
+      onConfirm={async () => {
+        await onDelete(task.id);
+      }}
+      onOpenChange={setConfirmDeleteOpen}
+      open={confirmDeleteOpen}
+    />
+    </>
   );
 }

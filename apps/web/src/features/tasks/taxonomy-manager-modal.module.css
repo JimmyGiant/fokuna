@@ -1,20 +1,20 @@
 /*
  * Organizational Modal spacing contract (Pattern Library §03):
- * - 32px inset around the modal content
- * - 24px from title to first body element
- * - 32px from last body element to footer actions
+ * - 32px horizontal / outer inset (header sides, footer sides + bottom)
+ * - 16px from title to first body element
+ * - 24px from last body element to footer actions (footer padding-top)
  * Keep in sync with pattern-library organizationalModal specimen.
  */
 .taxonomyModal :global(.fk-modal__header) {
-  padding: 32px 32px 24px;
+  padding: 32px 32px 16px;
 }
 
 .taxonomyModal :global(.fk-modal__body) {
   overflow: visible;
-  padding: 0 32px 32px;
+  padding: 0 32px 24px;
 }
 
-/* Footer supplies the lower 32px gap; drop body bottom padding when present. */
+/* Footer supplies the lower gap; drop body bottom padding when present. */
 .taxonomyModal:has(:global(.fk-modal__footer)) :global(.fk-modal__body) {
   padding-bottom: 0;
 }
@@ -25,7 +25,7 @@
 }
 
 .taxonomyModal :global(.fk-modal__footer) {
-  padding: 32px;
+  padding: 24px 32px 32px;
 }
 
 .createForm {
@@ -149,11 +149,6 @@
 .swatch[data-selected="true"] {
   outline: 2px solid var(--fk-color-category-teal);
   outline-offset: 2px;
-}
-
-.dangerZone {
-  justify-self: start;
-  padding-top: 0;
 }
 
 .deleteAction {

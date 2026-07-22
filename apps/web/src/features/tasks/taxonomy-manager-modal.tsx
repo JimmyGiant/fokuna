@@ -5,6 +5,10 @@ import { FokunaIcon } from "@fokuna/icons";
 import { Button, InputGroup, Modal, type ControlSize } from "@fokuna/ui";
 import { useEffect, useId, useMemo, useState } from "react";
 
+import {
+  ConfirmDeleteModal,
+  deleteConfirmCopy,
+} from "@/components/confirm-delete-modal";
 import { TAXONOMY_COLOR_OPTIONS, colorTokenToCssVar } from "./taxonomy";
 import styles from "./taxonomy-manager-modal.module.css";
 
@@ -113,7 +117,7 @@ export function TaxonomyCreateModal({
     try {
       await onCreate({ name: trimmed, colorToken });
       setName("");
-      onOpenManage();
+      onOpenChange(false);
     } finally {
       setBusy(false);
     }
@@ -177,14 +181,18 @@ export function TaxonomyOrganizeModal({
   open,
   kind,
   items,
+  initialSelectedId = null,
   onOpenChange,
   onOpenCreate,
   onUpdate,
   onDelete,
+  getDeleteTaskCount,
 }: {
   open: boolean;
   kind: TaxonomyKind;
   items: TaxonomyItem[];
+  /** Open directly on the edit detail for this entity (e.g. sidebar context menu). */
+  initialSelectedId?: string | null;
   onOpenChange: (open: boolean) => void;
   onOpenCreate: () => void;
   onUpdate: (
@@ -192,11 +200,16 @@ export function TaxonomyOrganizeModal({
     input: { name?: string; colorToken?: CategoryColorToken },
   ) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
+  /** For categories: number of tasks (incl. descendants) removed with the category. */
+  getDeleteTaskCount?: (id: string) => number;
 }) {
   const copy = kindCopy(kind);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  /** True when opened from sidebar context-menu edit — no list back navigation. */
+  const [directEdit, setDirectEdit] = useState(false);
 
   const selected = useMemo(
     () => items.find((item) => item.id === selectedId) ?? null,
@@ -208,8 +221,13 @@ export function TaxonomyOrganizeModal({
       setSelectedId(null);
       setEditName("");
       setBusy(false);
+      setConfirmDeleteOpen(false);
+      setDirectEdit(false);
+      return;
     }
-  }, [open]);
+    setSelectedId(initialSelectedId);
+    setDirectEdit(Boolean(initialSelectedId));
+  }, [initialSelectedId, open]);
 
   useEffect(() => {
     if (selected) {
@@ -234,47 +252,74 @@ export function TaxonomyOrganizeModal({
     setBusy(true);
     try {
       await onDelete(selected.id);
-      setSelectedId(null);
+      if (directEdit) {
+        onOpenChange(false);
+      } else {
+        setSelectedId(null);
+      }
     } finally {
       setBusy(false);
     }
   }
 
+  const deleteCopy = selected
+    ? deleteConfirmCopy(kind, selected.name, {
+        taskCount: kind === "category" ? (getDeleteTaskCount?.(selected.id) ?? 0) : undefined,
+      })
+    : null;
+
   return (
-    <Modal
-      className={styles.taxonomyModal}
-      footer={
-        selected ? undefined : (
-          <>
-            <Button
-              buttonType="icon-text-inline"
-              leadingIcon={<FokunaIcon name="add-small" size={16} stroke={1.5} />}
-              onClick={onOpenCreate}
-              type="button"
-            >
-              {copy.addNew}
-            </Button>
-            <span aria-hidden="true" />
-          </>
-        )
-      }
-      onOpenChange={onOpenChange}
-      open={open}
-      size="sm"
-      title={selected ? copy.detailTitle : copy.organizeTitle}
-    >
+    <>
+      <Modal
+        className={styles.taxonomyModal}
+        footer={
+          selected ? (
+            <>
+              <Button
+                buttonType="icon-text-inline"
+                className={styles.deleteAction}
+                disabled={busy}
+                leadingIcon={<FokunaIcon name="delete-alt" size={16} stroke={1.5} />}
+                onClick={() => setConfirmDeleteOpen(true)}
+                type="button"
+              >
+                {copy.deleteLabel}
+              </Button>
+              <span aria-hidden="true" />
+            </>
+          ) : (
+            <>
+              <Button
+                buttonType="icon-text-inline"
+                leadingIcon={<FokunaIcon name="add-small" size={16} stroke={1.5} />}
+                onClick={onOpenCreate}
+                type="button"
+              >
+                {copy.addNew}
+              </Button>
+              <span aria-hidden="true" />
+            </>
+          )
+        }
+        onOpenChange={onOpenChange}
+        open={open}
+        size="sm"
+        title={selected ? copy.detailTitle : copy.organizeTitle}
+      >
       <div className={styles.organize} data-view={selected ? "detail" : "list"}>
         {selected ? (
           <div className={styles.detail}>
-            <Button
-              buttonType="icon-text-inline"
-              className={styles.navAction}
-              leadingIcon={<FokunaIcon name="chevron-left" size={16} stroke={1.5} />}
-              onClick={() => setSelectedId(null)}
-              type="button"
-            >
-              Zurück zur Liste
-            </Button>
+            {!directEdit ? (
+              <Button
+                buttonType="icon-text-inline"
+                className={styles.navAction}
+                leadingIcon={<FokunaIcon name="chevron-left" size={16} stroke={1.5} />}
+                onClick={() => setSelectedId(null)}
+                type="button"
+              >
+                Zurück
+              </Button>
+            ) : null}
 
             <InputGroup
               controlSize={TAXONOMY_CONTROL_SIZE}
@@ -295,19 +340,6 @@ export function TaxonomyOrganizeModal({
               onChange={(token) => void onUpdate(selected.id, { colorToken: token })}
               value={selected.colorToken}
             />
-
-            <div className={styles.dangerZone}>
-              <Button
-                buttonType="icon-text-inline"
-                className={styles.deleteAction}
-                disabled={busy}
-                leadingIcon={<FokunaIcon name="delete-alt" size={16} stroke={1.5} />}
-                onClick={() => void handleDelete()}
-                type="button"
-              >
-                {copy.deleteLabel}
-              </Button>
-            </div>
           </div>
         ) : (
           <>
@@ -316,7 +348,10 @@ export function TaxonomyOrganizeModal({
                 <li key={item.id}>
                   <button
                     className={styles.catalogRow}
-                    onClick={() => setSelectedId(item.id)}
+                    onClick={() => {
+                      setDirectEdit(false);
+                      setSelectedId(item.id);
+                    }}
                     type="button"
                   >
                     {kind === "category" ? (
@@ -345,6 +380,17 @@ export function TaxonomyOrganizeModal({
           </>
         )}
       </div>
-    </Modal>
+      </Modal>
+      {deleteCopy ? (
+        <ConfirmDeleteModal
+          confirmLabel={deleteCopy.confirmLabel}
+          description={deleteCopy.description}
+          onConfirm={() => handleDelete()}
+          onOpenChange={setConfirmDeleteOpen}
+          open={confirmDeleteOpen}
+          title={deleteCopy.title}
+        />
+      ) : null}
+    </>
   );
 }

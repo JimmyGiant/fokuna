@@ -14,6 +14,7 @@ Die Pattern Library ist die Grundlage fuer neue Views. Neue finale Screens solle
 - Komponenten mit `C - Desktop ...` sind wiederverwendbare Produktkomponenten.
 - Unterkomponenten mit fuehrendem Punkt, z. B. `.tab-item`, sind interne Bausteine und sollten nur dann direkt verwendet werden, wenn bewusst ein zusammengesetztes Pattern gebaut wird.
 - Farben, Typografie, Spacing, Radius, Border und Schatten sollen ueber bestehende Variablen und Styles gespeist werden.
+- Typografie: immer Text-Tokens (`--fk-type-font-font-size-…`, `--fk-type-font-line-height-…`, `--fk-type-font-font-weight-…`, `--fk-type-font-font-family-…`). Keine harten Literale wie `font-weight: 700` oder `font-size: 16px` in Komponenten-CSS.
 - Controls sollen sich an der gemeinsamen Hoehenleiter orientieren: `28px`, `32px`, `40px`, `48px`.
 - Kleine Controls verwenden in der Regel `Label/SM` oder `Body/SM`, mittlere Controls `Label/MD` oder `Body/MD`, grosse Controls `Label/LG` oder `Body/LG`.
 - Icons sollen aus dem zentralen Icon-Set kommen und ueber Icon-Slots austauschbar bleiben, wenn die Komponente das vorsieht.
@@ -99,29 +100,22 @@ Wichtig fuer Umsetzung:
 - Text bleibt knapp und handlungsorientiert.
 - Callouts sind nicht fuer dauerhafte Navigation oder komplexe Inhalte gedacht.
 
-### 03 Cards, Slots and Modal
+### 03 Cards & Slots
 
 Screenshot: [03_Cards_Slots_and_Modal.png](03_Cards_Slots_and_Modal.png)
 
-Diese Seite definiert Karten- und Modalgrundlagen. Cards bilden wiederkehrende Inhaltscontainer; der produktive Modal-Slot (`Modal`) liefert Header, Body und Footer. **Referenzbeispiel fuer Dialoge auf diesem Slot ist das Organizational Modal** (Create → Liste → Detail) — ausgereifte Verwaltungscomposition fuer Kategorien, Labels und gleichartige Kataloge. Neue organisatorische Dialoge sollen diesen Contract wiederverwenden.
+Diese Seite definiert Kartengrundlagen und generische Inhalts-Slots. Cards bilden wiederkehrende Inhaltscontainer. **Produktive Dialoge** (Organizational, Confirmation, Aufgaben Modal) liegen gebuendelt unter **§42 Modals**.
 
 Varianten und Properties:
 
 - `card`: Basiscontainer fuer Inhalte, meist mit Surface, Border und optionalem Shadow (`elevated`: none/micro/subtle/medium/highlight).
-- `slot - modal` / `Modal`: Shell mit Header, Body, Footer; Organizational Modal setzt darauf den Verwaltungs-Spacing-Contract.
-- `header`: Titelbereich mit optionalem Icon und Close-Action.
-- `body`: frei belegbarer Inhaltsbereich.
-- `footer/actions`: Button-Zeile mit Primaer- und Sekundaeraktion.
-- `size`: `sm` (420 px), Default (~560 px), `lg` (760 px); Organizational Modal nutzt `sm`.
 
 States:
 
-- `default/rest`: normale Karte oder Modaloberflaeche.
+- `default/rest`: normale Kartenoberflaeche.
 - `hover`: nur bei klickbaren Karten oder Listencontainern relevant.
 - `selected/active`: fuer auswaehlbare Karten; muss klarer sein als Hover.
 - `disabled/unavailable`: Inhalte bleiben erkennbar, aber Interaktion ist gedimmt.
-- `modal open`: Overlay sichtbar, Hintergrund View bleibt kontextuell erhalten und wird abgedimmt.
-- `modal closing/cancel`: technisch als Schliessen ueber X, Backdrop oder Sekundaeraktion abbildbar.
 
 Card:
 
@@ -129,54 +123,11 @@ Card:
 - Inhalt kommt von aussen; die leere Card im Specimen zeigt nur die Oberflaeche.
 - Keine verschachtelten Karten, wenn eine Section oder Gruppe reicht.
 
-Organizational Modal — Einsatz:
-
-- Kurze Katalog-/Taxonomie-Verwaltung (Anlegen, Listen, Bearbeiten, Loeschen), nicht fuer Task-Detail oder Fullscreen-Edit.
-- Shell: produktives `Modal` (`@fokuna/ui`), nicht Task-Modal-Slot und nicht View Overlay.
-- Referenzimplementierung: Kategorien/Labels (`TaxonomyCreateModal` / `TaxonomyOrganizeModal`).
-- Gleiche Reise fuer neue organisatorische Entitaeten (z. B. Abschnitte, spaetere Kataloge): Create-Dialog, Organize-Liste, Detail-Formular.
-
-Organizational Modal — Shell und Abstaende:
-
-- Ausseninset um den Inhalt: `32 px` (Header/Body/Footer horizontal und vertikal).
-- Abstand Titel → erstes Body-Element: `24 px` (Header-Padding `32 px 32 px 24 px`).
-- Abstand letztes Body-Element → Footer-Aktionen: `32 px` (Footer-Padding `32 px`; Body ohne unteres Padding, wenn Footer vorhanden).
-- Ohne Footer: Body unten ebenfalls `32 px`.
-- Form-/Detail-Innenabstand zwischen Feldern: `16 px` Grid-Gap.
-- Swatch-/Outline-Ringe duerfen nicht abgeschnitten werden: Body `overflow: visible` bei Create/Detail; Listenansicht `overflow: auto`.
-- Keine negativen Margins am Modal-Inhalt (`.fk-modal` hat `overflow: hidden`).
-
-Organizational Modal — Views (Create / List / Detail):
-
-- `create`: Titel z. B. „Neues Label erstellen“ / „Neue Kategorie erstellen“; Body = Name (`InputGroup`, Control-Size `lg`) + optionales Farbfeld; nach Erfolg in Organize wechseln.
-- `organize` / Liste: Titel „… verwalten“; katalogartige Zeilen (Farbmarker/Icon · Name · Chevron); Hoehe folgt Eintraegen, kein leeres Zwangs-Canvas; Footer links „Neues …“ (`icon-text-inline` + `add-small`).
-- `detail`: Titel „… bearbeiten“; zuerst Zurueck zur Liste (`icon-text-inline` + `chevron-left`); dann dieselben Felder wie Create; destruktives Loeschen als `icon-text-inline` in Error-Rot unter den Feldern; kein Footer noetig.
-- Listenzeile: Grid `16 px | 1fr | 28 px`, Min-Hoehe `32 px`, Hover `surface-soft`, Chevron-Hit `28×28` (an Close-Hit angeglichen).
-
-Organizational Modal — Header / Body / Footer:
-
-- Header: nur Titel (`heading-sm` / Semibold laut Modal-Slot); Close `24 px` Icon, Stroke `1.5`; keine Description-Sublines in dieser Composition.
-- Body: einspaltig, schlank; keine verschachtelten Cards.
-- Footer Create: links Utility `icon-text-inline` + `intent=tertiary` („… verwalten“ + `edit`), rechts Primaer-CTA mit Trailing-Chevron (`… erstellen`).
-- Footer Liste: links „Neues …“, rechts leerer Platzhalter (Space-Between beibehalten); Detail ohne Footer.
-- Footer-Layout bleibt `space-between` mit Gap `16 px` (Basis-Modal).
-
-Organizational Modal — Actions, Controls, Stacking:
-
-- Utility-Links in Modal und Einstiegspunkten: Button `buttonType=icon-text-inline` (Body/Regular, Icon-Gap `4 px`, Stroke `1.5`); Manage-Links (`Tags/Labels/Kategorien verwalten`) zusaetzlich `intent=tertiary`.
-- Control-Size ueber Create → Manage → Detail durchgaengig `lg`.
-- Nie zwei Dialoge gleichzeitig: z. B. aus Task-Modal „Tags verwalten“ zuerst Task-Modal schliessen (URL/`open` weg), danach Organizational Modal oeffnen.
-- Create und Organize derselben Entitaet nicht stapeln; View-Wechsel im selben Modal oder Create schliessen → Organize oeffnen.
-
 Wichtig fuer Umsetzung:
 
 - Cards nutzen Surface-, Border- und Shadow-Tokens.
-- Organizational Modal ist die Referenz-Composition fuer Verwaltungsdialoge auf `Modal`; Abstaende und Footer-Logik dort nicht neu erfinden.
-- Bestehende Button- und Form-Komponenten innerhalb von Modals verwenden.
 - Keine verschachtelten Kartenlayouts aufbauen, wenn eine Section oder Gruppe reicht.
-- Modal Slots sollten inhaltlich schlank bleiben; komplexe Formulare lieber in klare Abschnitte teilen.
-- Organizational Modal: Spacing-Contract (`32 / 24 / 32`) und View-Serie (Create → List → Detail) bei neuen Verwaltungsdialogen unveraendert uebernehmen; nur Copy, Felder und Marker anpassen.
-- Default-Modal-Padding (`20×24`) bleibt die Shell-Basis; Organizational Modal setzt den Verwaltungs-Contract bewusst per Composition-Klasse.
+- Dialoge und Modal-Compositions siehe §42 Modals (`/pattern-library/modals`).
 
 ### 04 Calendar Drawer
 
@@ -895,7 +846,8 @@ Wichtig fuer Umsetzung:
 
 - Der Wechsel von inactive zu active soll die Liste nicht unkontrolliert verschieben.
 - Beim Speichern entsteht ein neues `Task List Item` oder Subtask-Item.
-- Escape oder Abbrechen schliesst den aktiven Zustand und verwirft ungespeicherte Inhalte.
+- Escape oder Abbrechen schliesst den aktiven Zustand und verwirft ungespeicherte Inhalte. Abbrechen ist ein Link-Button ohne Trailing-Icon.
+- Quick Properties links: `Prioritaet` und `Datum` oeffnen Popovers (Prioritaetsmenue bzw. DatePicker mit Quick-Chips Heute/Morgen/Kein).
 - Enter kann speichern, Shift+Enter sollte in mehrzeiligen Feldern Zeilenumbruch erlauben.
 - Im `active`-Zustand entfaellt der untere Border des unmittelbar vorherigen List Items (bzw. des letzten Items in einem Tree), damit die Formular-Card keine Doppellinie erzeugt. Listen-Container nutzen dafuer die Klasse `fk-task-list`.
 
@@ -1149,7 +1101,7 @@ Wichtig fuer Umsetzung:
 
 Screenshot: [35_Aufgaben_Modal_Task_Slot.png](35_Aufgaben_Modal_Task_Slot.png)
 
-`.slot - aufgaben modal - task` ist der zusammengesetzte Slot fuer das Aufgabenmodal. Er verbindet Breadcrumb, Aufgaben-Header, Subtask-/Task-Gruppe, rechte Eigenschaftsleiste und Loeschaktion.
+`.slot - aufgaben modal - task` ist der zusammengesetzte Slot fuer das Aufgabenmodal. Er verbindet Breadcrumb, Aufgaben-Header, Subtask-/Task-Gruppe, rechte Eigenschaftsleiste und Loeschaktion. Die zusammengesetzte Live-Composition liegt unter §42 Modals.
 
 Varianten und Properties:
 
@@ -1167,7 +1119,7 @@ States:
 - `subtasks expanded`: Unteraufgaben sichtbar.
 - `subtasks empty`: Add-Item fuer erste Unteraufgabe.
 - `property editing`: rechte Eigenschaftsleiste hat eine geoeffnete Property.
-- `delete confirm`: destruktive Loeschaktion sollte bestaetigt werden.
+- `delete confirm`: vor dem Loeschen oeffnet sich die Confirmation-Variante unter §42 Modals; erst nach Bestaetigung wird geloescht.
 - `saving/loading`: Aenderungen werden gespeichert.
 
 Wichtig fuer Umsetzung:
@@ -1177,7 +1129,7 @@ Wichtig fuer Umsetzung:
 - Auf der tiefsten Hierarchieebene (Ebene 5) wird der Unteraufgaben-Block im Modal vollstaendig ausgeblendet.
 - Subtask-Items im Modal haben keinen Hover-Hintergrund.
 - Die Unteraufgaben-Group-Header-Zeile im Modal hat keinen Hover-Hintergrund.
-- Loeschen ist destruktiv und braucht bestaetigende UX.
+- Loeschen ist destruktiv und braucht die Confirmation-Variante unter §42 Modals.
 - Breadcrumb, Header und rechte Property-Leiste muessen mit den entsprechenden Pattern-Library-Komponenten verbunden bleiben.
 - Der Count hinter dem Titel (z. B. Unteraufgaben) nutzt `text-quarternary`.
 - Dialoghoehe: `min(80dvh, 900px)`, damit das Modal beim Oeffnen als Arbeitsflaeche wirkt und nicht auf Inhaltsmindesthoehe schrumpft.
@@ -1353,6 +1305,56 @@ Wichtig fuer Umsetzung:
 - Padding 40px (`space-10`), Abstand Header/Body/Footer 80px.
 - Keine verschachtelten Fullscreen-Overlays; nested Dialoge bleiben beim bestehenden `Modal`.
 - Speichern persistiert, Verwerfen/Close verwirft lokale Aenderungen — Fachlogik liegt in der View.
+
+### 42 Modals
+
+Screenshot: [03_Cards_Slots_and_Modal.png](03_Cards_Slots_and_Modal.png) · [42_Delete_Confirm.png](42_Delete_Confirm.png) · [35_Aufgaben_Modal_Task_Slot.png](35_Aufgaben_Modal_Task_Slot.png)
+
+Gemeinsamer Eintrag fuer alle produktiven Modal-Compositions. Live-Specimen: `/pattern-library/modals`. Navigation unter **Layout · Modals**.
+
+Shell und Basis-Modal (`Modal` / `.slot - Modal`):
+
+- Shell mit Header, Body, Footer; `size`: `sm` (420 px), Default (~560 px), `lg` (760 px).
+- Titel-Typografie ausschliesslich ueber Text-Tokens: `Heading/SM` + `heading-primary` Family/Weight. Keine harten `font-size`/`font-weight`-Literale.
+- Close `24 px` Icon, Stroke `1.5`.
+- Default-Modal-Padding (`20×24`) bleibt die Shell-Basis; Compositions setzen eigene Contracts bewusst per Klasse.
+- Nie zwei produktive Dialoge gleichzeitig (z. B. Task-Modal schliessen, dann Organizational oeffnen). Confirmation darf als kurzer Overlay ueber dem Ausloeser liegen.
+
+Organizational Modal:
+
+- Einsatz: Katalog-/Taxonomie-Verwaltung (Kategorien, Labels, spaeter Abschnitte); nicht Task-Detail, nicht Fullscreen.
+- Shell: `Modal` `size=sm`; Spacing-Contract `32 / 16 / 24` (Header `32 32 16`, Body `0 32`, Footer `24 32 32`).
+- Views Create / Liste / Detail immer mit Footer; Header nur Titel (keine Description-Subline).
+- Create: Name + Farbe; Erfolg schliesst Modal. Footer: „… verwalten“ (tertiary) + CTA.
+- Liste: Katalogzeilen; Footer „Neues …“.
+- Detail: Felder wie Create; Footer destruktives Loeschen; Zurueck nur im Listenflow.
+- Referenz: `TaxonomyCreateModal` / `TaxonomyOrganizeModal`.
+
+Confirmation Modal:
+
+- Pflicht vor Loeschen von Aufgabe, Kategorie oder Label.
+- Gleicher Org-Shell-Contract; Message im Body (`Body/LG`); Name und `N Aufgaben` in `Label/Primary`.
+- Kategorie: Cascade inkl. Nested-Descendants; Label: Aufgaben bleiben.
+- Footer rechtsbuendig (`flex-end`, Gap `12`): Abbrechen (outline tertiary, ohne Icon) direkt links neben Primary Loeschen.
+- Referenz: `ConfirmDeleteModal`.
+
+Aufgaben Modal:
+
+- Zusammengesetzter Task-Detail-Dialog (`TaskModalDialog` + `TaskModalSlot` + Header + Menu).
+- Breite ca. `848 px`, Hoehe `min(80dvh, 900px)`.
+- Bausteine im Detail: §33 Header, §34 Menu Rechts, §35 Task Slot.
+- Delete Action oeffnet Confirmation Modal (§42 Variante).
+- Breadcrumb optional; Subtasks ueber Task Group; Property-Rail rechts.
+
+Verwandt:
+
+- View Overlay (§41) bleibt eigener Fullscreen-Slot — nicht Teil dieser sm/md-Modal-Seite.
+
+Wichtig fuer Umsetzung:
+
+- Neue Dialoge zuerst gegen §42 und das Live-Specimen `/pattern-library/modals` pruefen.
+- Organizational Spacing und Footer-Logik nicht neu erfinden.
+- Typografie nur ueber `--fk-type-font-…`-Tokens.
 
 ## Einsatz im Lastenheft
 

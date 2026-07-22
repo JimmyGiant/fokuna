@@ -2552,15 +2552,18 @@
 
   .fk-modal__title {
     color: var(--fk-color-text-primary);
+    font-family: var(--fk-type-font-font-family-heading-primary);
     font-size: var(--fk-type-font-font-size-heading-sm);
-    font-weight: 700;
+    font-weight: var(--fk-type-font-font-weight-heading-primary);
     line-height: var(--fk-type-font-line-height-heading-sm);
     margin: 0;
   }
 
   .fk-modal__description {
     color: var(--fk-color-text-tertiary);
+    font-family: var(--fk-type-font-font-family-body-primary);
     font-size: var(--fk-type-font-font-size-body-sm);
+    font-weight: var(--fk-type-font-font-weight-body-primary);
     line-height: var(--fk-type-font-line-height-body-sm);
     margin: 2px 0 0;
   }
@@ -3382,9 +3385,11 @@
     background: var(--fk-color-surface-muted);
   }
 
-  .fk-sidebar__secondary-list a[data-drop-over="true"] {
-    background: var(--fk-color-surface-action-secondary, var(--fk-color-surface-muted));
-    box-shadow: inset 0 0 0 1.5px var(--fk-color-border-action, var(--fk-color-border-strong));
+  .fk-sidebar__secondary-list a[data-drop-over="true"],
+  .fk-sidebar__secondary-list a[data-drop-over="true"]:hover,
+  .fk-sidebar__secondary-list a[aria-current="page"][data-drop-over="true"] {
+    background: var(--fk-color-surface-soft);
+    box-shadow: inset 0 0 0 1px var(--fk-color-border-strong);
   }
 
   .fk-sidebar__secondary-list--nav a[aria-current="page"] > svg {
@@ -4259,6 +4264,7 @@
     border-radius: 999px;
     box-shadow: var(--fk-shadow-micro-element);
     color: var(--fk-color-text-secondary);
+    cursor: pointer;
     display: inline-flex;
     font:
       600 var(--fk-type-font-font-size-label-sm) / var(--fk-type-font-line-height-label-sm)
@@ -4267,6 +4273,31 @@
     gap: 4px;
     height: 28px;
     padding: 0 10px;
+  }
+
+  .fk-add-task__meta-actions button[data-filled="true"] {
+    color: var(--fk-color-text-primary);
+  }
+
+  .fk-add-task__property-popover {
+    background: var(--fk-color-surface-base);
+    border: 1px solid var(--fk-color-border-default);
+    border-radius: 8px;
+    box-shadow: var(--fk-shadow-medium-card);
+    box-sizing: border-box;
+    color: var(--fk-color-text-tertiary);
+    min-width: 200px;
+    padding: 12px;
+    width: max-content;
+    z-index: 120;
+  }
+
+  .fk-add-task__property-popover--wide {
+    min-width: 280px;
+  }
+
+  .fk-add-task__property-popover .fk-task-property-popover__header {
+    margin-bottom: 12px;
   }
 
   .fk-add-task__submit-actions {

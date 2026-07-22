@@ -8,7 +8,11 @@ import { getHandoffSection } from "../pattern-library-docs";
 import styles from "../pattern-library.module.css";
 
 export function generateStaticParams() {
-  return patternEntries.map((entry) => ({ slug: entry.slug }));
+  const aliases = ["card-modal", "confirmation-modal", "delete-confirm", "task-modal"];
+  return [
+    ...patternEntries.map((entry) => ({ slug: entry.slug })),
+    ...aliases.map((slug) => ({ slug })),
+  ];
 }
 
 export default async function PatternDetailPage({ params }: { params: Promise<{ slug: string }> }) {

@@ -121,19 +121,6 @@
   color: var(--fk-color-text-secondary);
 }
 
-.empty {
-  display: grid;
-  gap: 8px;
-  padding: 24px 0;
-  color: var(--fk-color-text-secondary);
-}
-
-.empty strong {
-  color: var(--fk-color-text-primary);
-  font-size: 16px;
-  font-weight: 600;
-}
-
 .rootList {
   display: grid;
   gap: 0;

@@ -884,12 +884,12 @@
 
 /* Organizational Modal spacing contract — mirror taxonomy-manager-modal. */
 .organizationalModal :global(.fk-modal__header) {
-  padding: 32px 32px 24px;
+  padding: 32px 32px 16px;
 }
 
 .organizationalModal :global(.fk-modal__body) {
   overflow: visible;
-  padding: 0 32px 32px;
+  padding: 0 32px 24px;
 }
 
 .organizationalModal:has(:global(.fk-modal__footer)) :global(.fk-modal__body) {
@@ -902,7 +902,7 @@
 }
 
 .organizationalModal :global(.fk-modal__footer) {
-  padding: 32px;
+  padding: 24px 32px 32px;
 }
 
 .orgForm {

@@ -50,19 +50,15 @@ export const patternEntries: PatternEntry[] = [
   },
   {
     number: 3,
-    slug: "card-modal",
-    title: "Cards, Slots and Modal",
-    figmaName: "C - Desktop - Card / .slot - Modal",
+    slug: "cards-slots",
+    title: "Cards & Slots",
+    figmaName: "C - Desktop - Card",
     figmaNodeId: "18264:9755",
     category: "Layout",
-    implementation: "Card · Organizational Modal (Create/List/Detail)",
+    implementation: "Card",
     screenshot: "03_Cards_Slots_and_Modal.png",
-    dimensions: [
-      "Card 371 × 140 px",
-      "Modal sm 420 px",
-      "Organizational inset 32 px · title→body 24 px · body→footer 32 px",
-    ],
-    variantSummary: "Card surface · organizational Create/List/Detail modal composition",
+    dimensions: ["Card 371 × 140 px"],
+    variantSummary: "Card surface · elevation · content container",
   },
   {
     number: 4,
@@ -413,18 +409,6 @@ export const patternEntries: PatternEntry[] = [
     variantSummary: "Milestone progression group",
   },
   {
-    number: 33,
-    slug: "task-modal",
-    title: "Aufgaben Modal",
-    figmaName: ".slot - aufgaben modal - task",
-    figmaNodeId: "18546:10330",
-    category: "Tasks",
-    implementation: "TaskModalSlot + TaskModalHeader + TaskModalMenu",
-    screenshot: "35_Aufgaben_Modal_Task_Slot.png",
-    dimensions: ["848 × min(80dvh, 900px)"],
-    variantSummary: "Unfocused and inline-edit header · subtasks · properties · delete action",
-  },
-  {
     number: 36,
     slug: "block-rail",
     title: "Block Bar & Rail",
@@ -498,6 +482,23 @@ export const patternEntries: PatternEntry[] = [
     dimensions: ["1520 × full view", "920 px content", "40 px padding"],
     variantSummary: "Scrim · header · content slot · footer actions · slide-up",
   },
+  {
+    number: 42,
+    slug: "modals",
+    title: "Modals",
+    figmaName: ".slot - Modal · Organizational · Confirmation · Aufgaben",
+    figmaNodeId: "18264:9755",
+    category: "Layout",
+    implementation: "Modal · ConfirmDeleteModal · TaskModalDialog / Slot / Header / Menu",
+    screenshot: "03_Cards_Slots_and_Modal.png",
+    dimensions: [
+      "Modal sm 420 px (Org / Confirm)",
+      "Org shell 32 / 16 / 24",
+      "Aufgaben Modal 848 × min(80dvh, 900px)",
+    ],
+    variantSummary:
+      "Shell · Organizational Create/List/Detail · Confirmation · Aufgaben Modal",
+  },
 ];
 
 export const patternCategories: PatternCategory[] = [
@@ -513,6 +514,18 @@ export const patternCategories: PatternCategory[] = [
   "Layout",
 ];
 
+/** Legacy slugs → current pattern pages. */
+const patternSlugAliases: Record<string, string> = {
+  "card-modal": "cards-slots",
+  "confirmation-modal": "modals",
+  "delete-confirm": "modals",
+  "task-modal": "modals",
+};
+
+export function resolvePatternSlug(slug: string) {
+  return patternSlugAliases[slug] ?? slug;
+}
+
 export function getPatternEntry(slug: string) {
-  return patternEntries.find((entry) => entry.slug === slug);
+  return patternEntries.find((entry) => entry.slug === resolvePatternSlug(slug));
 }

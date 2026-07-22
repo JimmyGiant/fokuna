@@ -57,3 +57,28 @@ export function parseSidebarDropTarget(overId: string | null | undefined):
   if (overId.startsWith("label:")) return { type: "label", labelId: overId.slice(6) };
   return null;
 }
+
+/** Tasks assigned to the category plus their nested descendants (cascade delete). */
+export function collectCategoryDeleteTaskIds(
+  tasks: Array<{ id: string; categoryId: string | null; parentTaskId: string | null }>,
+  categoryId: string,
+): Set<string> {
+  const childrenByParent = new Map<string, string[]>();
+  for (const task of tasks) {
+    if (!task.parentTaskId) continue;
+    const list = childrenByParent.get(task.parentTaskId) ?? [];
+    list.push(task.id);
+    childrenByParent.set(task.parentTaskId, list);
+  }
+
+  const ids = new Set<string>();
+  const stack = tasks.filter((task) => task.categoryId === categoryId).map((task) => task.id);
+  while (stack.length > 0) {
+    const id = stack.pop()!;
+    if (ids.has(id)) continue;
+    ids.add(id);
+    const children = childrenByParent.get(id);
+    if (children) stack.push(...children);
+  }
+  return ids;
+}

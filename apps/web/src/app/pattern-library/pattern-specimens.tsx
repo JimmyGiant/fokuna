@@ -2,6 +2,10 @@
 
 import { FokunaIcon } from "@fokuna/icons";
 import {
+  ConfirmDeleteModal,
+  deleteConfirmCopy,
+} from "@/components/confirm-delete-modal";
+import {
   AddTask,
   BlockCard,
   BlockRail,
@@ -697,6 +701,10 @@ export function PatternSpecimen({ slug }: { slug: string }) {
   const [viewOverlayTab, setViewOverlayTab] = useState("darstellung");
   const [orgModalView, setOrgModalView] = useState<"create" | "list" | "detail">("create");
   const [orgModalOpen, setOrgModalOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmKind, setDeleteConfirmKind] = useState<"task" | "category" | "label">(
+    "category",
+  );
 
   switch (slug) {
     case "button":
@@ -854,17 +862,27 @@ export function PatternSpecimen({ slug }: { slug: string }) {
         </Matrix>
       );
 
+    case "cards-slots":
     case "card-modal":
       return (
         <div className={styles.cardModalSpecimen}>
           <SpecimenBlock label="Card">
             <Card aria-label="Card Oberfläche" className={styles.referenceCard} elevated="medium" />
           </SpecimenBlock>
+        </div>
+      );
 
+    case "modals":
+    case "confirmation-modal":
+    case "task-modal":
+    case "delete-confirm":
+      return (
+        <div className={styles.cardModalSpecimen}>
           <SpecimenBlock className={styles.organizationalModalSpecimen} label="Organizational Modal">
             <p className={styles.specimenBlockCopy}>
-              Create → Liste → Detail auf Modal <code>size=sm</code>. Inset 32 · Titel→Body 24 ·
-              Body→Footer 32. Referenz: Kategorien/Labels.
+              Create → Liste → Detail auf Modal <code>size=sm</code>. Inset 32 · Titel→Body 16 ·
+              Body→Footer 24. Footer immer: Create (verwalten + CTA), Liste (Neues …), Detail
+              (Löschen). Referenz: Kategorien/Labels.
             </p>
             <div className={styles.organizationalModalActions}>
               <Button
@@ -935,7 +953,19 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                     </Button>
                     <span aria-hidden="true" />
                   </>
-                ) : undefined
+                ) : (
+                  <>
+                    <Button
+                      buttonType="icon-text-inline"
+                      className={styles.orgDeleteAction}
+                      leadingIcon={<FokunaIcon name="delete-alt" size={16} stroke={1.5} />}
+                      type="button"
+                    >
+                      Label löschen
+                    </Button>
+                    <span aria-hidden="true" />
+                  </>
+                )
               }
               onOpenChange={setOrgModalOpen}
               open={orgModalOpen}
@@ -1004,7 +1034,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                     onClick={() => setOrgModalView("list")}
                     type="button"
                   >
-                    Zurück zur Liste
+                    Zurück
                   </Button>
                   <InputGroup controlSize="lg" defaultValue="Fokus" label="Name" />
                   <div className={styles.orgColorField}>
@@ -1021,17 +1051,80 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                       ))}
                     </div>
                   </div>
-                  <Button
-                    buttonType="icon-text-inline"
-                    className={styles.orgDeleteAction}
-                    leadingIcon={<FokunaIcon name="delete-alt" size={16} stroke={1.5} />}
-                    type="button"
-                  >
-                    Label löschen
-                  </Button>
                 </div>
               ) : null}
             </Modal>
+          </SpecimenBlock>
+
+          <SpecimenBlock label="Confirmation Modal">
+            <p className={styles.specimenBlockCopy}>
+              Eigenes Modal auf dem Organizational-Shell-Contract (32 / 16 / 24). Name und
+              Aufgabenanzahl in Label-Gewicht. Footer rechts: Abbrechen direkt neben Primary.
+              Varianten: Aufgabe, Kategorie (Cascade), Label.
+            </p>
+            <div className={styles.organizationalModalActions}>
+              <Button
+                buttonType="outline"
+                intent="tertiary"
+                onClick={() => {
+                  setDeleteConfirmKind("task");
+                  setDeleteConfirmOpen(true);
+                }}
+                type="button"
+              >
+                Aufgabe
+              </Button>
+              <Button
+                buttonType="outline"
+                intent="tertiary"
+                onClick={() => {
+                  setDeleteConfirmKind("category");
+                  setDeleteConfirmOpen(true);
+                }}
+                type="button"
+              >
+                Kategorie
+              </Button>
+              <Button
+                buttonType="outline"
+                intent="tertiary"
+                onClick={() => {
+                  setDeleteConfirmKind("label");
+                  setDeleteConfirmOpen(true);
+                }}
+                type="button"
+              >
+                Label
+              </Button>
+            </div>
+            <ConfirmDeleteModal
+              {...(deleteConfirmKind === "task"
+                ? deleteConfirmCopy("task", "Wochenbericht fertigstellen")
+                : deleteConfirmKind === "category"
+                  ? deleteConfirmCopy("category", "Fokus", { taskCount: 2 })
+                  : deleteConfirmCopy("label", "Deep Work"))}
+              onConfirm={() => undefined}
+              onOpenChange={setDeleteConfirmOpen}
+              open={deleteConfirmOpen}
+            />
+          </SpecimenBlock>
+
+          <SpecimenBlock className={styles.taskModalSpecimen} label="Aufgaben Modal">
+            <p className={styles.specimenBlockCopy}>
+              Task-Detail auf dem Aufgaben-Modal-Slot (Header, Subtasks, Property-Rail). Bausteine
+              siehe Pattern-Docs §33–§35. Delete nutzt Confirmation Modal.
+            </p>
+            <ToggleGroup
+              aria-label="Breadcrumb-Darstellung"
+              items={[
+                { value: "with", label: "Mit Breadcrumb" },
+                { value: "without", label: "Ohne Breadcrumb" },
+              ]}
+              onValueChange={(value) => value && setShowTaskModalBreadcrumb(value === "with")}
+              size="md"
+              value={showTaskModalBreadcrumb ? "with" : "without"}
+            />
+            <TaskModalComposition showBreadcrumb={showTaskModalBreadcrumb} />
           </SpecimenBlock>
         </div>
       );
@@ -2431,23 +2524,6 @@ export function PatternSpecimen({ slug }: { slug: string }) {
             { id: "c", title: "Meilenstein C", status: "completed" },
           ]}
         />
-      );
-
-    case "task-modal":
-      return (
-        <div className={styles.taskModalSpecimen}>
-          <ToggleGroup
-            aria-label="Breadcrumb-Darstellung"
-            items={[
-              { value: "with", label: "Mit Breadcrumb" },
-              { value: "without", label: "Ohne Breadcrumb" },
-            ]}
-            onValueChange={(value) => value && setShowTaskModalBreadcrumb(value === "with")}
-            size="md"
-            value={showTaskModalBreadcrumb ? "with" : "without"}
-          />
-          <TaskModalComposition showBreadcrumb={showTaskModalBreadcrumb} />
-        </div>
       );
 
     default:

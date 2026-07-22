@@ -11,6 +11,8 @@ alwaysApply: true
 - Anspruch ist eine professionelle SaaS-Lösung: kein schneller Test, kein Quickfix, keine Workarounds. Langlebigkeit und Professionalität stehen im Vordergrund.
 - Nicht dokumentierte States (Hover, Fokus, Drag-and-drop-Placeholder, Indikatoren u. Ä.) app-übergreifend konsistent umsetzen. Feeling und Verhalten sollen gleichbleibend sein; gängige UX-Patterns und Best Practices prüfen und bei Bedarf online recherchieren.
 - Fehlt eine benötigte Komponente in der Pattern-Library-Dokumentation, vor dem Bau nachfragen.
+- Neue oder geänderte Modals folgen dem gemeinsamen Pattern-Library-Eintrag **Modals** (§42 / `/pattern-library/modals`) — Shell, Abstände und Varianten nicht neu erfinden. Cards liegen unter §03 Cards & Slots.
+- Typografie in UI-Komponenten über Fokuna-Text-Tokens (`--fk-type-font-…`); keine harten `font-size`/`font-weight`-Literale, wenn ein Token existiert.
 - Dependencies außerhalb des definierten Tech-Stacks nur nach Freigabe: eine knappe Erklärung (was und warum), dann nachfragen.
 - Git und GitHub nur auf explizite Anweisung nutzen: professionelle Commits und Pushes nur, wenn ausdrücklich gewünscht.
 - Gewissenhaft und sauber arbeiten. Veraltete Tests entfernen, keine unnötige Dokumentation aufbauen und temporäre Erklärungen im Chat klären statt im Repo.

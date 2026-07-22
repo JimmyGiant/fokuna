@@ -1,0 +1,35 @@
+/*
+ * Confirmation Modal — Organizational Modal shell (§03) + end-aligned footer (§42).
+ */
+.confirmDelete :global(.fk-modal__header) {
+  padding: 32px 32px 16px;
+}
+
+.confirmDelete :global(.fk-modal__body) {
+  overflow: visible;
+  padding: 0 32px;
+}
+
+.confirmDelete:has(:global(.fk-modal__footer)) :global(.fk-modal__body) {
+  padding-bottom: 0;
+}
+
+.confirmDelete :global(.fk-modal__footer) {
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 24px 32px 32px;
+}
+
+.message {
+  color: var(--fk-color-text-secondary);
+  font-family: var(--fk-type-font-font-family-body-primary);
+  font-size: var(--fk-type-font-font-size-body-lg);
+  font-weight: var(--fk-type-font-font-weight-body-primary);
+  line-height: var(--fk-type-font-line-height-body-lg);
+  margin: 0;
+}
+
+.emphasis {
+  color: var(--fk-color-text-primary);
+  font-weight: var(--fk-type-font-font-weight-label-primary);
+}

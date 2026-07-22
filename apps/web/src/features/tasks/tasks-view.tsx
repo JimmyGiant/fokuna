@@ -47,6 +47,8 @@ import {
   type BlockRailItem,
   type BlockTone,
   type FokunaContextMenuEntry,
+  type TagTone,
+  type TaskListTag,
 } from "@fokuna/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -58,8 +60,13 @@ import {
   resolveSortableInsertIndex,
   sortableItemStyle,
 } from "@/components/dnd";
+import {
+  ConfirmDeleteModal,
+  deleteConfirmCopy,
+} from "@/components/confirm-delete-modal";
 import { apiGet, apiSend } from "@/lib/api";
 import { useTaskTaxonomy } from "./aufgaben-shell";
+import { colorTokenToTone } from "./taxonomy";
 import { TaskDetailModal } from "./task-detail-modal";
 import { TaskDueDateMenuPanel, TaskEstimateMenuPanel, TaskTagsMenuPanel } from "./task-property-editor";
 import { priorityOptions } from "./task-property-options";
@@ -280,7 +287,7 @@ function SortableFlatTask({
   nestHint?: boolean;
   subtaskLabel?: string;
   goalTitle?: string;
-  tags?: string[];
+  tags?: TaskListTag[];
   contextMenuItems?: FokunaContextMenuEntry[];
   onExpandedChange: (expanded: boolean) => void;
   onOpen: (task: TaskDto) => void;
@@ -427,6 +434,10 @@ export function TasksView() {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
+  const [pendingDeleteTask, setPendingDeleteTask] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
   const tasksQuery = useQuery({
     queryKey: ["tasks"],
@@ -518,10 +529,14 @@ export function TasksView() {
     [labelId, labels],
   );
 
-  function resolveTaskTagLabels(task: TaskDto): string[] {
+  function resolveTaskTagLabels(task: TaskDto): TaskListTag[] {
     return task.labelIds
-      .map((id) => labelsById.get(id)?.name)
-      .filter((name): name is string => Boolean(name));
+      .map((id) => {
+        const label = labelsById.get(id);
+        if (!label) return null;
+        return { label: label.name, tone: colorTokenToTone(label.colorToken) };
+      })
+      .filter((tag): tag is { label: string; tone: TagTone } => Boolean(tag));
   }
 
   const sourceTasks = tasksQuery.data ?? [];
@@ -1100,7 +1115,7 @@ export function TasksView() {
         label: "Löschen",
         icon: "delete",
         destructive: true,
-        onSelect: () => deleteMutation.mutate(task.id),
+        onSelect: () => setPendingDeleteTask({ id: task.id, title: task.title }),
       },
     ];
   }
@@ -1241,13 +1256,6 @@ export function TasksView() {
 
           {tasksQuery.isError ? (
             <p className={styles.status}>Aufgaben konnten nicht geladen werden.</p>
-          ) : null}
-
-          {!tasksQuery.isLoading && !tasksQuery.isError && visibleTasks.length === 0 ? (
-            <div className={styles.empty}>
-              <strong>Noch keine Aufgaben</strong>
-              <span>Lege die erste Aufgabe an, um deinen Tag zu strukturieren.</span>
-            </div>
           ) : null}
 
           <div className={styles.list}>
@@ -1437,6 +1445,21 @@ export function TasksView() {
         subtasks={selectedSubtasks}
         task={selectedTask}
       />
+      {pendingDeleteTask ? (
+        <ConfirmDeleteModal
+          {...deleteConfirmCopy("task", pendingDeleteTask.title)}
+          onConfirm={async () => {
+            await deleteMutation.mutateAsync(pendingDeleteTask.id);
+            if (selectedTaskId === pendingDeleteTask.id) {
+              setTaskQuery(null);
+            }
+          }}
+          onOpenChange={(open) => {
+            if (!open) setPendingDeleteTask(null);
+          }}
+          open
+        />
+      ) : null}
     </div>
   );
 }

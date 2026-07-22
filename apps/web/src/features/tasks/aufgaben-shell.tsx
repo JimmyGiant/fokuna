@@ -24,9 +24,14 @@ import {
 } from "react";
 
 import styles from "@/components/app-shell.module.css";
+import {
+  ConfirmDeleteModal,
+  deleteConfirmCopy,
+  type DeleteEntityKind,
+} from "@/components/confirm-delete-modal";
 import { apiGet, apiSend } from "@/lib/api";
 import { TaxonomyCreateModal, TaxonomyOrganizeModal } from "./taxonomy-manager-modal";
-import { SIDEBAR_DROP, colorTokenToCssVar, parseSidebarDropTarget } from "./taxonomy";
+import { SIDEBAR_DROP, collectCategoryDeleteTaskIds, colorTokenToCssVar, parseSidebarDropTarget } from "./taxonomy";
 import { TasksDndHost } from "./tasks-dnd-host";
 
 const primaryItems: SidebarItem[] = [
@@ -45,7 +50,7 @@ type TaxonomyKind = "category" | "label";
 type TaxonomyUi =
   | null
   | { kind: TaxonomyKind; view: "create" }
-  | { kind: TaxonomyKind; view: "organize" };
+  | { kind: TaxonomyKind; view: "organize"; selectedId?: string };
 
 type TaxonomyContextValue = {
   categories: CategoryDto[];
@@ -150,6 +155,12 @@ export function AufgabenShell({
 }) {
   const queryClient = useQueryClient();
   const [taxonomyUi, setTaxonomyUi] = useState<TaxonomyUi>(null);
+  const [pendingDelete, setPendingDelete] = useState<{
+    kind: DeleteEntityKind;
+    id: string;
+    name: string;
+    taskCount?: number;
+  } | null>(null);
 
   const tasksQuery = useQuery({
     queryKey: ["tasks"],
@@ -306,6 +317,31 @@ export function AufgabenShell({
           badge: String(countOpenTasks(tasks, (task) => task.categoryId === category.id)),
           color: colorTokenToCssVar(category.colorToken),
           droppableId: SIDEBAR_DROP.category(category.id),
+          contextMenuItems: [
+            {
+              label: "Bearbeiten",
+              icon: "edit" as const,
+              onSelect: () =>
+                setTaxonomyUi({
+                  kind: "category",
+                  view: "organize",
+                  selectedId: category.id,
+                }),
+            },
+            {
+              label: "Löschen",
+              icon: "delete-alt" as const,
+              destructive: true,
+              onSelect: () => {
+                setPendingDelete({
+                  kind: "category",
+                  id: category.id,
+                  name: category.name,
+                  taskCount: collectCategoryDeleteTaskIds(tasks, category.id).size,
+                });
+              },
+            },
+          ],
         })),
       },
       {
@@ -331,6 +367,30 @@ export function AufgabenShell({
           iconColor: colorTokenToCssVar(label.colorToken),
           badge: String(countOpenTasks(tasks, (task) => task.labelIds.includes(label.id))),
           droppableId: SIDEBAR_DROP.label(label.id),
+          contextMenuItems: [
+            {
+              label: "Bearbeiten",
+              icon: "edit" as const,
+              onSelect: () =>
+                setTaxonomyUi({
+                  kind: "label",
+                  view: "organize",
+                  selectedId: label.id,
+                }),
+            },
+            {
+              label: "Löschen",
+              icon: "delete-alt" as const,
+              destructive: true,
+              onSelect: () => {
+                setPendingDelete({
+                  kind: "label",
+                  id: label.id,
+                  name: label.name,
+                });
+              },
+            },
+          ],
         })),
       },
     ],
@@ -447,6 +507,12 @@ export function AufgabenShell({
         open={taxonomyUi?.kind === "label" && taxonomyUi.view === "create"}
       />
       <TaxonomyOrganizeModal
+        getDeleteTaskCount={(id) => collectCategoryDeleteTaskIds(tasks, id).size}
+        initialSelectedId={
+          taxonomyUi?.kind === "category" && taxonomyUi.view === "organize"
+            ? (taxonomyUi.selectedId ?? null)
+            : null
+        }
         items={categories}
         kind="category"
         onDelete={async (id) => {
@@ -464,6 +530,11 @@ export function AufgabenShell({
         open={taxonomyUi?.kind === "category" && taxonomyUi.view === "organize"}
       />
       <TaxonomyOrganizeModal
+        initialSelectedId={
+          taxonomyUi?.kind === "label" && taxonomyUi.view === "organize"
+            ? (taxonomyUi.selectedId ?? null)
+            : null
+        }
         items={labels}
         kind="label"
         onDelete={async (id) => {
@@ -480,6 +551,24 @@ export function AufgabenShell({
         }}
         open={taxonomyUi?.kind === "label" && taxonomyUi.view === "organize"}
       />
+      {pendingDelete ? (
+        <ConfirmDeleteModal
+          {...deleteConfirmCopy(pendingDelete.kind, pendingDelete.name, {
+            taskCount: pendingDelete.taskCount,
+          })}
+          onConfirm={async () => {
+            if (pendingDelete.kind === "category") {
+              await deleteCategory.mutateAsync(pendingDelete.id);
+            } else {
+              await deleteLabel.mutateAsync(pendingDelete.id);
+            }
+          }}
+          onOpenChange={(open) => {
+            if (!open) setPendingDelete(null);
+          }}
+          open
+        />
+      ) : null}
     </TaxonomyContext.Provider>
   );
 }
