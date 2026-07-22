@@ -7,6 +7,7 @@ export const taskSchema = z.object({
   userId: z.string(),
   goalId: z.string().nullable(),
   milestoneId: z.string().nullable(),
+  categoryId: z.string().nullable(),
   parentTaskId: z.string().nullable(),
   groupKey: z.string(),
   title: z.string(),
@@ -18,7 +19,7 @@ export const taskSchema = z.object({
   isCompleted: z.boolean(),
   completedAt: z.string().nullable(),
   sortOrder: z.number().int(),
-  tags: z.array(z.string()),
+  labelIds: z.array(z.string()),
   archivedAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -30,6 +31,7 @@ export const createTaskInputSchema = z.object({
   groupKey: z.string().trim().min(1).max(100).default("inbox"),
   goalId: z.string().optional(),
   milestoneId: z.string().optional(),
+  categoryId: z.string().optional(),
   parentTaskId: z.string().optional(),
   priority: taskPrioritySchema.default("none"),
   estimateMinutes: z
@@ -39,11 +41,11 @@ export const createTaskInputSchema = z.object({
     .max(24 * 60)
     .optional(),
   dueDate: z.string().date().optional(),
-  tags: z.array(z.string().trim().min(1).max(40)).max(20).default([]),
+  labelIds: z.array(z.string().min(1)).max(20).default([]),
   isFavorite: z.boolean().default(false),
 });
 
-/** Partial update — no `.default()` so omitted fields stay untouched (e.g. tags when only priority changes). */
+/** Partial update — no `.default()` so omitted fields stay untouched. */
 export const updateTaskInputSchema = z
   .object({
     title: z.string().trim().min(1).max(200).optional(),
@@ -51,6 +53,7 @@ export const updateTaskInputSchema = z
     groupKey: z.string().trim().min(1).max(100).optional(),
     goalId: z.string().nullable().optional(),
     milestoneId: z.string().nullable().optional(),
+    categoryId: z.string().nullable().optional(),
     parentTaskId: z.string().nullable().optional(),
     priority: taskPrioritySchema.optional(),
     estimateMinutes: z
@@ -61,7 +64,7 @@ export const updateTaskInputSchema = z
       .nullable()
       .optional(),
     dueDate: z.string().date().nullable().optional(),
-    tags: z.array(z.string().trim().min(1).max(40)).max(20).optional(),
+    labelIds: z.array(z.string().min(1)).max(20).optional(),
     isFavorite: z.boolean().optional(),
     isCompleted: z.boolean().optional(),
     sortOrder: z.number().int().optional(),

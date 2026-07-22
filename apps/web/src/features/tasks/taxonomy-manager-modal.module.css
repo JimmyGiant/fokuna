@@ -1,0 +1,172 @@
+/*
+ * Organizational Modal spacing contract (Pattern Library §03):
+ * - 32px inset around the modal content
+ * - 24px from title to first body element
+ * - 32px from last body element to footer actions
+ * Keep in sync with pattern-library organizationalModal specimen.
+ */
+.taxonomyModal :global(.fk-modal__header) {
+  padding: 32px 32px 24px;
+}
+
+.taxonomyModal :global(.fk-modal__body) {
+  overflow: visible;
+  padding: 0 32px 32px;
+}
+
+/* Footer supplies the lower 32px gap; drop body bottom padding when present. */
+.taxonomyModal:has(:global(.fk-modal__footer)) :global(.fk-modal__body) {
+  padding-bottom: 0;
+}
+
+/* Keep list views scrollable without clipping short create/edit forms. */
+.taxonomyModal:has([data-view="list"]) :global(.fk-modal__body) {
+  overflow: auto;
+}
+
+.taxonomyModal :global(.fk-modal__footer) {
+  padding: 32px;
+}
+
+.createForm {
+  display: grid;
+  gap: 16px;
+}
+
+.organize {
+  align-content: start;
+  display: grid;
+}
+
+.organize[data-view="list"] {
+  /* Height follows entry count — no forced empty canvas. */
+  min-height: 0;
+}
+
+.detail {
+  display: grid;
+  gap: 16px;
+}
+
+.navAction {
+  justify-self: start;
+}
+
+.catalog {
+  align-content: start;
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.catalog > li {
+  margin: 0;
+  padding: 0;
+}
+
+.catalogRow {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--fk-color-text-primary);
+  cursor: pointer;
+  /* Last column 28px matches modal close hit area so chevron centers under X. */
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 16px minmax(0, 1fr) 28px;
+  min-height: 32px;
+  padding: 4px 0 4px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.catalogRow:hover {
+  background: var(--fk-color-surface-soft);
+}
+
+.chevron {
+  align-items: center;
+  color: var(--fk-color-icon-secondary);
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  justify-self: end;
+  width: 28px;
+}
+
+.dot {
+  border-radius: 999px;
+  height: 10px;
+  justify-self: center;
+  width: 10px;
+}
+
+.name {
+  font-size: var(--fk-type-font-font-size-body-md);
+  line-height: var(--fk-type-font-line-height-body-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.colorField {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+}
+
+.colorLabel {
+  color: var(--fk-color-text-primary);
+  font-size: var(--fk-type-font-font-size-body-md);
+  font-weight: 600;
+  line-height: var(--fk-type-font-line-height-body-md);
+}
+
+.swatches {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  /* Room for selected outline (2px) + offset (2px) inside body overflow. */
+  padding: 4px;
+}
+
+.swatch {
+  appearance: none;
+  background-clip: padding-box;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  flex: 0 0 auto;
+  height: 20px;
+  padding: 0;
+  width: 20px;
+}
+
+.swatch[data-selected="true"] {
+  outline: 2px solid var(--fk-color-category-teal);
+  outline-offset: 2px;
+}
+
+.dangerZone {
+  justify-self: start;
+  padding-top: 0;
+}
+
+.deleteAction {
+  color: var(--fk-color-text-error);
+}
+
+.deleteAction:hover:not(:disabled) {
+  color: var(--fk-color-text-error);
+}
+
+.empty {
+  color: var(--fk-color-text-tertiary);
+  font-size: var(--fk-type-font-font-size-body-sm);
+  margin: 0;
+  padding: 8px 0;
+}

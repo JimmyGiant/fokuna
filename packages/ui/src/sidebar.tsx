@@ -19,14 +19,23 @@ export interface SidebarSecondaryItem {
   label: string;
   href?: string;
   icon?: IconName;
+  /** Tints the leading icon (e.g. colored tag glyph for labels). */
+  iconColor?: string;
   badge?: ReactNode;
+  /** Leading color dot — used for categories, not labels. */
   color?: string;
+  /** Optional drop-target id used by the host app (e.g. dnd-kit). */
+  droppableId?: string;
+  /** Host-controlled drop highlight (data-drop-over). */
+  dropOver?: boolean;
 }
 
 export interface SidebarSecondarySection {
   id: string;
   label: string;
   items: SidebarSecondaryItem[];
+  onAdd?: () => void;
+  onManage?: () => void;
 }
 
 export interface SidebarAvatarProps extends HTMLAttributes<HTMLSpanElement> {
@@ -74,6 +83,8 @@ export interface SidebarProps extends HTMLAttributes<HTMLElement> {
   secondaryItems?: SidebarSecondaryItem[];
   secondarySections?: SidebarSecondarySection[];
   secondaryActiveId?: string;
+  /** Optional ref callback for droppable hosts (id → element). */
+  onSecondaryItemRef?: (itemId: string, node: HTMLElement | null) => void;
 }
 
 function SidebarRailItem({ item, activeId }: { item: SidebarItem; activeId?: string }) {
@@ -96,13 +107,22 @@ function SidebarRailItem({ item, activeId }: { item: SidebarItem; activeId?: str
   );
 }
 
-function SecondaryNavItem({ item, activeId }: { item: SidebarSecondaryItem; activeId?: string }) {
+export function SecondaryNavItem({
+  item,
+  activeId,
+  itemRef,
+}: {
+  item: SidebarSecondaryItem;
+  activeId?: string;
+  itemRef?: (node: HTMLElement | null) => void;
+}) {
   const isActive = item.id === activeId;
 
   return (
-    <li>
+    <li ref={itemRef}>
       <a
         aria-current={isActive ? "page" : undefined}
+        data-drop-over={item.dropOver ? "true" : undefined}
         data-has-badge={item.badge ? "true" : undefined}
         href={item.href}
       >
@@ -113,7 +133,12 @@ function SecondaryNavItem({ item, activeId }: { item: SidebarSecondaryItem; acti
             style={{ background: item.color }}
           />
         ) : item.icon ? (
-          <FokunaIcon name={item.icon} size={16} stroke={1.5} />
+          <FokunaIcon
+            name={item.icon}
+            size={16}
+            stroke={1.5}
+            style={item.iconColor ? { color: item.iconColor } : undefined}
+          />
         ) : null}
         <span>{item.label}</span>
         {item.badge ? <small>{item.badge}</small> : null}
@@ -122,14 +147,40 @@ function SecondaryNavItem({ item, activeId }: { item: SidebarSecondaryItem; acti
   );
 }
 
-function SecondarySection({ section }: { section: SidebarSecondarySection }) {
+function SecondarySection({
+  section,
+  activeId,
+  onItemRef,
+}: {
+  section: SidebarSecondarySection;
+  activeId?: string;
+  onItemRef?: (itemId: string, node: HTMLElement | null) => void;
+}) {
   const [expanded, setExpanded] = useState(true);
+  const showManage = Boolean(section.onManage);
 
   return (
-    <section className="fk-sidebar__secondary-section" data-expanded={expanded || undefined}>
+    <section
+      className="fk-sidebar__secondary-section"
+      data-expanded={expanded || undefined}
+      data-has-manage={showManage || undefined}
+    >
       <header>
         <strong>{section.label}</strong>
-        <button aria-label={`${section.label} hinzufügen`} type="button">
+        {showManage ? (
+          <button
+            aria-label={`${section.label} verwalten`}
+            onClick={section.onManage}
+            type="button"
+          >
+            <FokunaIcon name="edit" size={16} stroke={1.5} />
+          </button>
+        ) : null}
+        <button
+          aria-label={`${section.label} hinzufügen`}
+          onClick={section.onAdd}
+          type="button"
+        >
           <FokunaIcon name="add-small" size={16} stroke={1.5} />
         </button>
         <button
@@ -144,7 +195,12 @@ function SecondarySection({ section }: { section: SidebarSecondarySection }) {
       {expanded ? (
         <ul className="fk-sidebar__secondary-list">
           {section.items.map((item) => (
-            <SecondaryNavItem item={item} key={item.id} />
+            <SecondaryNavItem
+              activeId={activeId}
+              item={item}
+              itemRef={onItemRef ? (node) => onItemRef(item.id, node) : undefined}
+              key={item.id}
+            />
           ))}
         </ul>
       ) : null}
@@ -163,6 +219,7 @@ export function Sidebar({
   secondaryItems,
   secondarySections,
   secondaryActiveId,
+  onSecondaryItemRef,
   className,
   ...props
 }: SidebarProps) {
@@ -198,12 +255,26 @@ export function Sidebar({
               {secondaryItems?.length ? (
                 <ul className="fk-sidebar__secondary-list fk-sidebar__secondary-list--nav">
                   {secondaryItems.map((item) => (
-                    <SecondaryNavItem activeId={secondaryActiveId} item={item} key={item.id} />
+                    <SecondaryNavItem
+                      activeId={secondaryActiveId}
+                      item={item}
+                      itemRef={
+                        onSecondaryItemRef
+                          ? (node) => onSecondaryItemRef(item.id, node)
+                          : undefined
+                      }
+                      key={item.id}
+                    />
                   ))}
                 </ul>
               ) : null}
               {secondarySections?.map((section) => (
-                <SecondarySection key={section.id} section={section} />
+                <SecondarySection
+                  activeId={secondaryActiveId}
+                  key={section.id}
+                  onItemRef={onSecondaryItemRef}
+                  section={section}
+                />
               ))}
             </div>
           )}
@@ -222,7 +293,7 @@ export function UiShell({ sidebar, overlay, className, children, ...props }: UiS
   return (
     <div {...props} className={cn("fk-shell", className)}>
       {sidebar}
-      <main className="fk-shell__content">{children}</main>
+      <div className="fk-shell__content">{children}</div>
       {overlay}
     </div>
   );

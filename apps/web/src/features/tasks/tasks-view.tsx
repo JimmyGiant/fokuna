@@ -1,15 +1,7 @@
 "use client";
 
 import {
-  DndContext,
   DragOverlay,
-  MeasuringStrategy,
-  PointerSensor,
-  closestCenter,
-  pointerWithin,
-  useSensor,
-  useSensors,
-  type CollisionDetection,
   type DragMoveEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -58,7 +50,7 @@ import {
 } from "@fokuna/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   DnDGhostShell,
@@ -67,9 +59,11 @@ import {
   sortableItemStyle,
 } from "@/components/dnd";
 import { apiGet, apiSend } from "@/lib/api";
+import { useTaskTaxonomy } from "./aufgaben-shell";
 import { TaskDetailModal } from "./task-detail-modal";
-import { TaskDueDateMenuPanel, TaskEstimateMenuPanel } from "./task-property-editor";
+import { TaskDueDateMenuPanel, TaskEstimateMenuPanel, TaskTagsMenuPanel } from "./task-property-editor";
 import { priorityOptions } from "./task-property-options";
+import { useTasksListDndRegistration } from "./tasks-dnd-host";
 import styles from "./tasks-view.module.css";
 
 const ROOT_GROUP = "root";
@@ -84,20 +78,6 @@ function createGroupKeyForFilter(filter: string): string {
 
 /** Todoist-style: full step right = nest, full step left = outdent. */
 const INDENTATION_WIDTH = 48;
-const DRAG_ACTIVATION_DISTANCE = 8;
-
-const measuring = {
-  droppable: { strategy: MeasuringStrategy.Always },
-};
-
-/** Prefer the row under the pointer; fallback to closestCenter (MVP §10.1). */
-const taskListCollisionDetection: CollisionDetection = (args) => {
-  const pointerHits = pointerWithin(args);
-  if (pointerHits.length > 0) {
-    return [pointerHits[pointerHits.length - 1]!];
-  }
-  return closestCenter(args);
-};
 
 function placementsEqual(a: TaskPlacement[], b: TaskPlacement[]): boolean {
   if (a.length !== b.length) return false;
@@ -169,17 +149,24 @@ function promoteOrphanNestedTasks<T extends { id: string; parentTaskId: string |
 /** Flatten visible tasks for DnD; overdue trees are separate from group buckets on Heute. */
 function flattenTasksForDragList(input: {
   filter: string;
+  promoteOrphans: boolean;
   visibleTasks: TaskDto[];
   expandedById: Record<string, boolean>;
   orderedGroupKeys: string[];
   overdueTreeIds: Set<string>;
   activeId: string | null;
 }): FlatTreeItem[] {
-  const { filter, visibleTasks, expandedById, orderedGroupKeys, overdueTreeIds, activeId } =
-    input;
+  const {
+    filter,
+    promoteOrphans,
+    visibleTasks,
+    expandedById,
+    orderedGroupKeys,
+    overdueTreeIds,
+    activeId,
+  } = input;
 
-  const tasksForTree =
-    filter === "favorites" ? promoteOrphanNestedTasks(visibleTasks) : visibleTasks;
+  const tasksForTree = promoteOrphans ? promoteOrphanNestedTasks(visibleTasks) : visibleTasks;
 
   if (filter === "today" && overdueTreeIds.size > 0) {
     const overdueTasks = tasksForTree.filter((task) => overdueTreeIds.has(task.id));
@@ -189,7 +176,7 @@ function flattenTasksForDragList(input: {
     return removeChildrenOfActive([...overdueFlat, ...todayFlat], activeId);
   }
 
-  // Alle / Favoriten / Eingang: one continuous list, no Abschnitt buckets.
+  // Alle / Favoriten / Eingang / Kategorie / Label: one continuous list, no Abschnitt buckets.
   const unifyRoots = filter !== "today";
   return removeChildrenOfActive(
     flattenTasksForTree(tasksForTree, expandedById, orderedGroupKeys, unifyRoots),
@@ -278,6 +265,7 @@ function SortableFlatTask({
   nestHint,
   subtaskLabel,
   goalTitle,
+  tags,
   contextMenuItems,
   onExpandedChange,
   onOpen,
@@ -292,6 +280,7 @@ function SortableFlatTask({
   nestHint?: boolean;
   subtaskLabel?: string;
   goalTitle?: string;
+  tags?: string[];
   contextMenuItems?: FokunaContextMenuEntry[];
   onExpandedChange: (expanded: boolean) => void;
   onOpen: (task: TaskDto) => void;
@@ -363,7 +352,7 @@ function SortableFlatTask({
           ...lockedStyle,
         }}
         subtasks={subtaskLabel}
-        tags={task.tags}
+        tags={tags}
         title={task.title}
       />
     </div>
@@ -376,10 +365,15 @@ function todayIsoDate() {
   return today.toISOString().slice(0, 10);
 }
 
-function listTitleForFilter(filter: string): string {
+function listTitleForFilter(
+  filter: string,
+  options?: { categoryName?: string; labelName?: string },
+): string {
   if (filter === "favorites") return "Favoriten";
   if (filter === "today") return "Heute";
   if (filter === "inbox") return "Eingang";
+  if (options?.categoryName) return options.categoryName;
+  if (options?.labelName) return options.labelName;
   return "Alle Aufgaben";
 }
 
@@ -400,8 +394,12 @@ export function TasksView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { labels, labelsById, categories, openLabelManager } = useTaskTaxonomy();
   const filter = searchParams.get("filter") ?? "all";
+  const categoryId = searchParams.get("category");
+  const labelId = searchParams.get("label");
   const selectedTaskId = searchParams.get("task");
+  const openLabelsAfterTaskCloseRef = useRef(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
   const [offsetLeft, setOffsetLeft] = useState(0);
@@ -429,9 +427,6 @@ export function TasksView() {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }),
-  );
 
   const tasksQuery = useQuery({
     queryKey: ["tasks"],
@@ -458,10 +453,11 @@ export function TasksView() {
       parentTaskId?: string;
       goalId?: string;
       milestoneId?: string;
+      categoryId?: string;
       priority?: TaskDto["priority"];
       estimateMinutes?: number;
       dueDate?: string;
-      tags?: string[];
+      labelIds?: string[];
       isFavorite?: boolean;
     }) => apiSend<TaskDto>("/api/v1/tasks", "POST", payload),
     onSuccess: async () => {
@@ -513,6 +509,21 @@ export function TasksView() {
     return map;
   }, [goalsQuery.data]);
 
+  const activeCategory = useMemo(
+    () => categories.find((category) => category.id === categoryId) ?? null,
+    [categories, categoryId],
+  );
+  const activeLabel = useMemo(
+    () => labels.find((label) => label.id === labelId) ?? null,
+    [labelId, labels],
+  );
+
+  function resolveTaskTagLabels(task: TaskDto): string[] {
+    return task.labelIds
+      .map((id) => labelsById.get(id)?.name)
+      .filter((name): name is string => Boolean(name));
+  }
+
   const sourceTasks = tasksQuery.data ?? [];
 
   const visibleTasks = useMemo(() => {
@@ -522,10 +533,13 @@ export function TasksView() {
 
     function matchesSearch(task: TaskDto) {
       if (!query) return true;
+      const tagNames = task.labelIds
+        .map((id) => labelsById.get(id)?.name?.toLowerCase() ?? "")
+        .join(" ");
       return (
         task.title.toLowerCase().includes(query) ||
         (task.description?.toLowerCase().includes(query) ?? false) ||
-        task.tags.some((tag) => tag.toLowerCase().includes(query))
+        tagNames.includes(query)
       );
     }
 
@@ -538,7 +552,9 @@ export function TasksView() {
         const isOverdue = isOverdueDueDate(task.dueDate, today);
         if (!isDueToday && !isTodayGroup && !isOverdue) return false;
       }
-      if (filter === "inbox" && task.groupKey !== "inbox") return false;
+      if (filter === "inbox" && task.categoryId !== null) return false;
+      if (categoryId && task.categoryId !== categoryId) return false;
+      if (labelId && !task.labelIds.includes(labelId)) return false;
       return matchesSearch(task);
     }
 
@@ -547,8 +563,8 @@ export function TasksView() {
     const matchedSelf = all.filter((task) => matchesFilter(task));
     const matchedIds = new Set(matchedSelf.map((task) => task.id));
 
-    // Favoriten: only starred tasks (nested ones are promoted to roots when flattening).
-    if (filter === "favorites") {
+    // Favoriten / Label: only matching tasks (nested ones are promoted when flattening).
+    if (filter === "favorites" || labelId) {
       return matchedSelf;
     }
 
@@ -559,7 +575,7 @@ export function TasksView() {
       }
       return false;
     });
-  }, [filter, search, showCompleted, sourceTasks]);
+  }, [categoryId, filter, labelId, labelsById, search, showCompleted, sourceTasks]);
 
   const childrenByParent = useMemo(() => {
     const map = new Map<string, TaskDto[]>();
@@ -644,13 +660,14 @@ export function TasksView() {
     () =>
       flattenTasksForDragList({
         filter,
+        promoteOrphans: filter === "favorites" || Boolean(labelId),
         visibleTasks,
         expandedById,
         orderedGroupKeys,
         overdueTreeIds,
         activeId,
       }),
-    [activeId, expandedById, filter, orderedGroupKeys, overdueTreeIds, visibleTasks],
+    [activeId, expandedById, filter, labelId, orderedGroupKeys, overdueTreeIds, visibleTasks],
   );
 
   /** Live-reordered flat items — DOM order tracks the placeholder slot. */
@@ -745,6 +762,18 @@ export function TasksView() {
     router.replace(query ? `/app/aufgaben?${query}` : "/app/aufgaben", { scroll: false });
   }
 
+  useEffect(() => {
+    if (selectedTaskId || !openLabelsAfterTaskCloseRef.current) {
+      return;
+    }
+    openLabelsAfterTaskCloseRef.current = false;
+    // Open only after the task dialog has painted closed (URL-driven `open`).
+    const frame = window.requestAnimationFrame(() => {
+      openLabelManager();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [openLabelManager, selectedTaskId]);
+
   function clearDragUi() {
     cancelScheduledDragClear();
     setActiveId(null);
@@ -823,6 +852,7 @@ export function TasksView() {
     const snapshot = tasks.find((task) => task.id === id) ?? null;
     const flat = flattenTasksForDragList({
       filter,
+      promoteOrphans: filter === "favorites" || Boolean(labelId),
       visibleTasks,
       expandedById,
       orderedGroupKeys,
@@ -846,7 +876,7 @@ export function TasksView() {
       snapshot &&
         (snapshot.dueDate ||
           snapshot.goalId ||
-          (snapshot.tags?.length ?? 0) > 0 ||
+          (snapshot.labelIds?.length ?? 0) > 0 ||
           childList.length > 0),
     );
     setActiveHeight(
@@ -1025,6 +1055,19 @@ export function TasksView() {
       },
       {
         type: "submenu",
+        label: "Tags",
+        icon: "tag",
+        panel: true,
+        content: (
+          <TaskTagsMenuPanel
+            onManageLabels={openLabelManager}
+            onUpdate={patchTask}
+            task={task}
+          />
+        ),
+      },
+      {
+        type: "submenu",
         label: "Verschieben",
         icon: "folder",
         children: orderedGroupKeys.map((groupKey) => ({
@@ -1047,7 +1090,8 @@ export function TasksView() {
             priority: normalizePriority(task.priority),
             estimateMinutes: task.estimateMinutes ?? undefined,
             dueDate: task.dueDate ?? undefined,
-            tags: task.tags,
+            labelIds: task.labelIds,
+            categoryId: task.categoryId ?? undefined,
             isFavorite: task.isFavorite,
           }),
       },
@@ -1107,6 +1151,7 @@ export function TasksView() {
             updateMutation.mutate({ id: current.id, isCompleted: completed })
           }
           subtaskLabel={subtaskLabel}
+          tags={resolveTaskTagLabels(task)}
           task={task}
         />
       );
@@ -1121,8 +1166,23 @@ export function TasksView() {
       description: description || undefined,
       groupKey,
       ...(createDueDate ? { dueDate: createDueDate } : {}),
+      ...(categoryId ? { categoryId } : {}),
+      ...(labelId ? { labelIds: [labelId] } : {}),
     });
   }
+
+  useTasksListDndRegistration({
+    onDragStart,
+    onDragMove,
+    onDragOver,
+    onDragEnd,
+    onDragCancel,
+  });
+
+  const listTitle = listTitleForFilter(filter, {
+    categoryName: activeCategory?.name,
+    labelName: activeLabel?.name,
+  });
 
   return (
     <div className={styles.layout}>
@@ -1177,9 +1237,8 @@ export function TasksView() {
         />
 
         <div className={styles.listStack}>
-          <h1 className={styles.listTitle}>{listTitleForFilter(filter)}</h1>
+          <h1 className={styles.listTitle}>{listTitle}</h1>
 
-          {tasksQuery.isLoading ? <p className={styles.status}>Aufgaben werden geladen…</p> : null}
           {tasksQuery.isError ? (
             <p className={styles.status}>Aufgaben konnten nicht geladen werden.</p>
           ) : null}
@@ -1192,16 +1251,6 @@ export function TasksView() {
           ) : null}
 
           <div className={styles.list}>
-            <DndContext
-              collisionDetection={taskListCollisionDetection}
-              measuring={measuring}
-              onDragCancel={onDragCancel}
-              onDragEnd={onDragEnd}
-              onDragMove={onDragMove}
-              onDragOver={onDragOver}
-              onDragStart={onDragStart}
-              sensors={sensors}
-            >
               <SortableContext items={allSortableIds} strategy={verticalListSortingStrategy}>
                 {filter === "today" ? (
                   <>
@@ -1279,13 +1328,12 @@ export function TasksView() {
                           : {}),
                       }}
                       subtasks={dragOverlayMeta?.subtaskLabel}
-                      tags={activeTask.tags}
+                      tags={resolveTaskTagLabels(activeTask)}
                       title={activeTask.title}
                     />
                   </DnDGhostShell>
                 ) : null}
               </DragOverlay>
-            </DndContext>
           </div>
         </div>
       </div>
@@ -1371,6 +1419,10 @@ export function TasksView() {
         }}
         onDelete={async (taskId) => {
           await deleteMutation.mutateAsync(taskId);
+          setTaskQuery(null);
+        }}
+        onManageLabels={() => {
+          openLabelsAfterTaskCloseRef.current = true;
           setTaskQuery(null);
         }}
         onOpenChange={(open) => {

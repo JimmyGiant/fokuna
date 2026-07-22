@@ -32,7 +32,9 @@
 }
 
 .listTitle {
+  /* Align with L1 checkbox: item pad 8 + drag 16 + gap 8 + expand 16 + gap 8. */
   margin: 0;
+  padding-left: 56px;
   color: var(--fk-color-text-primary);
   font-family: var(--fk-type-font-font-family-heading-primary);
   font-size: var(--fk-type-font-font-size-body-2xl);

@@ -92,6 +92,24 @@ function MatrixRow({ label, children }: { label: string; children: React.ReactNo
   );
 }
 
+/** In-specimen block title — same weight/color as MatrixRow labels, never page sectionLabel. */
+function SpecimenBlock({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={[styles.specimenBlock, className].filter(Boolean).join(" ")}>
+      <strong className={styles.specimenBlockLabel}>{label}</strong>
+      {children}
+    </section>
+  );
+}
+
 function SizeSample({
   size,
   wide = false,
@@ -677,6 +695,8 @@ export function PatternSpecimen({ slug }: { slug: string }) {
   const [showTaskModalBreadcrumb, setShowTaskModalBreadcrumb] = useState(true);
   const [viewOverlayOpen, setViewOverlayOpen] = useState(false);
   const [viewOverlayTab, setViewOverlayTab] = useState("darstellung");
+  const [orgModalView, setOrgModalView] = useState<"create" | "list" | "detail">("create");
+  const [orgModalOpen, setOrgModalOpen] = useState(false);
 
   switch (slug) {
     case "button":
@@ -728,7 +748,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
               </SizeSample>
             ))}
           </MatrixRow>
-          <MatrixRow label="Tertiary and link">
+          <MatrixRow label="Tertiary outline">
             {sizes.map((size) => (
               <SizeSample key={size} size={size}>
                 <Button buttonType="outline" intent="tertiary" size={size}>
@@ -736,7 +756,49 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                 </Button>
               </SizeSample>
             ))}
-            <Button buttonType="link">Button</Button>
+          </MatrixRow>
+          <MatrixRow label="Link (semibold, gap 6)">
+            {sizes.map((size) => (
+              <SizeSample key={size} size={size}>
+                <Button buttonType="link" size={size}>
+                  Button
+                </Button>
+              </SizeSample>
+            ))}
+          </MatrixRow>
+          <MatrixRow label="Icon-text-inline (regular, gap 4)">
+            {sizes.map((size) => (
+              <SizeSample key={size} size={size}>
+                <Button buttonType="icon-text-inline" leadingIcon="add-small" size={size}>
+                  Button
+                </Button>
+              </SizeSample>
+            ))}
+            {sizes.map((size) => (
+              <SizeSample key={`inline-trail-${size}`} size={size}>
+                <Button
+                  buttonType="icon-text-inline"
+                  size={size}
+                  trailingIcon="chevron-right-small"
+                >
+                  Button
+                </Button>
+              </SizeSample>
+            ))}
+          </MatrixRow>
+          <MatrixRow label="Icon-text-inline · tertiary (… verwalten)">
+            {sizes.map((size) => (
+              <SizeSample key={`inline-tertiary-${size}`} size={size}>
+                <Button
+                  buttonType="icon-text-inline"
+                  intent="tertiary"
+                  leadingIcon="edit"
+                  size={size}
+                >
+                  Labels verwalten
+                </Button>
+              </SizeSample>
+            ))}
           </MatrixRow>
           <MatrixRow label="Disabled and loading">
             <Button disabled>Button</Button>
@@ -795,38 +857,182 @@ export function PatternSpecimen({ slug }: { slug: string }) {
     case "card-modal":
       return (
         <div className={styles.cardModalSpecimen}>
-          <Card className={styles.referenceCard} elevated="medium">
-            <div className={styles.cardHeaderDemo}>
-              <FokunaIcon name="folder" size={24} />
-              <strong>Active Projects</strong>
-              <MetaMenu
-                items={[
-                  { label: "Bearbeiten", icon: "edit" },
-                  { label: "Löschen", icon: "delete-alt", destructive: true },
-                ]}
-              />
-            </div>
-            <p>Ein neutraler Inhaltscontainer mit Surface, Border und optionaler Elevation.</p>
-          </Card>
-          <Modal
-            description="Strukturierter Dialog auf Basis der produktiven Modal-Slots."
-            footer={
-              <>
-                <Button buttonType="outline" intent="tertiary">
-                  Abbrechen
-                </Button>
-                <Button intent="secondary">Speichern</Button>
-              </>
-            }
-            title="Active Projects"
-            trigger={
-              <Button buttonType="outline" intent="tertiary">
-                Modal öffnen
+          <SpecimenBlock label="Card">
+            <Card aria-label="Card Oberfläche" className={styles.referenceCard} elevated="medium" />
+          </SpecimenBlock>
+
+          <SpecimenBlock className={styles.organizationalModalSpecimen} label="Organizational Modal">
+            <p className={styles.specimenBlockCopy}>
+              Create → Liste → Detail auf Modal <code>size=sm</code>. Inset 32 · Titel→Body 24 ·
+              Body→Footer 32. Referenz: Kategorien/Labels.
+            </p>
+            <div className={styles.organizationalModalActions}>
+              <Button
+                buttonType="outline"
+                intent="tertiary"
+                onClick={() => {
+                  setOrgModalView("create");
+                  setOrgModalOpen(true);
+                }}
+                type="button"
+              >
+                Create öffnen
               </Button>
-            }
-          >
-            <InputGroup label="Projektname" placeholder="Projektname eingeben" />
-          </Modal>
+              <Button
+                buttonType="outline"
+                intent="tertiary"
+                onClick={() => {
+                  setOrgModalView("list");
+                  setOrgModalOpen(true);
+                }}
+                type="button"
+              >
+                Liste öffnen
+              </Button>
+              <Button
+                buttonType="outline"
+                intent="tertiary"
+                onClick={() => {
+                  setOrgModalView("detail");
+                  setOrgModalOpen(true);
+                }}
+                type="button"
+              >
+                Detail öffnen
+              </Button>
+            </div>
+
+            <Modal
+              className={styles.organizationalModal}
+              footer={
+                orgModalView === "create" ? (
+                  <>
+                    <Button
+                      buttonType="icon-text-inline"
+                      intent="tertiary"
+                      leadingIcon={<FokunaIcon name="edit" size={16} stroke={1.5} />}
+                      onClick={() => setOrgModalView("list")}
+                      type="button"
+                    >
+                      Labels verwalten
+                    </Button>
+                    <Button
+                      trailingIcon={<FokunaIcon name="chevron-right-small" size={16} stroke={1.5} />}
+                      type="button"
+                    >
+                      Label erstellen
+                    </Button>
+                  </>
+                ) : orgModalView === "list" ? (
+                  <>
+                    <Button
+                      buttonType="icon-text-inline"
+                      leadingIcon={<FokunaIcon name="add-small" size={16} stroke={1.5} />}
+                      onClick={() => setOrgModalView("create")}
+                      type="button"
+                    >
+                      Neues Label
+                    </Button>
+                    <span aria-hidden="true" />
+                  </>
+                ) : undefined
+              }
+              onOpenChange={setOrgModalOpen}
+              open={orgModalOpen}
+              size="sm"
+              title={
+                orgModalView === "create"
+                  ? "Neues Label erstellen"
+                  : orgModalView === "list"
+                    ? "Labels verwalten"
+                    : "Label bearbeiten"
+              }
+            >
+              {orgModalView === "create" ? (
+                <div className={styles.orgForm}>
+                  <InputGroup
+                    controlSize="lg"
+                    label="Name"
+                    placeholder="Name eingeben"
+                    defaultValue=""
+                  />
+                  <div className={styles.orgColorField}>
+                    <span className={styles.orgColorLabel}>Farbe</span>
+                    <div className={styles.orgSwatches} role="listbox" aria-label="Farbe">
+                      {["coral", "teal", "blue", "purple"].map((tone, index) => (
+                        <span
+                          aria-hidden="true"
+                          className={styles.orgSwatch}
+                          data-selected={index === 0 ? "true" : undefined}
+                          key={tone}
+                          style={{ background: `var(--fk-color-category-${tone})` }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+              {orgModalView === "list" ? (
+                <ul className={styles.orgCatalog}>
+                  {["Fokus", "Privat", "Warteschlange"].map((name) => (
+                    <li key={name}>
+                      <button
+                        className={styles.orgCatalogRow}
+                        onClick={() => setOrgModalView("detail")}
+                        type="button"
+                      >
+                        <FokunaIcon
+                          name="tag"
+                          size={16}
+                          stroke={1.5}
+                          style={{ color: "var(--fk-color-category-coral)" }}
+                        />
+                        <span className={styles.orgCatalogName}>{name}</span>
+                        <span aria-hidden="true" className={styles.orgChevron}>
+                          <FokunaIcon name="chevron-right" size={16} stroke={1.5} />
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {orgModalView === "detail" ? (
+                <div className={styles.orgForm}>
+                  <Button
+                    buttonType="icon-text-inline"
+                    leadingIcon={<FokunaIcon name="chevron-left" size={16} stroke={1.5} />}
+                    onClick={() => setOrgModalView("list")}
+                    type="button"
+                  >
+                    Zurück zur Liste
+                  </Button>
+                  <InputGroup controlSize="lg" defaultValue="Fokus" label="Name" />
+                  <div className={styles.orgColorField}>
+                    <span className={styles.orgColorLabel}>Farbe</span>
+                    <div className={styles.orgSwatches} role="listbox" aria-label="Farbe">
+                      {["coral", "teal", "blue", "purple"].map((tone, index) => (
+                        <span
+                          aria-hidden="true"
+                          className={styles.orgSwatch}
+                          data-selected={index === 0 ? "true" : undefined}
+                          key={tone}
+                          style={{ background: `var(--fk-color-category-${tone})` }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    buttonType="icon-text-inline"
+                    className={styles.orgDeleteAction}
+                    leadingIcon={<FokunaIcon name="delete-alt" size={16} stroke={1.5} />}
+                    type="button"
+                  >
+                    Label löschen
+                  </Button>
+                </div>
+              ) : null}
+            </Modal>
+          </SpecimenBlock>
         </div>
       );
 
@@ -2006,8 +2212,8 @@ export function PatternSpecimen({ slug }: { slug: string }) {
           <MatrixRow label="Rechtsklick-Kontextmenü">
             <div style={{ maxWidth: 480 }}>
               <p style={{ margin: "0 0 8px", fontSize: 13, color: "var(--fk-color-text-secondary)" }}>
-                Rechtsklick: Priorität, Fälligkeit und Zeitschätzung als Level-2-Submenus (Panels mit
-                DatePicker bzw. Dauer-Dropdown wie in der Modal-Rail).
+                Rechtsklick: Priorität, Fälligkeit, Zeitschätzung und Tags als Level-2-Submenus
+                (Panels wie in der Modal-Rail).
               </p>
               <TaskListItem
                 contextMenuItems={
@@ -2101,6 +2307,19 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                           </div>
                           <span style={{ fontSize: 12, color: "var(--fk-color-text-tertiary)" }}>
                             Dauer-Dropdown im Submenu
+                          </span>
+                        </div>
+                      ),
+                    },
+                    {
+                      type: "submenu",
+                      label: "Tags",
+                      icon: "tag",
+                      panel: true,
+                      content: (
+                        <div className="fk-task-tag-manager">
+                          <span style={{ fontSize: 12, color: "var(--fk-color-text-tertiary)" }}>
+                            Suche + Etikettenliste + Tags verwalten (wie Modal-Rail)
                           </span>
                         </div>
                       ),

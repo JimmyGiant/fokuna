@@ -12,6 +12,7 @@ function mapDbTask(row: typeof taskTable.$inferSelect): TaskDto {
     userId: row.userId,
     goalId: row.goalId,
     milestoneId: row.milestoneId,
+    categoryId: row.categoryId,
     parentTaskId: row.parentTaskId,
     groupKey: row.groupKey,
     title: row.title,
@@ -23,7 +24,7 @@ function mapDbTask(row: typeof taskTable.$inferSelect): TaskDto {
     isCompleted: row.isCompleted,
     completedAt: row.completedAt?.toISOString() ?? null,
     sortOrder: row.sortOrder,
-    tags: row.tags ?? [],
+    labelIds: row.labelIds ?? [],
     archivedAt: row.archivedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -101,6 +102,7 @@ export async function createTask(userId: string, input: CreateTaskInput): Promis
       userId,
       goalId: input.goalId ?? null,
       milestoneId: input.milestoneId ?? null,
+      categoryId: input.categoryId ?? null,
       parentTaskId: input.parentTaskId ?? null,
       groupKey: input.groupKey,
       title: input.title,
@@ -112,7 +114,7 @@ export async function createTask(userId: string, input: CreateTaskInput): Promis
       isCompleted: false,
       completedAt: null,
       sortOrder: existing.length,
-      tags: input.tags,
+      labelIds: input.labelIds,
       archivedAt: null,
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
@@ -129,6 +131,7 @@ export async function createTask(userId: string, input: CreateTaskInput): Promis
       userId,
       goalId: input.goalId,
       milestoneId: input.milestoneId,
+      categoryId: input.categoryId,
       parentTaskId: input.parentTaskId,
       groupKey: input.groupKey,
       title: input.title,
@@ -137,7 +140,7 @@ export async function createTask(userId: string, input: CreateTaskInput): Promis
       estimateMinutes: input.estimateMinutes,
       dueDate: input.dueDate,
       isFavorite: input.isFavorite,
-      tags: input.tags,
+      labelIds: input.labelIds,
       sortOrder: 0,
     })
     .returning();
@@ -169,11 +172,12 @@ export async function updateTask(
       description: input.description === undefined ? existing.description : input.description,
       goalId: input.goalId === undefined ? existing.goalId : input.goalId,
       milestoneId: input.milestoneId === undefined ? existing.milestoneId : input.milestoneId,
+      categoryId: input.categoryId === undefined ? existing.categoryId : input.categoryId,
       parentTaskId: input.parentTaskId === undefined ? existing.parentTaskId : input.parentTaskId,
       estimateMinutes:
         input.estimateMinutes === undefined ? existing.estimateMinutes : input.estimateMinutes,
       dueDate: input.dueDate === undefined ? existing.dueDate : input.dueDate,
-      tags: input.tags === undefined ? existing.tags : input.tags,
+      labelIds: input.labelIds === undefined ? existing.labelIds : input.labelIds,
       isCompleted: nextCompleted,
       completedAt: nextCompleted ? (existing.completedAt ?? now.toISOString()) : null,
       updatedAt: now.toISOString(),
@@ -192,12 +196,13 @@ export async function updateTask(
   if (input.groupKey !== undefined) patch.groupKey = input.groupKey;
   if (input.goalId !== undefined) patch.goalId = input.goalId;
   if (input.milestoneId !== undefined) patch.milestoneId = input.milestoneId;
+  if (input.categoryId !== undefined) patch.categoryId = input.categoryId;
   if (input.parentTaskId !== undefined) patch.parentTaskId = input.parentTaskId;
   if (input.priority !== undefined) patch.priority = input.priority;
   if (input.estimateMinutes !== undefined) patch.estimateMinutes = input.estimateMinutes;
   if (input.dueDate !== undefined) patch.dueDate = input.dueDate;
   if (input.isFavorite !== undefined) patch.isFavorite = input.isFavorite;
-  if (input.tags !== undefined) patch.tags = input.tags;
+  if (input.labelIds !== undefined) patch.labelIds = input.labelIds;
   if (input.sortOrder !== undefined) patch.sortOrder = input.sortOrder;
   if (input.isCompleted !== undefined) {
     patch.isCompleted = nextCompleted;

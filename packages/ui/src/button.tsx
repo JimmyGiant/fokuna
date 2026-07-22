@@ -5,7 +5,8 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "./utils";
 
 export type ButtonIntent = "primary" | "secondary" | "tertiary";
-export type ButtonType = "primary" | "outline" | "link";
+/** `icon-text-inline`: quiet text+icon utility (Figma type=icon-text-inline). */
+export type ButtonType = "primary" | "outline" | "link" | "icon-text-inline";
 export type ControlSize = "sm" | "md" | "lg" | "xl";
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -53,7 +54,12 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   const Component = asChild ? Slot.Root : "button";
   const isDisabled = disabled || loading;
   const iconSize = size === "lg" || size === "xl" ? 24 : 16;
-  const trailingFallback = "chevron-right-small";
+  /** Text utilities always use design stroke 1.5. */
+  const textUtilityStroke =
+    buttonType === "icon-text-inline" || buttonType === "link" ? (1.5 as const) : undefined;
+  /** icon-text-inline is explicit icons only; other types keep the chevron default. */
+  const trailingFallback =
+    buttonType === "icon-text-inline" ? undefined : "chevron-right-small";
 
   return (
     <Component
@@ -72,13 +78,23 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
         <span aria-hidden="true" className="fk-spinner" />
       ) : (
         <span className="fk-button__icon fk-button__icon--leading" data-slot="leading-icon">
-          {renderIcon(leadingIcon, iconSize, iconOnly ? "add-small" : undefined)}
+          {renderIcon(
+            leadingIcon,
+            iconSize,
+            iconOnly ? "add-small" : undefined,
+            textUtilityStroke,
+          )}
         </span>
       )}
       {iconOnly ? <span className="fk-sr-only">{children}</span> : children}
       {!iconOnly ? (
         <span className="fk-button__icon fk-button__icon--trailing" data-slot="trailing-icon">
-          {renderIcon(trailingIcon, iconSize, trailingFallback, iconSize === 24 ? 2 : undefined)}
+          {renderIcon(
+            trailingIcon,
+            iconSize,
+            trailingFallback,
+            textUtilityStroke ?? (iconSize === 24 ? 2 : undefined),
+          )}
         </span>
       ) : null}
     </Component>

@@ -1,6 +1,6 @@
 "use client";
 
-import type { TaskDto } from "@fokuna/api-contracts";
+import type { LabelDto, TaskDto } from "@fokuna/api-contracts";
 import { FokunaIcon } from "@fokuna/icons";
 import {
   Breadcrumb,
@@ -8,7 +8,6 @@ import {
   DatePicker,
   Dropdown,
   MetaMenu,
-  SearchField,
   Tag,
   TaskGroup,
   TaskListItem,
@@ -17,43 +16,13 @@ import {
   TaskModalMenu,
   TaskModalSlot,
 } from "@fokuna/ui";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useMemo, useState } from "react";
 
+import { useTaskTaxonomy } from "./aufgaben-shell";
 import styles from "./task-detail-modal.module.css";
+import { colorTokenToTone } from "./taxonomy";
+import { TaskTagsMenuPanel } from "./task-property-editor";
 import { estimateOptions, priorityOptions } from "./task-property-options";
-
-const tagCatalog = [
-  {
-    label: "Admin",
-    tone: "teal" as const,
-    color: "var(--fk-color-category-teal)",
-    surface: "var(--fk-color-category-teal-10)",
-  },
-  {
-    label: "Launch",
-    tone: "coral" as const,
-    color: "var(--fk-color-category-coral)",
-    surface: "var(--fk-color-category-coral-10)",
-  },
-  {
-    label: "Training",
-    tone: "blue" as const,
-    color: "var(--fk-color-category-blue)",
-    surface: "var(--fk-color-category-blue-10)",
-  },
-  {
-    label: "Fokus",
-    tone: "purple" as const,
-    color: "var(--fk-color-category-purple)",
-    surface: "var(--fk-color-category-purple-10)",
-  },
-  {
-    label: "Etikettenname",
-    tone: "neutral" as const,
-    color: "var(--fk-color-icon-tertiary)",
-    surface: "var(--fk-color-surface-subtle)",
-  },
-];
 
 type OpenProperty = "priority" | "due-date" | "estimate" | "tags" | null;
 
@@ -87,6 +56,7 @@ export function TaskDetailModal({
   onUpdate,
   onCreateSubtask,
   onDelete,
+  onManageLabels,
 }: {
   open: boolean;
   task: TaskDto | null;
@@ -106,9 +76,11 @@ export function TaskDetailModal({
     description?: string;
   }) => Promise<void>;
   onDelete: (taskId: string) => Promise<void>;
+  /** Close this modal first, then open label management (avoids stacked dialogs). */
+  onManageLabels?: () => void;
 }) {
+  const { labelsById } = useTaskTaxonomy();
   const [openProperty, setOpenProperty] = useState<OpenProperty>(null);
-  const [tagQuery, setTagQuery] = useState("");
 
   const selectablePriorities = priorityOptions;
   const displayPriority = task?.priority === "high" ? "urgent" : (task?.priority ?? "none");
@@ -117,13 +89,26 @@ export function TaskDetailModal({
     priorityOptions.find((option) => option.value === "none");
   const dueDate = task?.dueDate ? new Date(`${task.dueDate}T12:00:00`) : undefined;
   const estimate = task?.estimateMinutes ? String(task.estimateMinutes) : undefined;
-  const selectedTags = task?.tags ?? [];
+  const selectedLabelIds = task?.labelIds ?? [];
 
-  const filteredTags = useMemo(() => {
-    const query = tagQuery.trim().toLowerCase();
-    if (!query) return tagCatalog;
-    return tagCatalog.filter((tag) => tag.label.toLowerCase().includes(query));
-  }, [tagQuery]);
+  const selectedLabels = useMemo(
+    () =>
+      selectedLabelIds
+        .map((id) => labelsById.get(id))
+        .filter((label): label is LabelDto => Boolean(label))
+        .map((label) => ({
+          id: label.id,
+          name: label.name,
+          tone: colorTokenToTone(label.colorToken),
+        })),
+    [labelsById, selectedLabelIds],
+  );
+
+  function resolveLabelNames(labelIds: string[]): string[] {
+    return labelIds
+      .map((id) => labelsById.get(id)?.name)
+      .filter((name): name is string => Boolean(name));
+  }
 
   const breadcrumb = useMemo(() => {
     if (!task || !breadcrumbItems?.length) return undefined;
@@ -350,64 +335,39 @@ export function TaskDetailModal({
                 label: "Tags",
                 onOpenChange: (next) => setOpenProperty(next ? "tags" : null),
                 open: openProperty === "tags",
-                value: selectedTags.length ? (
+                value: selectedLabels.length ? (
                   <div aria-label="Ausgewählte Etiketten" className="fk-task-rail-tags">
-                    {tagCatalog
-                      .filter((tag) => selectedTags.includes(tag.label))
-                      .map((tag) => (
-                        <Tag
-                          icon="tag"
-                          key={tag.label}
-                          onRemove={() =>
-                            void onUpdate(task.id, {
-                              tags: selectedTags.filter((label) => label !== tag.label),
-                            })
-                          }
-                          removable
-                          size="sm"
-                          tone={tag.tone}
-                        >
-                          {tag.label}
-                        </Tag>
-                      ))}
+                    {selectedLabels.map((tag) => (
+                      <Tag
+                        icon="tag"
+                        key={tag.id}
+                        onRemove={() =>
+                          void onUpdate(task.id, {
+                            labelIds: selectedLabelIds.filter((id) => id !== tag.id),
+                          })
+                        }
+                        removable
+                        size="sm"
+                        tone={tag.tone}
+                      >
+                        {tag.name}
+                      </Tag>
+                    ))}
                   </div>
                 ) : undefined,
                 content: (
-                  <div className="fk-task-tag-manager">
-                    <SearchField
-                      aria-label="Tags durchsuchen"
-                      collapsedWidth={278}
-                      controlSize="md"
-                      expandedWidth={278}
-                      onChange={(event) => setTagQuery(event.target.value)}
-                      placeholder="Etikett suchen oder erstellen ..."
-                      value={tagQuery}
-                    />
-                    <div aria-label="Etiketten" className="fk-task-tag-manager__list">
-                      {filteredTags.map((tag) => (
-                        <button
-                          aria-pressed={selectedTags.includes(tag.label)}
-                          data-selected={selectedTags.includes(tag.label) || undefined}
-                          key={tag.label}
-                          onClick={() =>
-                            void onUpdate(task.id, {
-                              tags: selectedTags.includes(tag.label)
-                                ? selectedTags.filter((label) => label !== tag.label)
-                                : [...selectedTags, tag.label],
-                            })
+                  <TaskTagsMenuPanel
+                    onManageLabels={
+                      onManageLabels
+                        ? () => {
+                            setOpenProperty(null);
+                            onManageLabels();
                           }
-                          style={{ "--task-tag-surface": tag.surface } as CSSProperties}
-                          type="button"
-                        >
-                          <FokunaIcon name="tag" size={16} style={{ color: tag.color }} />
-                          <span>{tag.label}</span>
-                          {selectedTags.includes(tag.label) ? (
-                            <FokunaIcon name="check-small" size={16} stroke={2} />
-                          ) : null}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                        : undefined
+                    }
+                    onUpdate={onUpdate}
+                    task={task}
+                  />
                 ),
               },
             ]}
@@ -438,7 +398,7 @@ export function TaskDetailModal({
                 onCompletedChange={(completed) =>
                   void onUpdate(subtask.id, { isCompleted: completed })
                 }
-                tags={subtask.tags}
+                tags={resolveLabelNames(subtask.labelIds)}
                 title={subtask.title}
               />
             ))}

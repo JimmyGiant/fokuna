@@ -89,6 +89,22 @@ export const category = pgTable(
   (table) => [uniqueIndex("category_user_name_idx").on(table.userId, table.name)],
 );
 
+export const label = pgTable(
+  "label",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    colorToken: text("color_token").notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("label_user_name_idx").on(table.userId, table.name)],
+);
+
 export const goal = pgTable("goal", {
   id: text("id").primaryKey(),
   userId: text("user_id")
@@ -132,6 +148,7 @@ export const task = pgTable("task", {
   milestoneId: text("milestone_id").references(() => milestone.id, {
     onDelete: "set null",
   }),
+  categoryId: text("category_id").references(() => category.id, { onDelete: "set null" }),
   parentTaskId: text("parent_task_id"),
   groupKey: text("group_key").notNull().default("inbox"),
   title: text("title").notNull(),
@@ -143,7 +160,7 @@ export const task = pgTable("task", {
   isCompleted: boolean("is_completed").notNull().default(false),
   completedAt: timestamp("completed_at", { withTimezone: true }),
   sortOrder: integer("sort_order").notNull().default(0),
-  tags: jsonb("tags").$type<string[]>().notNull().default([]),
+  labelIds: jsonb("label_ids").$type<string[]>().notNull().default([]),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -298,4 +315,12 @@ export const milestoneRelations = relations(milestone, ({ one, many }) => ({
 export const taskRelations = relations(task, ({ one }) => ({
   goal: one(goal, { fields: [task.goalId], references: [goal.id] }),
   milestone: one(milestone, { fields: [task.milestoneId], references: [milestone.id] }),
+  category: one(category, { fields: [task.categoryId], references: [category.id] }),
 }));
+
+export const categoryRelations = relations(category, ({ many }) => ({
+  tasks: many(task),
+  blocks: many(block),
+}));
+
+export const labelRelations = relations(label, () => ({}));

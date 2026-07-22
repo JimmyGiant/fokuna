@@ -25,6 +25,7 @@ export interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   size?: "sm" | "md" | "lg";
+  className?: string;
 }
 
 export function Modal({
@@ -38,13 +39,14 @@ export function Modal({
   children,
   footer,
   size = "md",
+  className,
 }: ModalProps) {
   return (
     <Dialog.Root defaultOpen={defaultOpen} onOpenChange={onOpenChange} open={open}>
       {trigger ? <Dialog.Trigger asChild>{trigger}</Dialog.Trigger> : null}
       <Dialog.Portal>
         <Dialog.Overlay className="fk-modal__overlay" />
-        <Dialog.Content className="fk-modal" data-size={size}>
+        <Dialog.Content className={cn("fk-modal", className)} data-size={size}>
           <header className="fk-modal__header">
             <span className="fk-modal__heading">
               {icon}
@@ -58,7 +60,8 @@ export function Modal({
               </span>
             </span>
             <Dialog.Close aria-label="Dialog schließen" className="fk-modal__close">
-              <FokunaIcon name="close" />
+              {/* 24px @ 1.5 matches design weight; 16px viewBox-scaled looks ~1px thin. */}
+              <FokunaIcon name="close" size={24} stroke={1.5} />
             </Dialog.Close>
           </header>
           <div className="fk-modal__body">{children}</div>

@@ -1,4 +1,4 @@
-import type { TaskDto } from "@fokuna/api-contracts";
+import type { CategoryDto, LabelDto, TaskDto } from "@fokuna/api-contracts";
 import { createId } from "@fokuna/domain";
 
 import { ensureDemoSeedUser } from "./demo-auth";
@@ -95,6 +95,8 @@ export interface MemoryIntegration {
 
 interface MemoryStore {
   tasks: Map<string, TaskDto>;
+  categories: Map<string, CategoryDto>;
+  labels: Map<string, LabelDto>;
   goals: Map<string, MemoryGoal>;
   blocks: Map<string, MemoryBlock>;
   calendarEntries: Map<string, MemoryCalendarEntry>;
@@ -109,11 +111,13 @@ const globalStore = globalThis as typeof globalThis & {
   __fokunaMemoryStoreVersion?: number;
 };
 
-const MEMORY_STORE_VERSION = 7;
+const MEMORY_STORE_VERSION = 8;
 
 function createStore(): MemoryStore {
   const store: MemoryStore = {
     tasks: new Map(),
+    categories: new Map(),
+    labels: new Map(),
     goals: new Map(),
     blocks: new Map(),
     calendarEntries: new Map(),
@@ -129,6 +133,74 @@ function createStore(): MemoryStore {
   const tomorrowDate = new Date();
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);
   const tomorrow = tomorrowDate.toISOString().slice(0, 10);
+
+  const buyCategoryId = createId("cat");
+  store.categories.set(buyCategoryId, {
+    id: buyCategoryId,
+    userId: demoUser.id,
+    name: "Kaufen",
+    colorToken: "category.teal",
+    icon: null,
+    sortOrder: 0,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const rentCategoryId = createId("cat");
+  store.categories.set(rentCategoryId, {
+    id: rentCategoryId,
+    userId: demoUser.id,
+    name: "Mieten",
+    colorToken: "category.coral",
+    icon: null,
+    sortOrder: 1,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const labelEtikett = createId("label");
+  store.labels.set(labelEtikett, {
+    id: labelEtikett,
+    userId: demoUser.id,
+    name: "Etikettenname",
+    colorToken: "category.coral",
+    sortOrder: 0,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const labelLaunch = createId("label");
+  store.labels.set(labelLaunch, {
+    id: labelLaunch,
+    userId: demoUser.id,
+    name: "Launch",
+    colorToken: "category.teal",
+    sortOrder: 1,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const labelTraining = createId("label");
+  store.labels.set(labelTraining, {
+    id: labelTraining,
+    userId: demoUser.id,
+    name: "Training",
+    colorToken: "category.blue",
+    sortOrder: 2,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const labelFocus = createId("label");
+  store.labels.set(labelFocus, {
+    id: labelFocus,
+    userId: demoUser.id,
+    name: "Fokus",
+    colorToken: "category.purple",
+    sortOrder: 3,
+    createdAt: now,
+    updatedAt: now,
+  });
 
   const goalId = createId("goal");
   store.goals.set(goalId, {
@@ -160,6 +232,21 @@ function createStore(): MemoryStore {
     updatedAt: now,
   });
 
+  const novelGoalId = createId("goal");
+  store.goals.set(novelGoalId, {
+    id: novelGoalId,
+    userId: demoUser.id,
+    title: "Roman schreiben",
+    description: null,
+    motivation: null,
+    status: "active",
+    imageUrl: null,
+    onboardingStep: null,
+    sortOrder: 2,
+    createdAt: now,
+    updatedAt: now,
+  });
+
   // All demo tasks land in inbox — no legacy `root` / Abschnitt buckets.
   const inboxTaskId = createId("task");
   store.tasks.set(inboxTaskId, {
@@ -167,6 +254,7 @@ function createStore(): MemoryStore {
     userId: demoUser.id,
     goalId: null,
     milestoneId: null,
+    categoryId: null,
     parentTaskId: null,
     groupKey: "inbox",
     title: "Kalender-Sync spezifizieren",
@@ -178,7 +266,7 @@ function createStore(): MemoryStore {
     isCompleted: false,
     completedAt: null,
     sortOrder: 0,
-    tags: ["Etikettenname"],
+    labelIds: [labelEtikett],
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -190,6 +278,7 @@ function createStore(): MemoryStore {
     userId: demoUser.id,
     goalId: null,
     milestoneId: null,
+    categoryId: buyCategoryId,
     parentTaskId: null,
     groupKey: "inbox",
     title: "Release-Notes skizzieren",
@@ -201,7 +290,7 @@ function createStore(): MemoryStore {
     isCompleted: false,
     completedAt: null,
     sortOrder: 1,
-    tags: ["Launch"],
+    labelIds: [labelLaunch],
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -213,6 +302,7 @@ function createStore(): MemoryStore {
     userId: demoUser.id,
     goalId: marathonGoalId,
     milestoneId: null,
+    categoryId: rentCategoryId,
     parentTaskId: null,
     groupKey: "inbox",
     title: "Trainingsplan finalisieren",
@@ -224,7 +314,7 @@ function createStore(): MemoryStore {
     isCompleted: false,
     completedAt: null,
     sortOrder: 2,
-    tags: ["Training", "Fokus"],
+    labelIds: [labelTraining, labelFocus],
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -236,6 +326,7 @@ function createStore(): MemoryStore {
     userId: demoUser.id,
     goalId: marathonGoalId,
     milestoneId: null,
+    categoryId: rentCategoryId,
     parentTaskId: nestedParentId,
     groupKey: "inbox",
     title: "Intervall-Einheiten eintragen",
@@ -247,7 +338,7 @@ function createStore(): MemoryStore {
     isCompleted: false,
     completedAt: null,
     sortOrder: 0,
-    tags: [],
+    labelIds: [],
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -259,6 +350,7 @@ function createStore(): MemoryStore {
     userId: demoUser.id,
     goalId: marathonGoalId,
     milestoneId: null,
+    categoryId: rentCategoryId,
     parentTaskId: subtaskA,
     groupKey: "inbox",
     title: "Dienstag 8x1000m planen",
@@ -270,7 +362,7 @@ function createStore(): MemoryStore {
     isCompleted: false,
     completedAt: null,
     sortOrder: 0,
-    tags: [],
+    labelIds: [],
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -282,6 +374,7 @@ function createStore(): MemoryStore {
     userId: demoUser.id,
     goalId: marathonGoalId,
     milestoneId: null,
+    categoryId: rentCategoryId,
     parentTaskId: nestedParentId,
     groupKey: "inbox",
     title: "Regeneration planen",
@@ -293,7 +386,31 @@ function createStore(): MemoryStore {
     isCompleted: false,
     completedAt: null,
     sortOrder: 1,
-    tags: [],
+    labelIds: [],
+    archivedAt: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const rentTaskId = createId("task");
+  store.tasks.set(rentTaskId, {
+    id: rentTaskId,
+    userId: demoUser.id,
+    goalId: null,
+    milestoneId: null,
+    categoryId: rentCategoryId,
+    parentTaskId: null,
+    groupKey: "inbox",
+    title: "Mietvertrag prüfen",
+    description: null,
+    priority: "medium",
+    estimateMinutes: 40,
+    dueDate: null,
+    isFavorite: false,
+    isCompleted: false,
+    completedAt: null,
+    sortOrder: 3,
+    labelIds: [labelEtikett],
     archivedAt: null,
     createdAt: now,
     updatedAt: now,
@@ -304,7 +421,7 @@ function createStore(): MemoryStore {
     id: blockDeep,
     userId: demoUser.id,
     goalId,
-    categoryId: null,
+    categoryId: buyCategoryId,
     title: "Deep Work",
     description: "Fokussierter Schreibblock",
     durationMinutes: 50,

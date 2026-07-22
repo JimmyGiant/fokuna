@@ -18,6 +18,7 @@ export interface TaskEntity {
   userId: string;
   goalId: string | null;
   milestoneId: string | null;
+  categoryId: string | null;
   parentTaskId: string | null;
   groupKey: string;
   title: string;
@@ -29,8 +30,29 @@ export interface TaskEntity {
   isCompleted: boolean;
   completedAt: string | null;
   sortOrder: number;
-  tags: string[];
+  labelIds: string[];
   archivedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CategoryEntity {
+  id: string;
+  userId: string;
+  name: string;
+  colorToken: string;
+  icon: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LabelEntity {
+  id: string;
+  userId: string;
+  name: string;
+  colorToken: string;
+  sortOrder: number;
   createdAt: string;
   updatedAt: string;
 }

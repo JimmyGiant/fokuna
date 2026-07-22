@@ -131,18 +131,58 @@
     color: var(--fk-color-text-primary);
   }
 
+  /* Figma type=link — semibold label, 6px icon gap, no horizontal padding. */
   .fk-button[data-type="link"] {
     background: transparent;
     border-color: transparent;
     box-shadow: none;
     color: var(--fk-color-text-primary);
-    padding-inline: 4px;
+    gap: 6px;
+    justify-content: flex-start;
+    max-width: 100%;
+    min-width: 0;
+    padding-inline: 0;
     text-shadow: none;
+    width: max-content;
   }
 
   .fk-button[data-type="link"]:hover:not(:disabled) {
     background: transparent;
     color: var(--fk-color-text-action-primary-hover);
+  }
+
+  /*
+   * Figma type=icon-text-inline — quiet text+icon utility for secondary modal
+   * actions (manage, back, delete). Regular weight, tighter 4px icon gap.
+   */
+  .fk-button[data-type="icon-text-inline"] {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: var(--fk-color-text-primary);
+    font-weight: 400;
+    gap: 4px;
+    /* Shrink-wrap so grid/flex parents don't stretch + center the label. */
+    justify-content: flex-start;
+    max-width: 100%;
+    min-width: 0;
+    padding-inline: 0;
+    text-shadow: none;
+    width: max-content;
+  }
+
+  .fk-button[data-type="icon-text-inline"]:hover:not(:disabled) {
+    background: transparent;
+    color: var(--fk-color-text-action-primary-hover);
+  }
+
+  /* Quiet manage/utility links (… verwalten) — softer than default primary text. */
+  .fk-button[data-type="icon-text-inline"][data-intent="tertiary"] {
+    color: var(--fk-color-text-tertiary);
+  }
+
+  .fk-button[data-type="icon-text-inline"][data-intent="tertiary"]:hover:not(:disabled) {
+    color: var(--fk-color-text-secondary);
   }
 
   .fk-button[data-icon-only="true"] {
@@ -176,7 +216,11 @@
     gap: 8px;
   }
 
-  .fk-button[data-size="sm"]:not([data-icon-only="true"]) .fk-button__icon {
+  /* Keep icon slots for link / icon-text-inline at sm (Figma shows icons there). */
+  .fk-button[data-size="sm"]:not([data-icon-only="true"]):not([data-type="link"]):not(
+      [data-type="icon-text-inline"]
+    )
+    .fk-button__icon {
     display: none;
   }
 
@@ -193,8 +237,20 @@
   }
 
   .fk-button[data-type="outline"] .fk-button__icon,
-  .fk-button[data-type="link"] .fk-button__icon {
+  .fk-button[data-type="link"] .fk-button__icon,
+  .fk-button[data-type="icon-text-inline"] .fk-button__icon {
     filter: none;
+  }
+
+  /* lg/xl filled buttons use 8px gap; text utilities keep their own gaps. */
+  .fk-button[data-type="link"][data-size="lg"],
+  .fk-button[data-type="link"][data-size="xl"] {
+    gap: 6px;
+  }
+
+  .fk-button[data-type="icon-text-inline"][data-size="lg"],
+  .fk-button[data-type="icon-text-inline"][data-size="xl"] {
+    gap: 4px;
   }
 
   .fk-spinner {
@@ -2435,6 +2491,7 @@
     z-index: 80;
   }
 
+  /* Pattern 03: slot-modal — outer border + inset Schmucklinie, no header/footer rules. */
   .fk-modal {
     animation: fk-dialog-in var(--fk-motion-duration-slow) var(--fk-motion-ease-enter);
     background: var(--fk-color-surface-base);
@@ -2453,6 +2510,21 @@
     z-index: 90;
   }
 
+  .fk-modal::after {
+    background: linear-gradient(to bottom, rgb(255 255 255 / 16%), rgb(0 0 0 / 4%)) border-box;
+    border: 1px solid transparent;
+    border-radius: calc(var(--fk-radius-global-radius-card) - 4px);
+    content: "";
+    inset: 8px;
+    mask:
+      linear-gradient(#000 0 0) padding-box,
+      linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    position: absolute;
+    z-index: 1;
+  }
+
   .fk-modal[data-size="sm"] {
     width: min(420px, calc(100vw - 32px));
   }
@@ -2468,10 +2540,8 @@
     gap: 16px;
     justify-content: space-between;
     padding: 20px 24px;
-  }
-
-  .fk-modal__header {
-    border-bottom: 1px solid var(--fk-color-border-default);
+    position: relative;
+    z-index: 2;
   }
 
   .fk-modal__heading {
@@ -2520,11 +2590,16 @@
 
   .fk-modal__body {
     overflow: auto;
-    padding: 24px;
+    padding: 8px 24px 16px;
+    position: relative;
+    z-index: 2;
   }
 
   .fk-modal__footer {
-    border-top: 1px solid var(--fk-color-border-default);
+    justify-content: space-between;
+  }
+
+  .fk-modal__footer:has(> :only-child) {
     justify-content: flex-end;
   }
 
@@ -3307,6 +3382,11 @@
     background: var(--fk-color-surface-muted);
   }
 
+  .fk-sidebar__secondary-list a[data-drop-over="true"] {
+    background: var(--fk-color-surface-action-secondary, var(--fk-color-surface-muted));
+    box-shadow: inset 0 0 0 1.5px var(--fk-color-border-action, var(--fk-color-border-strong));
+  }
+
   .fk-sidebar__secondary-list--nav a[aria-current="page"] > svg {
     color: var(--fk-color-icon-action-secondary);
   }
@@ -3333,7 +3413,7 @@
 
   /*
    * Shared trailing 16px column so section chevrons sit directly above item counts.
-   * Header: title | plus | chevron
+   * Header: title | [edit] | plus | chevron
    * Item:   icon  | label | count
    */
   .fk-sidebar__secondary-section > header {
@@ -3347,6 +3427,10 @@
     line-height: var(--fk-type-font-line-height-label-sm);
     min-height: 36px;
     padding: 8px;
+  }
+
+  .fk-sidebar__secondary-section[data-has-manage] > header {
+    grid-template-columns: minmax(0, 1fr) 16px 16px 16px;
   }
 
   .fk-sidebar__secondary-section > header > strong {
@@ -4586,9 +4670,31 @@
   }
 
   .fk-task-modal-menu__copy {
-    align-items: start;
-    display: grid;
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
     min-width: 0;
+  }
+
+  .fk-task-modal-menu__label-action {
+    display: inline-flex;
+  }
+
+  .fk-task-modal-menu__label-action > button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    color: var(--fk-color-icon-tertiary);
+    cursor: pointer;
+    display: inline-flex;
+    height: 16px;
+    justify-content: center;
+    padding: 0;
+    width: 16px;
+  }
+
+  .fk-task-modal-menu__label-action > button:hover {
+    color: var(--fk-color-icon-primary);
   }
 
   .fk-task-modal-menu__preview {
@@ -4839,6 +4945,11 @@
     color: var(--fk-color-icon-primary);
     grid-column: 3;
     justify-self: end;
+  }
+
+  .fk-task-tag-manager__manage {
+    justify-self: end;
+    margin-top: 4px;
   }
 
   .fk-date-picker--inline {

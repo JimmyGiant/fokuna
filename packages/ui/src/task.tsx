@@ -802,6 +802,8 @@ export interface TaskModalMenuItem {
   defaultOpen?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /** Optional action next to the row label (e.g. manage catalog). */
+  labelAction?: ReactNode;
 }
 
 export interface TaskModalMenuProps extends HTMLAttributes<HTMLElement> {
@@ -822,6 +824,19 @@ export function TaskModalMenu({ items, footer, className, ...props }: TaskModalM
           >
             <span className="fk-task-modal-menu__copy">
               <span>{item.label}</span>
+              {item.labelAction ? (
+                <span
+                  className="fk-task-modal-menu__label-action"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                  }}
+                  onKeyDown={(event) => event.stopPropagation()}
+                  onPointerDown={(event) => event.stopPropagation()}
+                >
+                  {item.labelAction}
+                </span>
+              ) : null}
             </span>
             <FokunaIcon name="add-small" />
           </button>

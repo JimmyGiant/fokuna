@@ -1,6 +1,6 @@
 # Fokuna Pattern Library Uebersicht
 
-Stand: 18. Juli 2026  
+Stand: 22. Juli 2026  
 Quelle: Figma-Datei `UI Design | Fokuna`, Bereich `Pattern Library`
 
 ## Zweck
@@ -40,12 +40,13 @@ Die Button-Komponente ist die zentrale Aktionskomponente der App. Sie bildet ver
 Varianten und Properties:
 
 - `intent`: `primary`, `secondary`, `tertiary`, `ghost` bzw. outline/low emphasis je nach Figma-Set.
+- `type` / `buttonType`: `primary` (flaechig), `outline`, `link`, `icon-text-inline`.
 - `size`: an der Control-Hoehenleiter ausrichten, typischerweise `sm=28px`, `md=32px`, `lg=40px`, optional `xl=48px`, sofern in der Komponente vorhanden.
 - `state`: `default`, `hover`, `pressed`, `disabled`, ggf. `loading`.
 - `icon only`: Variante ohne Text; benoetigt trotzdem ein technisches Label.
 - `leading icon`: optionaler linker Icon-Slot, standardmaessig bei vielen Buttons ausblendbar.
 - `trailing icon`: optionaler rechter Icon-Slot, haeufig Chevron Right fuer Weiter/Mehr.
-- `label`: Textinhalt, immer semibold fuer Button-Typografie.
+- `label`: Textinhalt; bei flaechigen/outline/`link` semibold, bei `icon-text-inline` regular (Body).
 
 States:
 
@@ -63,6 +64,8 @@ Wichtig fuer Umsetzung:
 - `tertiary` passt zu Dropdown-, Toolbar- und ruhigen Utility-Buttons: helle Flaeche (`surface/base`), `border/default`, `text/primary`, `icon/primary` und Micro Shadow. Hover wechselt auf `border/strong`.
 - `ghost` ist fuer niedrig priorisierte Aktionen ohne dominante Flaeche gedacht.
 - Flaechige Buttons und Outline-`tertiary` erhalten den Micro Shadow; Outline primary/secondary sowie Ghost nicht.
+- `link`: Text+Icon ohne Flaeche, Label/Semibold, Icon-Gap 6 px, kein horizontales Padding; Standard-Trailing-Chevron.
+- `icon-text-inline`: ruhige Text+Icon-Utility (z. B. Zurueck, Neues …, Loeschen in Modals), Body/Regular, Icon-Gap 4 px, kein horizontales Padding, kein Default-Chevron; schrumpft auf Inhalt (`width: max-content`), Icons Stroke `1.5` (Loeschen: `delete-alt`, nicht das Fill-`delete`). Default-Farbe `text/primary`; fuer abgeschwaechte Manage-Links (`… verwalten`) `intent=tertiary` → `text/tertiary` (Hover `text/secondary`).
 - Leading- und Trailing-Icon-Slots nicht durch feste Icons ersetzen.
 - Icon-only Buttons muessen klare `aria-labels` erhalten.
 
@@ -100,15 +103,16 @@ Wichtig fuer Umsetzung:
 
 Screenshot: [03_Cards_Slots_and_Modal.png](03_Cards_Slots_and_Modal.png)
 
-Diese Seite definiert Karten- und Modalgrundlagen. Cards bilden wiederkehrende Inhaltscontainer; Modal Slots dienen als strukturelle Grundlage fuer Dialoge und Overlays. Sie sind weniger einzelne Feature-Komponenten als Layout-Bausteine fuer konsistente Flaechen, Header, Footer und Actions.
+Diese Seite definiert Karten- und Modalgrundlagen. Cards bilden wiederkehrende Inhaltscontainer; der produktive Modal-Slot (`Modal`) liefert Header, Body und Footer. **Referenzbeispiel fuer Dialoge auf diesem Slot ist das Organizational Modal** (Create → Liste → Detail) — ausgereifte Verwaltungscomposition fuer Kategorien, Labels und gleichartige Kataloge. Neue organisatorische Dialoge sollen diesen Contract wiederverwenden.
 
 Varianten und Properties:
 
-- `card`: Basiscontainer fuer Inhalte, meist mit Surface, Border und optionalem Shadow.
-- `slot - modal`: Grundstruktur fuer modale Fenster.
+- `card`: Basiscontainer fuer Inhalte, meist mit Surface, Border und optionalem Shadow (`elevated`: none/micro/subtle/medium/highlight).
+- `slot - modal` / `Modal`: Shell mit Header, Body, Footer; Organizational Modal setzt darauf den Verwaltungs-Spacing-Contract.
 - `header`: Titelbereich mit optionalem Icon und Close-Action.
 - `body`: frei belegbarer Inhaltsbereich.
 - `footer/actions`: Button-Zeile mit Primaer- und Sekundaeraktion.
+- `size`: `sm` (420 px), Default (~560 px), `lg` (760 px); Organizational Modal nutzt `sm`.
 
 States:
 
@@ -119,13 +123,60 @@ States:
 - `modal open`: Overlay sichtbar, Hintergrund View bleibt kontextuell erhalten und wird abgedimmt.
 - `modal closing/cancel`: technisch als Schliessen ueber X, Backdrop oder Sekundaeraktion abbildbar.
 
+Card:
+
+- Neutrale Flaeche: `surface/base`, Card-Radius, optionale Elevation (Referenz: medium Shadow).
+- Inhalt kommt von aussen; die leere Card im Specimen zeigt nur die Oberflaeche.
+- Keine verschachtelten Karten, wenn eine Section oder Gruppe reicht.
+
+Organizational Modal — Einsatz:
+
+- Kurze Katalog-/Taxonomie-Verwaltung (Anlegen, Listen, Bearbeiten, Loeschen), nicht fuer Task-Detail oder Fullscreen-Edit.
+- Shell: produktives `Modal` (`@fokuna/ui`), nicht Task-Modal-Slot und nicht View Overlay.
+- Referenzimplementierung: Kategorien/Labels (`TaxonomyCreateModal` / `TaxonomyOrganizeModal`).
+- Gleiche Reise fuer neue organisatorische Entitaeten (z. B. Abschnitte, spaetere Kataloge): Create-Dialog, Organize-Liste, Detail-Formular.
+
+Organizational Modal — Shell und Abstaende:
+
+- Ausseninset um den Inhalt: `32 px` (Header/Body/Footer horizontal und vertikal).
+- Abstand Titel → erstes Body-Element: `24 px` (Header-Padding `32 px 32 px 24 px`).
+- Abstand letztes Body-Element → Footer-Aktionen: `32 px` (Footer-Padding `32 px`; Body ohne unteres Padding, wenn Footer vorhanden).
+- Ohne Footer: Body unten ebenfalls `32 px`.
+- Form-/Detail-Innenabstand zwischen Feldern: `16 px` Grid-Gap.
+- Swatch-/Outline-Ringe duerfen nicht abgeschnitten werden: Body `overflow: visible` bei Create/Detail; Listenansicht `overflow: auto`.
+- Keine negativen Margins am Modal-Inhalt (`.fk-modal` hat `overflow: hidden`).
+
+Organizational Modal — Views (Create / List / Detail):
+
+- `create`: Titel z. B. „Neues Label erstellen“ / „Neue Kategorie erstellen“; Body = Name (`InputGroup`, Control-Size `lg`) + optionales Farbfeld; nach Erfolg in Organize wechseln.
+- `organize` / Liste: Titel „… verwalten“; katalogartige Zeilen (Farbmarker/Icon · Name · Chevron); Hoehe folgt Eintraegen, kein leeres Zwangs-Canvas; Footer links „Neues …“ (`icon-text-inline` + `add-small`).
+- `detail`: Titel „… bearbeiten“; zuerst Zurueck zur Liste (`icon-text-inline` + `chevron-left`); dann dieselben Felder wie Create; destruktives Loeschen als `icon-text-inline` in Error-Rot unter den Feldern; kein Footer noetig.
+- Listenzeile: Grid `16 px | 1fr | 28 px`, Min-Hoehe `32 px`, Hover `surface-soft`, Chevron-Hit `28×28` (an Close-Hit angeglichen).
+
+Organizational Modal — Header / Body / Footer:
+
+- Header: nur Titel (`heading-sm` / Semibold laut Modal-Slot); Close `24 px` Icon, Stroke `1.5`; keine Description-Sublines in dieser Composition.
+- Body: einspaltig, schlank; keine verschachtelten Cards.
+- Footer Create: links Utility `icon-text-inline` + `intent=tertiary` („… verwalten“ + `edit`), rechts Primaer-CTA mit Trailing-Chevron (`… erstellen`).
+- Footer Liste: links „Neues …“, rechts leerer Platzhalter (Space-Between beibehalten); Detail ohne Footer.
+- Footer-Layout bleibt `space-between` mit Gap `16 px` (Basis-Modal).
+
+Organizational Modal — Actions, Controls, Stacking:
+
+- Utility-Links in Modal und Einstiegspunkten: Button `buttonType=icon-text-inline` (Body/Regular, Icon-Gap `4 px`, Stroke `1.5`); Manage-Links (`Tags/Labels/Kategorien verwalten`) zusaetzlich `intent=tertiary`.
+- Control-Size ueber Create → Manage → Detail durchgaengig `lg`.
+- Nie zwei Dialoge gleichzeitig: z. B. aus Task-Modal „Tags verwalten“ zuerst Task-Modal schliessen (URL/`open` weg), danach Organizational Modal oeffnen.
+- Create und Organize derselben Entitaet nicht stapeln; View-Wechsel im selben Modal oder Create schliessen → Organize oeffnen.
+
 Wichtig fuer Umsetzung:
 
 - Cards nutzen Surface-, Border- und Shadow-Tokens.
-- Modals brauchen klare Primaer- und Sekundaeraktionen.
+- Organizational Modal ist die Referenz-Composition fuer Verwaltungsdialoge auf `Modal`; Abstaende und Footer-Logik dort nicht neu erfinden.
 - Bestehende Button- und Form-Komponenten innerhalb von Modals verwenden.
 - Keine verschachtelten Kartenlayouts aufbauen, wenn eine Section oder Gruppe reicht.
 - Modal Slots sollten inhaltlich schlank bleiben; komplexe Formulare lieber in klare Abschnitte teilen.
+- Organizational Modal: Spacing-Contract (`32 / 24 / 32`) und View-Serie (Create → List → Detail) bei neuen Verwaltungsdialogen unveraendert uebernehmen; nur Copy, Felder und Marker anpassen.
+- Default-Modal-Padding (`20×24`) bleibt die Shell-Basis; Organizational Modal setzt den Verwaltungs-Contract bewusst per Composition-Klasse.
 
 ### 04 Calendar Drawer
 
@@ -942,7 +993,7 @@ Wichtig fuer Umsetzung:
 - Im Aufgaben-Modal entfaellt auf Ebene 5 der gesamte Unteraufgaben-Block.
 - Task-Titel (`strong`) erhalten `padding-top: 1px` fuer die optische Vertikalzentrierung zur Checkbox.
 - Listen-/Gruppenbreite der Aufgaben-View: `--fk-task-column-width` (Default `800px`); Modal-Subtasks bleiben fluid (`width: auto` / `100%`).
-- Rechtsklick oeffnet ein Kontextmenue: Bearbeiten (Modal), Prioritaet (Submenu mit farbigen Flag-Icons), Faelligkeit und Zeitschaetzung (Level-2-Panels mit denselben Controls wie die Modal-Rail: Quick-Picks + DatePicker bzw. Dauer-Dropdown), Verschieben, Duplizieren, Loeschen. Tags sind in v1 nicht Teil des Menues.
+- Rechtsklick oeffnet ein Kontextmenue: Bearbeiten (Modal), Prioritaet (Submenu mit farbigen Flag-Icons), Faelligkeit, Zeitschaetzung und Tags (Level-2-Panels mit denselben Controls wie die Modal-Rail: Quick-Picks + DatePicker bzw. Dauer-Dropdown bzw. Tag-Suche/Liste), Verschieben, Duplizieren, Loeschen.
 - Prioritaets-Submenu und Modal-Rail nutzen dieselben farbigen `flag`-Icons; Faelligkeit/Zeitschaetzung sind eingebettete Submenu-Panels (nicht separate Popovers). Verschieben listet vorhandene Gruppen (`groupKey`). Loeschen steht separat als destruktive Aktion.
 - Das Dauer-Dropdown innerhalb des Zeitschaetzungs-Submenus muss oberhalb des Kontextmenues stacken (`.fk-menu--select` ueber `.fk-menu--submenu`).
 

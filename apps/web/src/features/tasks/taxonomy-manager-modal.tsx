@@ -1,0 +1,350 @@
+"use client";
+
+import type { CategoryColorToken, CategoryDto, LabelDto } from "@fokuna/api-contracts";
+import { FokunaIcon } from "@fokuna/icons";
+import { Button, InputGroup, Modal, type ControlSize } from "@fokuna/ui";
+import { useEffect, useId, useMemo, useState } from "react";
+
+import { TAXONOMY_COLOR_OPTIONS, colorTokenToCssVar } from "./taxonomy";
+import styles from "./taxonomy-manager-modal.module.css";
+
+type TaxonomyKind = "category" | "label";
+type TaxonomyItem = CategoryDto | LabelDto;
+
+/** One control size for the whole create → manage → edit journey. */
+const TAXONOMY_CONTROL_SIZE: ControlSize = "lg";
+
+function defaultColor(kind: TaxonomyKind): CategoryColorToken {
+  return kind === "category" ? "category.teal" : "category.coral";
+}
+
+function kindCopy(kind: TaxonomyKind) {
+  if (kind === "category") {
+    return {
+      createTitle: "Neue Kategorie erstellen",
+      nameLabel: "Name",
+      namePlaceholder: "Name eingeben",
+      createAction: "Kategorie erstellen",
+      manageLink: "Kategorien verwalten",
+      organizeTitle: "Kategorien verwalten",
+      detailTitle: "Kategorie bearbeiten",
+      empty: "Noch keine Kategorien.",
+      deleteLabel: "Kategorie löschen",
+      addNew: "Neue Kategorie",
+    };
+  }
+  return {
+    createTitle: "Neues Label erstellen",
+    nameLabel: "Name",
+    namePlaceholder: "Name eingeben",
+    createAction: "Label erstellen",
+    manageLink: "Labels verwalten",
+    organizeTitle: "Labels verwalten",
+    detailTitle: "Label bearbeiten",
+    empty: "Noch keine Labels.",
+    deleteLabel: "Label löschen",
+    addNew: "Neues Label",
+  };
+}
+
+function ColorField({
+  value,
+  onChange,
+}: {
+  value: CategoryColorToken;
+  onChange: (token: CategoryColorToken) => void;
+}) {
+  const labelId = useId();
+
+  return (
+    <div className={styles.colorField} role="group" aria-labelledby={labelId}>
+      <span className={styles.colorLabel} id={labelId}>
+        Farbe
+      </span>
+      <div className={styles.swatches} role="listbox" aria-label="Farbe">
+        {TAXONOMY_COLOR_OPTIONS.map((option) => (
+          <button
+            aria-label={option.label}
+            aria-selected={value === option.token}
+            className={styles.swatch}
+            data-selected={value === option.token ? "true" : undefined}
+            key={option.token}
+            onClick={() => onChange(option.token)}
+            style={{ background: option.cssVar }}
+            type="button"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Create dialog (+ in sidebar / Neues hinzufügen): InputGroup + Farbe. Pattern Library §03. */
+export function TaxonomyCreateModal({
+  open,
+  kind,
+  onOpenChange,
+  onCreate,
+  onOpenManage,
+}: {
+  open: boolean;
+  kind: TaxonomyKind;
+  onOpenChange: (open: boolean) => void;
+  onCreate: (input: { name: string; colorToken: CategoryColorToken }) => Promise<void>;
+  onOpenManage: () => void;
+}) {
+  const copy = kindCopy(kind);
+  const [name, setName] = useState("");
+  const [colorToken, setColorToken] = useState<CategoryColorToken>(() => defaultColor(kind));
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setName("");
+      setColorToken(defaultColor(kind));
+      setBusy(false);
+    }
+  }, [open, kind]);
+
+  async function handleCreate() {
+    const trimmed = name.trim();
+    if (!trimmed || busy) return;
+    setBusy(true);
+    try {
+      await onCreate({ name: trimmed, colorToken });
+      setName("");
+      onOpenManage();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal
+      className={styles.taxonomyModal}
+      footer={
+        <>
+          <Button
+            buttonType="icon-text-inline"
+            intent="tertiary"
+            leadingIcon={<FokunaIcon name="edit" size={16} stroke={1.5} />}
+            onClick={onOpenManage}
+            type="button"
+          >
+            {copy.manageLink}
+          </Button>
+          <Button
+            disabled={busy || !name.trim()}
+            onClick={() => void handleCreate()}
+            trailingIcon={<FokunaIcon name="chevron-right-small" size={16} stroke={1.5} />}
+            type="button"
+          >
+            {copy.createAction}
+          </Button>
+        </>
+      }
+      onOpenChange={onOpenChange}
+      open={open}
+      size="sm"
+      title={copy.createTitle}
+    >
+      <div className={styles.createForm}>
+        <InputGroup
+          autoFocus
+          controlSize={TAXONOMY_CONTROL_SIZE}
+          label={copy.nameLabel}
+          onChange={(event) => setName(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              void handleCreate();
+            }
+          }}
+          placeholder={copy.namePlaceholder}
+          value={name}
+        />
+        <ColorField onChange={setColorToken} value={colorToken} />
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Organizational mask: list → detail.
+ * Pattern Library §03 — Organizational Modal (Create / List / Detail).
+ */
+export function TaxonomyOrganizeModal({
+  open,
+  kind,
+  items,
+  onOpenChange,
+  onOpenCreate,
+  onUpdate,
+  onDelete,
+}: {
+  open: boolean;
+  kind: TaxonomyKind;
+  items: TaxonomyItem[];
+  onOpenChange: (open: boolean) => void;
+  onOpenCreate: () => void;
+  onUpdate: (
+    id: string,
+    input: { name?: string; colorToken?: CategoryColorToken },
+  ) => Promise<void>;
+  onDelete: (id: string) => Promise<void>;
+}) {
+  const copy = kindCopy(kind);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const selected = useMemo(
+    () => items.find((item) => item.id === selectedId) ?? null,
+    [items, selectedId],
+  );
+
+  useEffect(() => {
+    if (!open) {
+      setSelectedId(null);
+      setEditName("");
+      setBusy(false);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (selected) {
+      setEditName(selected.name);
+    }
+  }, [selected]);
+
+  async function handleSave() {
+    if (!selected || busy) return;
+    const trimmed = editName.trim();
+    if (!trimmed) return;
+    setBusy(true);
+    try {
+      await onUpdate(selected.id, { name: trimmed });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!selected || busy) return;
+    setBusy(true);
+    try {
+      await onDelete(selected.id);
+      setSelectedId(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal
+      className={styles.taxonomyModal}
+      footer={
+        selected ? undefined : (
+          <>
+            <Button
+              buttonType="icon-text-inline"
+              leadingIcon={<FokunaIcon name="add-small" size={16} stroke={1.5} />}
+              onClick={onOpenCreate}
+              type="button"
+            >
+              {copy.addNew}
+            </Button>
+            <span aria-hidden="true" />
+          </>
+        )
+      }
+      onOpenChange={onOpenChange}
+      open={open}
+      size="sm"
+      title={selected ? copy.detailTitle : copy.organizeTitle}
+    >
+      <div className={styles.organize} data-view={selected ? "detail" : "list"}>
+        {selected ? (
+          <div className={styles.detail}>
+            <Button
+              buttonType="icon-text-inline"
+              className={styles.navAction}
+              leadingIcon={<FokunaIcon name="chevron-left" size={16} stroke={1.5} />}
+              onClick={() => setSelectedId(null)}
+              type="button"
+            >
+              Zurück zur Liste
+            </Button>
+
+            <InputGroup
+              controlSize={TAXONOMY_CONTROL_SIZE}
+              label={copy.nameLabel}
+              onBlur={() => void handleSave()}
+              onChange={(event) => setEditName(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void handleSave();
+                }
+              }}
+              placeholder={copy.namePlaceholder}
+              value={editName}
+            />
+
+            <ColorField
+              onChange={(token) => void onUpdate(selected.id, { colorToken: token })}
+              value={selected.colorToken}
+            />
+
+            <div className={styles.dangerZone}>
+              <Button
+                buttonType="icon-text-inline"
+                className={styles.deleteAction}
+                disabled={busy}
+                leadingIcon={<FokunaIcon name="delete-alt" size={16} stroke={1.5} />}
+                onClick={() => void handleDelete()}
+                type="button"
+              >
+                {copy.deleteLabel}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <ul className={styles.catalog}>
+              {items.map((item) => (
+                <li key={item.id}>
+                  <button
+                    className={styles.catalogRow}
+                    onClick={() => setSelectedId(item.id)}
+                    type="button"
+                  >
+                    {kind === "category" ? (
+                      <span
+                        aria-hidden="true"
+                        className={styles.dot}
+                        style={{ background: colorTokenToCssVar(item.colorToken) }}
+                      />
+                    ) : (
+                      <FokunaIcon
+                        name="tag"
+                        size={16}
+                        stroke={1.5}
+                        style={{ color: colorTokenToCssVar(item.colorToken) }}
+                      />
+                    )}
+                    <span className={styles.name}>{item.name}</span>
+                    <span aria-hidden="true" className={styles.chevron}>
+                      <FokunaIcon name="chevron-right" size={16} stroke={1.5} />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+            {items.length === 0 ? <p className={styles.empty}>{copy.empty}</p> : null}
+          </>
+        )}
+      </div>
+    </Modal>
+  );
+}

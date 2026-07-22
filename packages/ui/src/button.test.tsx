@@ -37,4 +37,17 @@ describe("Button", () => {
     expect(icon).toHaveAttribute("height", "24");
     expect(icon).toHaveAttribute("width", "24");
   });
+
+  it("exposes icon-text-inline as a quiet text utility type", () => {
+    render(
+      <Button buttonType="icon-text-inline" intent="tertiary" leadingIcon="edit">
+        Labels verwalten
+      </Button>,
+    );
+    const button = screen.getByRole("button", { name: "Labels verwalten" });
+
+    expect(button).toHaveAttribute("data-type", "icon-text-inline");
+    expect(button).toHaveAttribute("data-intent", "tertiary");
+    expect(button.querySelectorAll("svg")).toHaveLength(1);
+  });
 });

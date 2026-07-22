@@ -55,10 +55,14 @@ export const patternEntries: PatternEntry[] = [
     figmaName: "C - Desktop - Card / .slot - Modal",
     figmaNodeId: "18264:9755",
     category: "Layout",
-    implementation: "Card · Modal",
+    implementation: "Card · Organizational Modal (Create/List/Detail)",
     screenshot: "03_Cards_Slots_and_Modal.png",
-    dimensions: ["Card 371 × 140 px", "Modal 571 × 487 px"],
-    variantSummary: "Card surface · modal shell · optional header and actions",
+    dimensions: [
+      "Card 371 × 140 px",
+      "Modal sm 420 px",
+      "Organizational inset 32 px · title→body 24 px · body→footer 32 px",
+    ],
+    variantSummary: "Card surface · organizational Create/List/Detail modal composition",
   },
   {
     number: 4,

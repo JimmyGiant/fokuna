@@ -8,10 +8,10 @@
 
 | | |
 |--|--|
-| **Aktueller Slice** | A2 DnD — SortableTree-Projection (kein Live-Reparent) |
-| **Nächster Slice** | A3 Sidebar + Kategorien |
-| **Zuletzt fertig** | Todoist-Nesting: vertikal = Sibling; rechts = Subtask; links = Outdent |
-| **Blocker / Fragen** | PO: Unter-einander vs. Einrücken nach rechts smoke-testen |
+| **Aktueller Slice** | A3 Sidebar + Kategorien/Labels — fertig |
+| **Nächster Slice** | A4 Zeitblöcke 05–12 |
+| **Zuletzt fertig** | L2 live (Kategorien/Labels), Manager-Modals, Sidebar-Drops |
+| **Blocker / Fragen** | — |
 
 ---
 
@@ -25,9 +25,9 @@
 
 | # | View | Status | Hinweis |
 |---|------|--------|---------|
-| 01 | Alle Aufgaben | `Partial` | V1 + A1 Listen-DnD Foundation; Cross-Group/Nested offen |
+| 01 | Alle Aufgaben | `Partial` | Filter Favoriten/Heute/Eingang/Kategorie/Label; Sidebar-Drop |
 | 02 | Ziele (in Aufgaben) | `Scaffold` | Route/Goals thin; Milestone-Timeline Slice A5 |
-| 03 | Task Modal | `Partial` | Properties/Subtasks; Tags-Katalog hardcodiert |
+| 03 | Task Modal | `Partial` | Labels aus Katalog; Stift → Label-Manager |
 | 04 | Modal + Breadcrumb | `Partial` | Breadcrumb da; Depth = 5 (Domain) |
 | 05–08 | Blocks Tabs | `Scaffold` | Liste + Create; kein pixelgenaues Hub |
 | 09 | Modal Zeitblock | `Not started` | |
@@ -40,10 +40,10 @@
 
 | Modus | Status | Hinweis |
 |-------|--------|---------|
-| Favoriten / Heute / Eingang | `Partial` | Filter-Logik in View; L2-Links Scaffold |
-| Kategorien | `Not started` | DB-Tabelle; keine API — Slice A3 |
-| Labels | `Deferred` | Tags im Menü später |
-| Ziele-Liste in L2 | `Scaffold` | |
+| Favoriten / Heute / Eingang | `Done` | Filter + Drop-Targets |
+| Kategorien | `Done` | API + `task.categoryId` + L2 Counts + Manager-Modal + Drop |
+| Labels | `Done` | Label-Entity + `labelIds` + L2 + Manager + Drop (append) |
+| Ziele-Liste in L2 | `Scaffold` | Live Counts aus Goals; kein Drop; View A5 |
 
 ---
 
@@ -56,7 +56,7 @@
 | Kongruenter Placeholder/Ghost | `Done` | Same-surface Placeholder (kein leerer Graublock) |
 | Cross-Group Move | `Done` | Live zwischen Containern |
 | Nested / Reparent | `Done` | dnd-kit SortableTree: flatten + projection; Commit erst onDrop |
-| Drop auf Sidebar | `Not started` | A3 |
+| Drop auf Sidebar | `Done` | Favoriten / Heute / Eingang / Kategorie / Label |
 | Blocks Library → Rail | `Not started` | A4 |
 | Task → Calendar Morph | `Deferred` | nach Blocks / Kalender-Gate |
 
@@ -69,8 +69,7 @@
 | A0 | Statusboards (Product + Aufgaben) | `Done` |
 | A1 | DnD Foundation (Listen) | `Done` |
 | A2 | Cross-Group + Nested | `Done` (PO-Smoke empfohlen) |
-| A3 | Sidebar + Kategorien | `Not started` |
-| A3 | Sidebar + Kategorien | `Not started` |
+| A3 | Sidebar + Kategorien + Labels | `Done` |
 | A4 | Zeitblöcke 05–12 | `Not started` |
 | A5 | Ziele-Tab View 02 | `Not started` |
 | A6 | Fokus 13–18 | `Deferred` (nach A4) |
@@ -79,7 +78,7 @@
 
 ## Bewusst deferred (Handshake)
 
-- Tags im Kontextmenü
 - Dedizierte Duplicate-API
 - Bulk-Select (FR-TASK-008)
 - Neon für Goals/Blocks-Catalog (weiter Memory bis explizit)
+- Ziele-L2 Drop / pixelgenaue Ziele-View (A5)

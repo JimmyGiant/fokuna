@@ -839,8 +839,169 @@
 .cardModalSpecimen {
   align-items: start;
   display: grid;
-  gap: 32px;
-  grid-template-columns: minmax(320px, 371px) auto;
+  gap: 40px;
+  justify-items: start;
+  width: 100%;
+}
+
+.specimenBlock {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+  width: 100%;
+}
+
+.specimenBlockLabel {
+  color: var(--fk-color-text-tertiary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 16px;
+}
+
+.specimenBlockCopy {
+  color: var(--fk-color-text-secondary);
+  font-size: var(--fk-type-font-font-size-body-sm);
+  line-height: var(--fk-type-font-line-height-body-sm);
+  margin: 0;
+  max-width: 560px;
+}
+
+.specimenBlockCopy code {
+  font-size: 0.95em;
+}
+
+.organizationalModalSpecimen {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
+}
+
+.organizationalModalActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Organizational Modal spacing contract — mirror taxonomy-manager-modal. */
+.organizationalModal :global(.fk-modal__header) {
+  padding: 32px 32px 24px;
+}
+
+.organizationalModal :global(.fk-modal__body) {
+  overflow: visible;
+  padding: 0 32px 32px;
+}
+
+.organizationalModal:has(:global(.fk-modal__footer)) :global(.fk-modal__body) {
+  padding-bottom: 0;
+}
+
+.organizationalModal:has([data-view="list"]) :global(.fk-modal__body),
+.organizationalModal :global(.fk-modal__body):has(.orgCatalog) {
+  overflow: auto;
+}
+
+.organizationalModal :global(.fk-modal__footer) {
+  padding: 32px;
+}
+
+.orgForm {
+  display: grid;
+  gap: 16px;
+}
+
+.orgColorField {
+  display: grid;
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+}
+
+.orgColorLabel {
+  color: var(--fk-color-text-primary);
+  font-size: var(--fk-type-font-font-size-body-md);
+  font-weight: 600;
+  line-height: var(--fk-type-font-line-height-body-md);
+}
+
+.orgSwatches {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px;
+}
+
+.orgSwatch {
+  border-radius: 999px;
+  display: inline-block;
+  height: 20px;
+  width: 20px;
+}
+
+.orgSwatch[data-selected="true"] {
+  outline: 2px solid var(--fk-color-category-teal);
+  outline-offset: 2px;
+}
+
+.orgCatalog {
+  align-content: start;
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.orgCatalog > li {
+  margin: 0;
+  padding: 0;
+}
+
+.orgCatalogRow {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--fk-color-text-primary);
+  cursor: pointer;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 16px minmax(0, 1fr) 28px;
+  min-height: 32px;
+  padding: 4px 0 4px 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.orgCatalogRow:hover {
+  background: var(--fk-color-surface-soft);
+}
+
+.orgCatalogName {
+  font-size: var(--fk-type-font-font-size-body-md);
+  line-height: var(--fk-type-font-line-height-body-md);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orgChevron {
+  align-items: center;
+  color: var(--fk-color-icon-secondary);
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  justify-self: end;
+  width: 28px;
+}
+
+.orgDeleteAction {
+  color: var(--fk-color-text-error);
+  justify-self: start;
+}
+
+.orgDeleteAction:hover:not(:disabled) {
+  color: var(--fk-color-text-error);
 }
 
 .insightCardsSpecimen {
@@ -858,23 +1019,9 @@
 }
 
 .referenceCard {
-  display: grid;
-  gap: 16px;
+  display: block;
   min-height: 140px;
-}
-
-.referenceCard p {
-  color: var(--fk-color-text-tertiary);
-  font-size: 14px;
-  line-height: 20px;
-  margin: 0;
-}
-
-.cardHeaderDemo {
-  align-items: center;
-  display: grid;
-  gap: 8px;
-  grid-template-columns: 20px 1fr auto;
+  width: min(371px, 100%);
 }
 
 .datePickerSpecimen,
@@ -1115,8 +1262,7 @@
   }
 
   .formSpecimen,
-  .sliderSpecimen,
-  .cardModalSpecimen {
+  .sliderSpecimen {
     grid-template-columns: 1fr;
   }
 }
