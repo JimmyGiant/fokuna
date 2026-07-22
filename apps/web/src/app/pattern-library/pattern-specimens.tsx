@@ -59,8 +59,10 @@ import {
   TaskModalMenu,
   TaskModalSlot,
   TemplateCard,
+  ToastSpecimen,
   ToggleGroup,
   UiShell,
+  useToast,
   ViewOverlay,
   type BlockRailItem,
   type ControlSize,
@@ -73,6 +75,33 @@ import styles from "./pattern-library.module.css";
 
 const sizes: ControlSize[] = ["sm", "md", "lg", "xl"];
 const sizeHeights: Record<ControlSize, number> = { sm: 28, md: 32, lg: 40, xl: 48 };
+
+function ToastLiveTriggers() {
+  const { toast } = useToast();
+
+  return (
+    <div className={styles.toastTriggerRow}>
+      <Button
+        intent="secondary"
+        onClick={() =>
+          toast({
+            title: "Nach „Arbeit“ verschoben",
+            action: {
+              label: "Rückgängig",
+              altText: "Verschieben rückgängig machen",
+              leadingIcon: "arrow-undo-down",
+              onClick: () => undefined,
+            },
+          })
+        }
+        size="sm"
+        trailingIcon={null}
+      >
+        Toast zeigen
+      </Button>
+    </div>
+  );
+}
 
 const blockRailItems: BlockRailItem[] = [
   { id: "reading", label: "Lesen", icon: "newspaper", tone: "coral" },
@@ -862,6 +891,18 @@ export function PatternSpecimen({ slug }: { slug: string }) {
         </Matrix>
       );
 
+    case "toast":
+      return (
+        <Matrix>
+          <MatrixRow label="Einzeilig">
+            <ToastSpecimen title="Nach „Arbeit“ verschoben" />
+          </MatrixRow>
+          <MatrixRow label="Live">
+            <ToastLiveTriggers />
+          </MatrixRow>
+        </Matrix>
+      );
+
     case "cards-slots":
     case "card-modal":
       return (
@@ -882,7 +923,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
             <p className={styles.specimenBlockCopy}>
               Create → Liste → Detail auf Modal <code>size=sm</code>. Inset 32 · Titel→Body 16 ·
               Body→Footer 24. Footer immer: Create (verwalten + CTA), Liste (Neues …), Detail
-              (Löschen). Referenz: Kategorien/Labels.
+              (Löschen + Speichern). Referenz: Kategorien/Labels.
             </p>
             <div className={styles.organizationalModalActions}>
               <Button
@@ -963,7 +1004,9 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                     >
                       Label löschen
                     </Button>
-                    <span aria-hidden="true" />
+                    <Button trailingIcon={null} type="button">
+                      Speichern
+                    </Button>
                   </>
                 )
               }

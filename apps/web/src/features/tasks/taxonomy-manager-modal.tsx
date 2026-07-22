@@ -35,6 +35,7 @@ function kindCopy(kind: TaxonomyKind) {
       empty: "Noch keine Kategorien.",
       deleteLabel: "Kategorie löschen",
       addNew: "Neue Kategorie",
+      saveAction: "Speichern",
     };
   }
   return {
@@ -48,6 +49,7 @@ function kindCopy(kind: TaxonomyKind) {
     empty: "Noch keine Labels.",
     deleteLabel: "Label löschen",
     addNew: "Neues Label",
+    saveAction: "Speichern",
   };
 }
 
@@ -206,6 +208,7 @@ export function TaxonomyOrganizeModal({
   const copy = kindCopy(kind);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
+  const [editColorToken, setEditColorToken] = useState<CategoryColorToken>(() => defaultColor(kind));
   const [busy, setBusy] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   /** True when opened from sidebar context-menu edit — no list back navigation. */
@@ -216,10 +219,17 @@ export function TaxonomyOrganizeModal({
     [items, selectedId],
   );
 
+  const canSave = Boolean(
+    selected &&
+      editName.trim() &&
+      (editName.trim() !== selected.name || editColorToken !== selected.colorToken),
+  );
+
   useEffect(() => {
     if (!open) {
       setSelectedId(null);
       setEditName("");
+      setEditColorToken(defaultColor(kind));
       setBusy(false);
       setConfirmDeleteOpen(false);
       setDirectEdit(false);
@@ -227,21 +237,22 @@ export function TaxonomyOrganizeModal({
     }
     setSelectedId(initialSelectedId);
     setDirectEdit(Boolean(initialSelectedId));
-  }, [initialSelectedId, open]);
+  }, [initialSelectedId, open, kind]);
 
   useEffect(() => {
     if (selected) {
       setEditName(selected.name);
+      setEditColorToken(selected.colorToken);
     }
   }, [selected]);
 
   async function handleSave() {
-    if (!selected || busy) return;
+    if (!selected || busy || !canSave) return;
     const trimmed = editName.trim();
-    if (!trimmed) return;
     setBusy(true);
     try {
-      await onUpdate(selected.id, { name: trimmed });
+      await onUpdate(selected.id, { name: trimmed, colorToken: editColorToken });
+      onOpenChange(false);
     } finally {
       setBusy(false);
     }
@@ -285,7 +296,14 @@ export function TaxonomyOrganizeModal({
               >
                 {copy.deleteLabel}
               </Button>
-              <span aria-hidden="true" />
+              <Button
+                disabled={busy || !canSave}
+                onClick={() => void handleSave()}
+                trailingIcon={null}
+                type="button"
+              >
+                {copy.saveAction}
+              </Button>
             </>
           ) : (
             <>
@@ -324,7 +342,6 @@ export function TaxonomyOrganizeModal({
             <InputGroup
               controlSize={TAXONOMY_CONTROL_SIZE}
               label={copy.nameLabel}
-              onBlur={() => void handleSave()}
               onChange={(event) => setEditName(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
@@ -336,10 +353,7 @@ export function TaxonomyOrganizeModal({
               value={editName}
             />
 
-            <ColorField
-              onChange={(token) => void onUpdate(selected.id, { colorToken: token })}
-              value={selected.colorToken}
-            />
+            <ColorField onChange={setEditColorToken} value={editColorToken} />
           </div>
         ) : (
           <>

@@ -8,6 +8,7 @@ import {
   Sidebar,
   SidebarAvatar,
   UiShell,
+  useToast,
   type SidebarItem,
   type SidebarSecondaryItem,
   type SidebarSecondarySection,
@@ -154,6 +155,7 @@ export function AufgabenShell({
   overlay?: ReactNode;
 }) {
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [taxonomyUi, setTaxonomyUi] = useState<TaxonomyUi>(null);
   const [pendingDelete, setPendingDelete] = useState<{
     kind: DeleteEntityKind;
@@ -416,7 +418,22 @@ export function AufgabenShell({
       return true;
     }
     if (target.type === "category") {
+      if (task.categoryId === target.categoryId) return true;
+      const previousCategoryId = task.categoryId;
+      const categoryName = categories.find((entry) => entry.id === target.categoryId)?.name;
       await updateTask.mutateAsync({ id: taskId, categoryId: target.categoryId });
+      toast({
+        id: `task-category:${taskId}`,
+        title: categoryName ? `Nach „${categoryName}“ verschoben` : "Aufgabe verschoben",
+        action: {
+          label: "Rückgängig",
+          altText: "Verschieben rückgängig machen",
+          leadingIcon: "arrow-undo-down",
+          onClick: () => {
+            void updateTask.mutateAsync({ id: taskId, categoryId: previousCategoryId });
+          },
+        },
+      });
       return true;
     }
     if (target.type === "label") {

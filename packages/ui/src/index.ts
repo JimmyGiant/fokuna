@@ -21,5 +21,6 @@ export * from "./tabs";
 export * from "./tag";
 export * from "./task";
 export * from "./template-card";
+export * from "./toast";
 export * from "./utils";
 export * from "./view-overlay";

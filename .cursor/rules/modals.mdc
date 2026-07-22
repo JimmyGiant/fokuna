@@ -11,7 +11,7 @@ Beim Erstellen oder Anpassen von Modals gilt:
 - **Shell-Contract (Organizational / Confirmation auf `Modal` `sm`):**
   - Header: `padding: 32px 32px 16px` — nur Titel, Close 24 px @ Stroke 1.5; **keine** Description-Sublines
   - Body: `padding: 0 32px` (bei Footer kein `padding-bottom`); Inhalt einspaltig im Body
-  - Footer: `padding: 24px 32px 32px`; Organizational `space-between` Gap `16 px`; Confirmation `flex-end` Gap `12 px` (Abbrechen direkt links vom Primary)
+  - Footer: `padding: 24px 32px 32px`; Organizational `space-between` Gap `16 px` (Detail: Löschen links, Speichern rechts); Confirmation `flex-end` Gap `12 px` (Abbrechen direkt links vom Primary)
 - **Typografie nur über Text-Tokens** (keine harten Literale):
   - Modal-Titel: `Heading/SM` + `heading-primary` Family/Weight
   - Body-Copy: `body-*`-Tokens; Hervorhebungen z. B. `label-primary`

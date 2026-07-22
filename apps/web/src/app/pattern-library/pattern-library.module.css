@@ -509,10 +509,18 @@
 
 .calloutStack,
 .formSpecimen,
-.radioMatrix {
+.radioMatrix,
+.toastSpecimenStack {
   display: grid;
   gap: 12px;
   width: 100%;
+}
+
+.toastTriggerRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .formSpecimen {

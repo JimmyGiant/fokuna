@@ -49,6 +49,7 @@ import {
   type FokunaContextMenuEntry,
   type TagTone,
   type TaskListTag,
+  useToast,
 } from "@fokuna/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -66,7 +67,7 @@ import {
 } from "@/components/confirm-delete-modal";
 import { apiGet, apiSend } from "@/lib/api";
 import { useTaskTaxonomy } from "./aufgaben-shell";
-import { colorTokenToTone } from "./taxonomy";
+import { colorTokenToCssVar, colorTokenToTone } from "./taxonomy";
 import { TaskDetailModal } from "./task-detail-modal";
 import { TaskDueDateMenuPanel, TaskEstimateMenuPanel, TaskTagsMenuPanel } from "./task-property-editor";
 import { priorityOptions } from "./task-property-options";
@@ -189,17 +190,6 @@ function flattenTasksForDragList(input: {
     flattenTasksForTree(tasksForTree, expandedById, orderedGroupKeys, unifyRoots),
     activeId,
   );
-}
-
-function groupTitle(groupKey: string): string {
-  if (groupKey === ROOT_GROUP) return "Ohne Abschnitt";
-  if (groupKey === "today") return "Heute";
-  if (groupKey === "inbox") return "Eingang";
-  if (groupKey === "abschnitt-4") return "Abschnitt 4";
-  return groupKey
-    .split("-")
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
 }
 
 function entryKind(source: CalendarEntryDto["source"]): "task" | "event" | "block" {
@@ -401,6 +391,7 @@ export function TasksView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
+  const { toast } = useToast();
   const { labels, labelsById, categories, openLabelManager } = useTaskTaxonomy();
   const filter = searchParams.get("filter") ?? "all";
   const categoryId = searchParams.get("category");
@@ -1024,9 +1015,42 @@ export function TasksView() {
 
   function buildTaskContextMenuItems(task: TaskDto): FokunaContextMenuEntry[] {
     const currentPriority = normalizePriority(task.priority);
+    const sortedCategories = [...categories].sort((a, b) =>
+      a.name.localeCompare(b.name, "de", { sensitivity: "base" }),
+    );
 
     function patchTask(taskId: string, patch: Partial<TaskDto>) {
       updateMutation.mutate({ id: taskId, ...patch });
+    }
+
+    function moveToCategory(nextCategoryId: string | null) {
+      if (task.categoryId === nextCategoryId) return;
+      const previousCategoryId = task.categoryId;
+      const destinationName =
+        nextCategoryId === null
+          ? "Eingang"
+          : sortedCategories.find((entry) => entry.id === nextCategoryId)?.name;
+      updateMutation.mutate(
+        { id: task.id, categoryId: nextCategoryId },
+        {
+          onSuccess: () => {
+            toast({
+              id: `task-category:${task.id}`,
+              title: destinationName
+                ? `Nach „${destinationName}“ verschoben`
+                : "Aufgabe verschoben",
+              action: {
+                label: "Rückgängig",
+                altText: "Verschieben rückgängig machen",
+                leadingIcon: "arrow-undo-down",
+                onClick: () => {
+                  updateMutation.mutate({ id: task.id, categoryId: previousCategoryId });
+                },
+              },
+            });
+          },
+        },
+      );
     }
 
     return [
@@ -1085,11 +1109,26 @@ export function TasksView() {
         type: "submenu",
         label: "Verschieben",
         icon: "folder",
-        children: orderedGroupKeys.map((groupKey) => ({
-          label: groupTitle(groupKey),
-          checked: task.groupKey === groupKey,
-          onSelect: () => patchTask(task.id, { groupKey }),
-        })),
+        children: [
+          {
+            label: "Eingang",
+            icon: "inbox-empty",
+            checked: task.categoryId === null,
+            onSelect: () => moveToCategory(null),
+          },
+          ...sortedCategories.map((category) => ({
+            label: category.name,
+            checked: task.categoryId === category.id,
+            leading: (
+              <span
+                aria-hidden
+                className={styles.categoryMenuSwatch}
+                style={{ background: colorTokenToCssVar(category.colorToken) }}
+              />
+            ),
+            onSelect: () => moveToCategory(category.id),
+          })),
+        ],
       },
       {
         label: "Duplizieren",

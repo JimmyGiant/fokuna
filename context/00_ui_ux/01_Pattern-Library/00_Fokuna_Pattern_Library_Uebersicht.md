@@ -1327,7 +1327,7 @@ Organizational Modal:
 - Views Create / Liste / Detail immer mit Footer; Header nur Titel (keine Description-Subline).
 - Create: Name + Farbe; Erfolg schliesst Modal. Footer: „… verwalten“ (tertiary) + CTA.
 - Liste: Katalogzeilen; Footer „Neues …“.
-- Detail: Felder wie Create; Footer destruktives Loeschen; Zurueck nur im Listenflow.
+- Detail: Felder wie Create; Footer destruktives Loeschen links + Primary Speichern rechts; Zurueck nur im Listenflow. Name und Farbe werden erst mit Speichern persistiert.
 - Referenz: `TaxonomyCreateModal` / `TaxonomyOrganizeModal`.
 
 Confirmation Modal:
@@ -1355,6 +1355,38 @@ Wichtig fuer Umsetzung:
 - Neue Dialoge zuerst gegen §42 und das Live-Specimen `/pattern-library/modals` pruefen.
 - Organizational Spacing und Footer-Logik nicht neu erfinden.
 - Typografie nur ueber `--fk-type-font-…`-Tokens.
+
+### 43 Toast
+
+Screenshot: [43_Toast.svg](43_Toast.svg)
+
+Kurzlebige, nicht-blockierende Bestaetigung fuer **reversible Sekundaeraktionen** — unten zentriert, **einzeilig**. Primaerer Produktfall: Aufgabe per Sidebar-Drop in eine andere Kategorie verschieben, mit optionalem Rueckgaengig. Destruktive Aktionen bleiben beim Confirmation Modal (§42).
+
+Aufbau und Verhalten:
+
+- Viewport fixed, `bottom` `space-6`, horizontal zentriert; Swipe nach unten schliesst.
+- Slot: `surface-base`, `border-default`, Radius `16 px` (`radius-xl`), Elevation `shadow-medium-card`.
+- Titel: einzeilig `Body/MD` mit normalem Body-Gewicht (`body-primary`), nicht Label/Semibold.
+- Action: `Button` `type=icon-text-inline` `size=sm`, Leading-Icon vor dem Label (Default Undo: `arrow-undo-down`); Farbe Text + Icon `text-action-secondary` (Hover: `text-action-secondary-hover`).
+- Auto-Dismiss ca. 6 s; gleiche `id` ersetzt den vorherigen Toast (z. B. rasche Drops derselben Aufgabe).
+- API: `ToastProvider` (App-Root) + `useToast().toast({ title, action? })`.
+
+Einsatz:
+
+- Geeignet: Kategorie-Verschieben, vergleichbare Undo-faehige Anpassungen ohne Modal.
+- Nicht geeignet: Loeschen, irreversibles, komplexe Entscheidungen — dafuer §42 Confirmation.
+- Nicht uebermassig einsetzen; jeder Fall bewusst waehlen.
+- Keine zweizeiligen Descriptions — Toast bleibt einzeilig.
+
+Verwandt:
+
+- Callout (§02) fuer inline Hinweise im Layout; Toast fuer globale, zeitlich begrenzte Rueckmeldung.
+- Confirmation Modal (§42) fuer destruktive Bestaetigungen.
+
+Wichtig fuer Umsetzung:
+
+- Kein zusaetzliches Sonner-Package noetig — Basis ist Radix Toast im bestehenden `radix-ui`-Stack, an Fokuna Tokens angepasst.
+- Live-Specimen: `/pattern-library/toast`.
 
 ## Einsatz im Lastenheft
 

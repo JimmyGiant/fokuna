@@ -21,7 +21,10 @@ export default async function PatternDetailPage({ params }: { params: Promise<{ 
   if (!entry) notFound();
 
   const handoff = getHandoffSection(entry);
-  const figmaUrl = `https://www.figma.com/design/ltQMlboZomvr70Z4m0aLQj/UI-Design-%7C-Fokuna?node-id=${entry.figmaNodeId.replace(":", "-")}`;
+  const hasFigmaNode = entry.figmaNodeId !== "0:0";
+  const figmaUrl = hasFigmaNode
+    ? `https://www.figma.com/design/ltQMlboZomvr70Z4m0aLQj/UI-Design-%7C-Fokuna?node-id=${entry.figmaNodeId.replace(":", "-")}`
+    : null;
 
   return (
     <article className={styles.detailPage}>
@@ -33,17 +36,19 @@ export default async function PatternDetailPage({ params }: { params: Promise<{ 
           <h1>{entry.title}</h1>
           <p>{handoff.paragraphs[0] ?? entry.variantSummary}</p>
         </div>
-        <a className={styles.figmaLink} href={figmaUrl} rel="noreferrer" target="_blank">
-          In Figma öffnen
-          <FokunaIcon name="external-link" size={16} />
-        </a>
+        {figmaUrl ? (
+          <a className={styles.figmaLink} href={figmaUrl} rel="noreferrer" target="_blank">
+            In Figma öffnen
+            <FokunaIcon name="external-link" size={16} />
+          </a>
+        ) : null}
       </header>
 
       <dl className={styles.contractBar}>
         <div>
           <dt>Figma node</dt>
           <dd>
-            <code>{entry.figmaNodeId}</code>
+            <code>{hasFigmaNode ? entry.figmaNodeId : "— (noch nicht in Figma)"}</code>
           </dd>
         </div>
         <div>
@@ -116,7 +121,10 @@ export default async function PatternDetailPage({ params }: { params: Promise<{ 
           <FokunaIcon name="chevron-left-small" size={16} />
           Zur Übersicht
         </Link>
-        <span>Source of truth: Figma node {entry.figmaNodeId}</span>
+        <span>
+          Source of truth:{" "}
+          {hasFigmaNode ? `Figma node ${entry.figmaNodeId}` : "Pattern Library Docs · Live specimen"}
+        </span>
       </footer>
     </article>
   );

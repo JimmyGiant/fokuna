@@ -121,6 +121,16 @@
   color: var(--fk-color-text-secondary);
 }
 
+.categoryMenuSwatch {
+  background: var(--fk-color-border-strong);
+  border-radius: var(--fk-radius-full);
+  flex: 0 0 auto;
+  height: 8px;
+  /* 4 + 8 + 4 = 16 px — same leading slot as menu icons (e.g. Eingang). */
+  margin-inline: 4px;
+  width: 8px;
+}
+
 .rootList {
   display: grid;
   gap: 0;

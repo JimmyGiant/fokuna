@@ -497,7 +497,19 @@ export const patternEntries: PatternEntry[] = [
       "Aufgaben Modal 848 × min(80dvh, 900px)",
     ],
     variantSummary:
-      "Shell · Organizational Create/List/Detail · Confirmation · Aufgaben Modal",
+      "Shell · Organizational Create/List/Detail (Löschen + Speichern) · Confirmation · Aufgaben Modal",
+  },
+  {
+    number: 43,
+    slug: "toast",
+    title: "Toast",
+    figmaName: ".slot - Toast · Undo Notification",
+    figmaNodeId: "0:0",
+    category: "Feedback",
+    implementation: "ToastProvider · useToast · ToastSpecimen",
+    screenshot: "43_Toast.svg",
+    dimensions: ["Bottom center", "max 420 px", "Radius 16 px · Shadow medium-card"],
+    variantSummary: "Einzeilig · optional Undo (icon-text-inline, action-secondary)",
   },
 ];
 
