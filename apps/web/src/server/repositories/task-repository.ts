@@ -248,6 +248,113 @@ export async function reorderTasks(
   return listTasks(userId, { groupKey });
 }
 
+export async function relocateTasks(
+  userId: string,
+  placements: Array<{
+    id: string;
+    groupKey: string;
+    parentTaskId: string | null;
+    sortOrder: number;
+  }>,
+): Promise<TaskDto[]> {
+  const now = new Date();
+
+  if (getDataDriver() === "memory") {
+    const store = getMemoryStore();
+    for (const placement of placements) {
+      const task = store.tasks.get(placement.id);
+      if (!task || task.userId !== userId) continue;
+      store.tasks.set(placement.id, {
+        ...task,
+        groupKey: placement.groupKey,
+        parentTaskId: placement.parentTaskId,
+        sortOrder: placement.sortOrder,
+        updatedAt: now.toISOString(),
+      });
+    }
+
+    // Cascade groupKey to descendants not explicitly placed.
+    const placedIds = new Set(placements.map((placement) => placement.id));
+    const byParent = new Map<string, string[]>();
+    for (const task of store.tasks.values()) {
+      if (task.userId !== userId || !task.parentTaskId) continue;
+      const list = byParent.get(task.parentTaskId) ?? [];
+      list.push(task.id);
+      byParent.set(task.parentTaskId, list);
+    }
+
+    function cascade(id: string, groupKey: string) {
+      for (const childId of byParent.get(id) ?? []) {
+        const child = store.tasks.get(childId);
+        if (!child) continue;
+        if (!placedIds.has(childId) && child.groupKey !== groupKey) {
+          store.tasks.set(childId, {
+            ...child,
+            groupKey,
+            updatedAt: now.toISOString(),
+          });
+        }
+        cascade(childId, groupKey);
+      }
+    }
+
+    for (const placement of placements) {
+      cascade(placement.id, placement.groupKey);
+    }
+
+    return listTasks(userId);
+  }
+
+  const db = getDatabase();
+  await Promise.all(
+    placements.map((placement) =>
+      db
+        .update(taskTable)
+        .set({
+          groupKey: placement.groupKey,
+          parentTaskId: placement.parentTaskId,
+          sortOrder: placement.sortOrder,
+          updatedAt: now,
+        })
+        .where(and(eq(taskTable.id, placement.id), eq(taskTable.userId, userId))),
+    ),
+  );
+
+  // Cascade groupKey for children not in placements.
+  const all = await listTasks(userId);
+  const placedIds = new Set(placements.map((placement) => placement.id));
+  const byId = new Map(all.map((task) => [task.id, task]));
+  const updates: Array<{ id: string; groupKey: string }> = [];
+
+  function cascade(id: string, groupKey: string) {
+    for (const child of all) {
+      if (child.parentTaskId !== id) continue;
+      if (!placedIds.has(child.id) && child.groupKey !== groupKey) {
+        updates.push({ id: child.id, groupKey });
+        byId.set(child.id, { ...child, groupKey });
+      }
+      cascade(child.id, groupKey);
+    }
+  }
+
+  for (const placement of placements) {
+    cascade(placement.id, placement.groupKey);
+  }
+
+  if (updates.length > 0) {
+    await Promise.all(
+      updates.map((update) =>
+        db
+          .update(taskTable)
+          .set({ groupKey: update.groupKey, updatedAt: now })
+          .where(and(eq(taskTable.id, update.id), eq(taskTable.userId, userId))),
+      ),
+    );
+  }
+
+  return listTasks(userId);
+}
+
 export async function archiveTask(userId: string, taskId: string): Promise<TaskDto | null> {
   const existing = await getTask(userId, taskId);
   if (!existing) {

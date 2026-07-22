@@ -3,25 +3,40 @@
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
   PointerSensor,
   closestCenter,
+  pointerWithin,
   useSensor,
   useSensors,
-  type DragEndEvent,
+  type CollisionDetection,
+  type DragMoveEvent,
+  type DragOverEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import {
   SortableContext,
   arrayMove,
+  defaultAnimateLayoutChanges,
   useSortable,
   verticalListSortingStrategy,
+  type AnimateLayoutChanges,
 } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
 import type { BlockDto, CalendarEntryDto, TaskDto } from "@fokuna/api-contracts";
 import {
+  applyPlacementsToTasks,
+  buildTaskDragLayout,
   canCreateSubtaskAtDepth,
+  commitTaskTreeMove,
+  flattenTasksForTree,
+  getTaskTreeProjection,
+  layoutToPlacements,
+  mergePlacements,
+  removeChildrenOfActive,
   TASK_MAX_INDENT_LEVEL,
+  type FlatTreeItem,
   type TaskIndentLevel,
+  type TaskPlacement,
 } from "@fokuna/domain";
 import { FokunaIcon, type IconName } from "@fokuna/icons";
 import {
@@ -44,8 +59,14 @@ import {
 } from "@fokuna/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Children, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState } from "react";
 
+import {
+  DnDGhostShell,
+  cancelScheduledDragClear,
+  resolveSortableInsertIndex,
+  sortableItemStyle,
+} from "@/components/dnd";
 import { apiGet, apiSend } from "@/lib/api";
 import { TaskDetailModal } from "./task-detail-modal";
 import { TaskDueDateMenuPanel, TaskEstimateMenuPanel } from "./task-property-editor";
@@ -53,6 +74,37 @@ import { priorityOptions } from "./task-property-options";
 import styles from "./tasks-view.module.css";
 
 const ROOT_GROUP = "root";
+/** Todoist-style: full step right = nest, full step left = outdent. */
+const INDENTATION_WIDTH = 48;
+const DRAG_ACTIVATION_DISTANCE = 8;
+
+const measuring = {
+  droppable: { strategy: MeasuringStrategy.Always },
+};
+
+/** Prefer the row under the pointer; fallback to closestCenter (MVP §10.1). */
+const taskListCollisionDetection: CollisionDetection = (args) => {
+  const pointerHits = pointerWithin(args);
+  if (pointerHits.length > 0) {
+    return [pointerHits[pointerHits.length - 1]!];
+  }
+  return closestCenter(args);
+};
+
+function placementsEqual(a: TaskPlacement[], b: TaskPlacement[]): boolean {
+  if (a.length !== b.length) return false;
+  const serialize = (placement: TaskPlacement) =>
+    `${placement.id}:${placement.groupKey}:${placement.parentTaskId ?? ""}:${placement.sortOrder}`;
+  const right = new Map(b.map((placement) => [placement.id, serialize(placement)]));
+  return a.every((placement) => right.get(placement.id) === serialize(placement));
+}
+
+/** Sibling slides only while sorting mid-drag — never after drop (avoids fly-in from top). */
+const animateLayoutChanges: AnimateLayoutChanges = (args) => {
+  if (args.isDragging) return false;
+  if (!args.isSorting) return false;
+  return defaultAnimateLayoutChanges(args);
+};
 
 const toneByToken: Record<string, BlockTone> = {
   "category.coral": "coral",
@@ -155,59 +207,100 @@ function toBlockRailItems(blocks: BlockDto[]): BlockRailItem[] {
   }));
 }
 
-function SortableTask({
+type FlatTaskRow = {
+  task: TaskDto;
+  depth: TaskIndentLevel;
+  hasChildren: boolean;
+};
+
+/**
+ * Flat sortable row — nested tasks are DOM siblings (indent only).
+ * Live tree mutation happens only on drop via projection (dnd-kit SortableTree).
+ */
+function SortableFlatTask({
   task,
-  children,
-  goalTitle,
+  depth,
+  hasChildren,
+  expanded,
+  lockedHeight,
+  nestHint,
   subtaskLabel,
-  indentLevel = 0,
+  goalTitle,
   contextMenuItems,
+  onExpandedChange,
   onOpen,
   onToggle,
   onFavorite,
 }: {
   task: TaskDto;
-  children?: ReactNode;
-  goalTitle?: string;
+  depth: TaskIndentLevel;
+  hasChildren: boolean;
+  expanded: boolean;
+  lockedHeight?: number | null;
+  nestHint?: boolean;
   subtaskLabel?: string;
-  indentLevel?: TaskIndentLevel;
+  goalTitle?: string;
   contextMenuItems?: FokunaContextMenuEntry[];
+  onExpandedChange: (expanded: boolean) => void;
   onOpen: (task: TaskDto) => void;
   onToggle: (task: TaskDto, completed: boolean) => void;
   onFavorite: (task: TaskDto, favorite: boolean) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
+    animateLayoutChanges,
   });
+
+  const lockedStyle =
+    isDragging && lockedHeight
+      ? {
+          boxSizing: "border-box" as const,
+          flexShrink: 0,
+          height: lockedHeight,
+          maxHeight: lockedHeight,
+          minHeight: lockedHeight,
+          overflow: "hidden" as const,
+        }
+      : undefined;
 
   return (
     <div
       ref={setNodeRef}
       style={{
-        transform: CSS.Translate.toString(transform),
-        transition,
+        ...sortableItemStyle({
+          transform,
+          transition,
+          layoutControlled: isDragging,
+        }),
+        ...lockedStyle,
       }}
-      {...attributes}
-      {...listeners}
     >
       <TaskListItem
+        className={nestHint ? styles.nestTarget : undefined}
         completed={task.isCompleted}
-        contextMenuItems={contextMenuItems}
+        contextMenuItems={isDragging ? undefined : contextMenuItems}
         due={formatDueLabel(task.dueDate)}
         dueTone={dueMetaTone(task.dueDate)}
+        expandable={hasChildren}
+        expanded={expanded}
         favorite={task.isFavorite}
         goal={goalTitle}
-        indentLevel={indentLevel}
-        onClick={() => onOpen(task)}
-        onCompletedChange={(completed) => onToggle(task, completed)}
-        onFavoriteChange={(favorite) => onFavorite(task, favorite)}
-        state={isDragging ? "dragged" : "default"}
+        indentLevel={depth}
+        onClick={isDragging ? undefined : () => onOpen(task)}
+        onCompletedChange={
+          isDragging ? undefined : (completed) => onToggle(task, completed)
+        }
+        onExpandedChange={isDragging ? undefined : onExpandedChange}
+        onFavoriteChange={
+          isDragging ? undefined : (favorite) => onFavorite(task, favorite)
+        }
+        rowDragProps={isDragging ? undefined : { ...attributes, ...listeners }}
+        state={isDragging ? "placeholder" : "default"}
+        style={lockedStyle}
         subtasks={subtaskLabel}
         tags={task.tags}
         title={task.title}
-      >
-        {Children.count(children) > 0 ? children : undefined}
-      </TaskListItem>
+      />
     </div>
   );
 }
@@ -247,10 +340,35 @@ export function TasksView() {
   const filter = searchParams.get("filter") ?? "all";
   const selectedTaskId = searchParams.get("task");
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [overId, setOverId] = useState<string | null>(null);
+  const [offsetLeft, setOffsetLeft] = useState(0);
+  const [activeHeight, setActiveHeight] = useState<number | null>(null);
+  /** Frozen at drag start — never read live list data for the overlay (avoids title blitzes). */
+  const [dragOverlayTask, setDragOverlayTask] = useState<TaskDto | null>(null);
+  const [dragOverlayMeta, setDragOverlayMeta] = useState<{
+    hasChildren: boolean;
+    subtaskLabel?: string;
+  } | null>(null);
+  const [dragOriginPlacements, setDragOriginPlacements] = useState<TaskPlacement[] | null>(null);
+  /**
+   * Live flat order while dragging — placeholder moves with the slot (MVP §4.1).
+   * Parent/depth stay projected until drop (no multi-container reparent).
+   */
+  const [dragOrderedIds, setDragOrderedIds] = useState<string[] | null>(null);
+  const dragOrderedIdsRef = useRef<string[] | null>(null);
+  /** Last committed insert index — hysteresis + skip redundant moves. */
+  const lastInsertIndexRef = useRef<number | null>(null);
+  const lastOverRectRef = useRef<{ top: number; height: number } | null>(null);
+  const overIdRef = useRef<string | null>(null);
+  /** Over-id we last synced the placeholder slot to (must match strategy flip). */
+  const lastSyncedOverIdRef = useRef<string | null>(null);
+  const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: DRAG_ACTIVATION_DISTANCE } }),
+  );
 
   const tasksQuery = useQuery({
     queryKey: ["tasks"],
@@ -303,22 +421,17 @@ export function TasksView() {
     },
   });
 
-  const reorderMutation = useMutation({
-    mutationFn: (payload: { groupKey: string; orderedIds: string[] }) =>
+  const relocateMutation = useMutation({
+    mutationFn: (payload: { placements: TaskPlacement[] }) =>
       apiSend<TaskDto[]>("/api/v1/tasks", "PUT", payload),
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: ["tasks"] });
       const previous = queryClient.getQueryData<TaskDto[]>(["tasks"]);
       if (previous) {
-        const byId = new Map(previous.map((task) => [task.id, task]));
-        const nextGroup = payload.orderedIds
-          .map((id, index) => {
-            const task = byId.get(id);
-            return task ? { ...task, sortOrder: index } : null;
-          })
-          .filter(Boolean) as TaskDto[];
-        const others = previous.filter((task) => task.groupKey !== payload.groupKey);
-        queryClient.setQueryData(["tasks"], [...nextGroup, ...others]);
+        queryClient.setQueryData(
+          ["tasks"],
+          applyPlacementsToTasks(previous, payload.placements),
+        );
       }
       return { previous };
     },
@@ -326,9 +439,6 @@ export function TasksView() {
       if (context?.previous) {
         queryClient.setQueryData(["tasks"], context.previous);
       }
-    },
-    onSettled: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 
@@ -340,10 +450,12 @@ export function TasksView() {
     return map;
   }, [goalsQuery.data]);
 
+  const sourceTasks = tasksQuery.data ?? [];
+
   const visibleTasks = useMemo(() => {
     const query = search.trim().toLowerCase();
     const today = todayIsoDate();
-    const all = tasksQuery.data ?? [];
+    const all = sourceTasks;
 
     function matchesSearch(task: TaskDto) {
       if (!query) return true;
@@ -374,7 +486,7 @@ export function TasksView() {
       }
       return false;
     });
-  }, [filter, search, showCompleted, tasksQuery.data]);
+  }, [filter, search, showCompleted, sourceTasks]);
 
   const childrenByParent = useMemo(() => {
     const map = new Map<string, TaskDto[]>();
@@ -417,7 +529,55 @@ export function TasksView() {
     return keys;
   }, [rootTasksByGroup]);
 
-  const activeTask = visibleTasks.find((task) => task.id === activeId) ?? null;
+  /** Base flat tree (children of active hidden while dragging). */
+  const dragFlatBase = useMemo(() => {
+    const flat = flattenTasksForTree(visibleTasks, expandedById, orderedGroupKeys);
+    return removeChildrenOfActive(flat, activeId);
+  }, [activeId, expandedById, orderedGroupKeys, visibleTasks]);
+
+  /** Live-reordered flat items — DOM order tracks the placeholder slot. */
+  const dragFlatItems = useMemo(() => {
+    if (!dragOrderedIds) return dragFlatBase;
+    const byId = new Map(dragFlatBase.map((item) => [item.id, item]));
+    const ordered: FlatTreeItem[] = [];
+    for (const id of dragOrderedIds) {
+      const item = byId.get(id);
+      if (item) ordered.push(item);
+    }
+    // Append any ids missing from the live order (e.g. newly visible).
+    for (const item of dragFlatBase) {
+      if (!dragOrderedIds.includes(item.id)) ordered.push(item);
+    }
+    return ordered;
+  }, [dragFlatBase, dragOrderedIds]);
+
+  const dragProjection =
+    activeId && overId
+      ? getTaskTreeProjection(
+          dragFlatItems,
+          activeId,
+          overId,
+          offsetLeft,
+          INDENTATION_WIDTH,
+        )
+      : null;
+
+  const nestTargetId = useMemo(() => {
+    if (!dragProjection?.parentId || !activeId) return null;
+    const activeIndex = dragFlatItems.findIndex((item) => item.id === activeId);
+    const previous = activeIndex > 0 ? dragFlatItems[activeIndex - 1] : null;
+    // Highlight only when nesting *under* the previous row (not merely sharing its parent).
+    if (previous && dragProjection.parentId === previous.id) {
+      return previous.id;
+    }
+    return null;
+  }, [activeId, dragFlatItems, dragProjection]);
+
+  const allSortableIds = useMemo(
+    () => dragFlatItems.map((item) => item.id),
+    [dragFlatItems],
+  );
+  const activeTask = dragOverlayTask;
   const selectedTask = (tasksQuery.data ?? []).find((task) => task.id === selectedTaskId) ?? null;
   const tasksById = useMemo(
     () => new Map((tasksQuery.data ?? []).map((task) => [task.id, task])),
@@ -465,35 +625,220 @@ export function TasksView() {
     router.replace(query ? `/app/aufgaben?${query}` : "/app/aufgaben", { scroll: false });
   }
 
-  function onDragStart(event: DragStartEvent) {
-    setActiveId(String(event.active.id));
+  function clearDragUi() {
+    cancelScheduledDragClear();
+    setActiveId(null);
+    setOverId(null);
+    setOffsetLeft(0);
+    setActiveHeight(null);
+    setDragOverlayTask(null);
+    setDragOverlayMeta(null);
+    setDragOriginPlacements(null);
+    dragOrderedIdsRef.current = null;
+    setDragOrderedIds(null);
+    lastInsertIndexRef.current = null;
+    lastOverRectRef.current = null;
+    overIdRef.current = null;
+    lastSyncedOverIdRef.current = null;
   }
 
-  function onDragEnd(event: DragEndEvent) {
-    const { active, over } = event;
-    setActiveId(null);
-    if (!over || active.id === over.id) {
+  function commitFlatOrder(nextIds: string[], nextIndex: number) {
+    dragOrderedIdsRef.current = nextIds;
+    lastInsertIndexRef.current = nextIndex;
+    setDragOrderedIds(nextIds);
+  }
+
+  function applyLiveFlatSort(input: {
+    activeId: string;
+    overId: string;
+    dragCenterY: number;
+    overRect: { top: number; height: number };
+    /** True when dnd-kit just flipped `over` — move placeholder immediately (same 10–15% feel). */
+    overChanged: boolean;
+  }) {
+    const ids = dragOrderedIdsRef.current;
+    if (!ids) return;
+
+    const activeIndex = ids.indexOf(input.activeId);
+    const overIndex = ids.indexOf(input.overId);
+    if (activeIndex < 0 || overIndex < 0) return;
+
+    // Live reorder only within the same Abschnitt (cross-group commits on drop).
+    const activeMeta = dragFlatBase.find((item) => item.id === input.activeId);
+    const overMeta = dragFlatBase.find((item) => item.id === input.overId);
+    if (!activeMeta || !overMeta || activeMeta.groupKey !== overMeta.groupKey) {
       return;
     }
 
+    let nextIndex: number;
+
+    if (input.overChanged || lastSyncedOverIdRef.current !== input.overId) {
+      // Sync with verticalListSortingStrategy: it shifts siblings as soon as `over`
+      // flips (~10–15% into the row). Midpoint delay made the placeholder lag.
+      nextIndex = overIndex;
+      lastSyncedOverIdRef.current = input.overId;
+    } else {
+      // Same over row: fine-tune before/after with hysteresis while lingering.
+      nextIndex = resolveSortableInsertIndex({
+        activeIndex,
+        overIndex,
+        dragCenterY: input.dragCenterY,
+        overRect: input.overRect,
+        lastInsertIndex: lastInsertIndexRef.current,
+      });
+    }
+
+    if (nextIndex === activeIndex) {
+      lastInsertIndexRef.current = nextIndex;
+      return;
+    }
+    if (lastInsertIndexRef.current === nextIndex) return;
+
+    commitFlatOrder(arrayMove(ids, activeIndex, nextIndex), nextIndex);
+  }
+
+  function onDragStart(event: DragStartEvent) {
+    cancelScheduledDragClear();
+    const id = String(event.active.id);
     const tasks = tasksQuery.data ?? [];
-    const activeTaskItem = tasks.find((task) => task.id === active.id);
-    const overTaskItem = tasks.find((task) => task.id === over.id);
-    if (!activeTaskItem || !overTaskItem || activeTaskItem.groupKey !== overTaskItem.groupKey) {
+    const snapshot = tasks.find((task) => task.id === id) ?? null;
+    const flat = removeChildrenOfActive(
+      flattenTasksForTree(visibleTasks, expandedById, orderedGroupKeys),
+      id,
+    );
+    const orderedIds = flat.map((item) => item.id);
+    dragOrderedIdsRef.current = orderedIds;
+    lastInsertIndexRef.current = orderedIds.indexOf(id);
+    lastOverRectRef.current = null;
+    overIdRef.current = id;
+    lastSyncedOverIdRef.current = id;
+    setDragOrderedIds(orderedIds);
+    setActiveId(id);
+    setOverId(id);
+    setOffsetLeft(0);
+    const childList = tasks.filter((task) => task.parentTaskId === id);
+    // Prefer the pre-drag row height; fall back to has-meta minimum when measure is short.
+    const measured = event.active.rect.current.initial?.height ?? null;
+    const hasMeta = Boolean(
+      snapshot &&
+        (snapshot.dueDate ||
+          snapshot.goalId ||
+          (snapshot.tags?.length ?? 0) > 0 ||
+          childList.length > 0),
+    );
+    setActiveHeight(
+      measured != null ? Math.max(measured, hasMeta ? 64 : 40) : hasMeta ? 64 : 40,
+    );
+    setDragOverlayTask(snapshot);
+    setDragOverlayMeta(
+      childList.length > 0
+        ? {
+            hasChildren: true,
+            subtaskLabel: `${childList.filter((child) => child.isCompleted).length}/${childList.length}`,
+          }
+        : { hasChildren: false },
+    );
+    const layout = buildTaskDragLayout(tasks);
+    const byId = new Map(tasks.map((task) => [task.id, task]));
+    setDragOriginPlacements(layoutToPlacements(layout, byId));
+  }
+
+  function onDragMove(event: DragMoveEvent) {
+    const next = event.delta.x;
+    setOffsetLeft((prev) => (prev === next ? prev : next));
+
+    // Re-evaluate before/after while lingering on the same over row (slow wiggle).
+    const currentOver = overIdRef.current;
+    const overRect = lastOverRectRef.current;
+    const translated = event.active.rect.current.translated;
+    if (!currentOver || !overRect || !translated) return;
+
+    applyLiveFlatSort({
+      activeId: String(event.active.id),
+      overId: currentOver,
+      dragCenterY: translated.top + translated.height / 2,
+      overRect,
+      overChanged: false,
+    });
+  }
+
+  function onDragOver(event: DragOverEvent) {
+    const nextOver = event.over ? String(event.over.id) : null;
+    const overChanged = nextOver !== null && nextOver !== overIdRef.current;
+    overIdRef.current = nextOver;
+    setOverId((prev) => (prev === nextOver ? prev : nextOver));
+
+    if (!event.over || !nextOver) {
+      lastOverRectRef.current = null;
       return;
     }
 
-    const groupTasks = tasks
-      .filter((task) => task.groupKey === activeTaskItem.groupKey && !task.parentTaskId)
-      .sort((a, b) => a.sortOrder - b.sortOrder);
-    const oldIndex = groupTasks.findIndex((task) => task.id === active.id);
-    const newIndex = groupTasks.findIndex((task) => task.id === over.id);
-    if (oldIndex < 0 || newIndex < 0) {
-      return;
+    lastOverRectRef.current = {
+      top: event.over.rect.top,
+      height: event.over.rect.height,
+    };
+
+    const translated = event.active.rect.current.translated;
+    const dragCenterY = translated
+      ? translated.top + translated.height / 2
+      : event.over.rect.top + event.over.rect.height / 2;
+
+    applyLiveFlatSort({
+      activeId: String(event.active.id),
+      overId: nextOver,
+      dragCenterY,
+      overRect: lastOverRectRef.current,
+      overChanged,
+    });
+  }
+
+  function onDragEnd(event: {
+    over: { id: string | number } | null;
+    active: { id: string | number };
+  }) {
+    const tasks = tasksQuery.data ?? [];
+    const origin = dragOriginPlacements;
+    const active = String(event.active.id);
+    const over = event.over ? String(event.over.id) : null;
+    const flatSnapshot = dragFlatItems;
+    const liveOrderedIds = dragOrderedIdsRef.current ?? flatSnapshot.map((item) => item.id);
+    const offsetSnapshot = offsetLeft;
+
+    clearDragUi();
+
+    if (!over || !origin) return;
+
+    const projected = getTaskTreeProjection(
+      flatSnapshot,
+      active,
+      over,
+      offsetSnapshot,
+      INDENTATION_WIDTH,
+    );
+    if (!projected) return;
+
+    const patch = commitTaskTreeMove({
+      tasks,
+      expandedById,
+      activeId: active,
+      overId: over,
+      projected,
+      liveOrderedIds,
+    });
+    if (patch.length === 0) return;
+
+    if (projected.parentId) {
+      setExpandedById((current) => ({ ...current, [projected.parentId!]: true }));
     }
 
-    const orderedIds = arrayMove(groupTasks, oldIndex, newIndex).map((task) => task.id);
-    reorderMutation.mutate({ groupKey: activeTaskItem.groupKey, orderedIds });
+    const placements = mergePlacements(origin, patch);
+    if (placementsEqual(origin, placements)) return;
+
+    relocateMutation.mutate({ placements });
+  }
+
+  function onDragCancel() {
+    clearDragUi();
   }
 
   function getTaskDepth(task: TaskDto, byId: Map<string, TaskDto>): number {
@@ -590,65 +935,58 @@ export function TasksView() {
     ];
   }
 
-  function renderNestedTask(task: TaskDto, indentLevel: TaskIndentLevel): ReactNode {
-    const children = childrenByParent.get(task.id) ?? [];
-    const subtaskLabel =
-      children.length > 0
-        ? `${children.filter((child) => child.isCompleted).length}/${children.length}`
-        : undefined;
-    const nextIndent = Math.min(indentLevel + 1, TASK_MAX_INDENT_LEVEL) as TaskIndentLevel;
+  function renderFlatGroup(groupKey: string) {
+    const tasksByVisibleId = new Map(visibleTasks.map((task) => [task.id, task]));
+    const flatRows: FlatTaskRow[] = dragFlatItems
+      .filter((item) => item.groupKey === groupKey)
+      .flatMap((item) => {
+        const task = tasksByVisibleId.get(item.id);
+        if (!task) return [];
+        const baseDepth =
+          activeId === item.id && dragProjection ? dragProjection.depth : item.depth;
+        const depth = Math.min(baseDepth, TASK_MAX_INDENT_LEVEL) as TaskIndentLevel;
+        const childList = childrenByParent.get(task.id) ?? [];
+        return [
+          {
+            task,
+            depth,
+            hasChildren: childList.length > 0,
+          },
+        ];
+      });
 
-    return (
-      <TaskListItem
-        completed={task.isCompleted}
-        contextMenuItems={buildTaskContextMenuItems(task)}
-        due={formatDueLabel(task.dueDate)}
-        dueTone={dueMetaTone(task.dueDate)}
-        favorite={task.isFavorite}
-        goal={task.goalId ? goalTitles.get(task.goalId) : undefined}
-        indentLevel={indentLevel}
-        key={task.id}
-        onClick={() => setTaskQuery(task.id)}
-        onCompletedChange={(completed) =>
-          updateMutation.mutate({ id: task.id, isCompleted: completed })
-        }
-        onFavoriteChange={(favorite) =>
-          updateMutation.mutate({ id: task.id, isFavorite: favorite })
-        }
-        subtasks={subtaskLabel}
-        tags={task.tags}
-        title={task.title}
-      >
-        {children.map((child) => renderNestedTask(child, nextIndent))}
-      </TaskListItem>
-    );
-  }
+    return flatRows.map(({ task, depth, hasChildren }) => {
+      const childList = childrenByParent.get(task.id) ?? [];
+      const subtaskLabel =
+        childList.length > 0
+          ? `${childList.filter((child) => child.isCompleted).length}/${childList.length}`
+          : undefined;
 
-  function renderTask(task: TaskDto) {
-    const children = childrenByParent.get(task.id) ?? [];
-    const subtaskLabel =
-      children.length > 0
-        ? `${children.filter((child) => child.isCompleted).length}/${children.length}`
-        : undefined;
-
-    return (
-      <SortableTask
-        contextMenuItems={buildTaskContextMenuItems(task)}
-        goalTitle={task.goalId ? goalTitles.get(task.goalId) : undefined}
-        key={task.id}
-        onFavorite={(current, favorite) =>
-          updateMutation.mutate({ id: current.id, isFavorite: favorite })
-        }
-        onOpen={(current) => setTaskQuery(current.id)}
-        onToggle={(current, completed) =>
-          updateMutation.mutate({ id: current.id, isCompleted: completed })
-        }
-        subtaskLabel={subtaskLabel}
-        task={task}
-      >
-        {children.map((child) => renderNestedTask(child, 1))}
-      </SortableTask>
-    );
+      return (
+        <SortableFlatTask
+          contextMenuItems={buildTaskContextMenuItems(task)}
+          depth={depth}
+          expanded={expandedById[task.id] !== false}
+          goalTitle={task.goalId ? goalTitles.get(task.goalId) : undefined}
+          hasChildren={hasChildren}
+          key={task.id}
+          lockedHeight={activeId === task.id ? activeHeight : null}
+          nestHint={nestTargetId === task.id}
+          onExpandedChange={(expanded) =>
+            setExpandedById((current) => ({ ...current, [task.id]: expanded }))
+          }
+          onFavorite={(current, favorite) =>
+            updateMutation.mutate({ id: current.id, isFavorite: favorite })
+          }
+          onOpen={(current) => setTaskQuery(current.id)}
+          onToggle={(current, completed) =>
+            updateMutation.mutate({ id: current.id, isCompleted: completed })
+          }
+          subtaskLabel={subtaskLabel}
+          task={task}
+        />
+      );
+    });
   }
 
   return (
@@ -720,66 +1058,84 @@ export function TasksView() {
 
           <div className={styles.list}>
             <DndContext
-              collisionDetection={closestCenter}
+              collisionDetection={taskListCollisionDetection}
+              measuring={measuring}
+              onDragCancel={onDragCancel}
               onDragEnd={onDragEnd}
+              onDragMove={onDragMove}
+              onDragOver={onDragOver}
               onDragStart={onDragStart}
               sensors={sensors}
             >
-              {orderedGroupKeys.map((groupKey) => {
-                const tasks = rootTasksByGroup.get(groupKey) ?? [];
-                if (groupKey === ROOT_GROUP) {
-                  return (
-                    <div className={`${styles.rootList} fk-task-list`} key={groupKey}>
-                      <SortableContext
-                        items={tasks.map((task) => task.id)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {tasks.map((task) => renderTask(task))}
-                      </SortableContext>
-                      <AddTask
-                        onSubmit={async ({ title, description }) => {
-                          await createMutation.mutateAsync({
-                            title,
-                            description: description || undefined,
-                            groupKey: ROOT_GROUP,
-                          });
-                        }}
-                      />
-                    </div>
-                  );
-                }
+              <SortableContext items={allSortableIds} strategy={verticalListSortingStrategy}>
+                {orderedGroupKeys.map((groupKey) => {
+                  const tasks = rootTasksByGroup.get(groupKey) ?? [];
+                  if (groupKey === ROOT_GROUP) {
+                    return (
+                      <div className={`${styles.rootList} fk-task-list`} key={groupKey}>
+                        {renderFlatGroup(groupKey)}
+                        <AddTask
+                          onSubmit={async ({ title, description }) => {
+                            await createMutation.mutateAsync({
+                              title,
+                              description: description || undefined,
+                              groupKey: ROOT_GROUP,
+                            });
+                          }}
+                        />
+                      </div>
+                    );
+                  }
 
-                return (
-                  <TaskGroup
-                    count={countTaskTree(tasks, childrenByParent)}
-                    key={groupKey}
-                    onAddSubmit={async ({ title, description }) => {
-                      await createMutation.mutateAsync({
-                        title,
-                        description: description || undefined,
-                        groupKey,
-                      });
-                    }}
-                    title={groupTitle(groupKey)}
-                  >
-                    <SortableContext
-                      items={tasks.map((task) => task.id)}
-                      strategy={verticalListSortingStrategy}
+                  return (
+                    <TaskGroup
+                      count={countTaskTree(tasks, childrenByParent)}
+                      key={groupKey}
+                      onAddSubmit={async ({ title, description }) => {
+                        await createMutation.mutateAsync({
+                          title,
+                          description: description || undefined,
+                          groupKey,
+                        });
+                      }}
+                      title={groupTitle(groupKey)}
                     >
-                      {tasks.map((task) => renderTask(task))}
-                    </SortableContext>
-                  </TaskGroup>
-                );
-              })}
-              <DragOverlay>
+                      {renderFlatGroup(groupKey)}
+                    </TaskGroup>
+                  );
+                })}
+              </SortableContext>
+              <DragOverlay dropAnimation={null}>
                 {activeTask ? (
-                  <TaskListItem
-                    completed={activeTask.isCompleted}
-                    favorite={activeTask.isFavorite}
-                    state="dragged"
-                    tags={activeTask.tags}
-                    title={activeTask.title}
-                  />
+                  <DnDGhostShell>
+                    <TaskListItem
+                      completed={activeTask.isCompleted}
+                      due={formatDueLabel(activeTask.dueDate)}
+                      dueTone={dueMetaTone(activeTask.dueDate)}
+                      expandable={dragOverlayMeta?.hasChildren}
+                      expanded={false}
+                      favorite={activeTask.isFavorite}
+                      goal={
+                        activeTask.goalId ? goalTitles.get(activeTask.goalId) : undefined
+                      }
+                      state="dragged"
+                      style={{
+                        width: "var(--fk-task-column-width, 800px)",
+                        ...(activeHeight
+                          ? {
+                              boxSizing: "border-box",
+                              height: activeHeight,
+                              maxHeight: activeHeight,
+                              minHeight: activeHeight,
+                              overflow: "hidden",
+                            }
+                          : {}),
+                      }}
+                      subtasks={dragOverlayMeta?.subtaskLabel}
+                      tags={activeTask.tags}
+                      title={activeTask.title}
+                    />
+                  </DnDGhostShell>
                 ) : null}
               </DragOverlay>
             </DndContext>

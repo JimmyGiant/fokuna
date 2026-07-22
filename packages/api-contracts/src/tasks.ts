@@ -49,9 +49,9 @@ export const updateTaskInputSchema = z
     title: z.string().trim().min(1).max(200).optional(),
     description: z.string().trim().max(5000).nullable().optional(),
     groupKey: z.string().trim().min(1).max(100).optional(),
-    goalId: z.string().optional(),
-    milestoneId: z.string().optional(),
-    parentTaskId: z.string().optional(),
+    goalId: z.string().nullable().optional(),
+    milestoneId: z.string().nullable().optional(),
+    parentTaskId: z.string().nullable().optional(),
     priority: taskPrioritySchema.optional(),
     estimateMinutes: z
       .number()
@@ -75,6 +75,17 @@ export const reorderTasksInputSchema = z.object({
   orderedIds: z.array(z.string()).min(1),
 });
 
+export const taskPlacementSchema = z.object({
+  id: z.string().min(1),
+  groupKey: z.string().trim().min(1).max(100),
+  parentTaskId: z.string().nullable(),
+  sortOrder: z.number().int().min(0),
+});
+
+export const relocateTasksInputSchema = z.object({
+  placements: z.array(taskPlacementSchema).min(1),
+});
+
 export const listTasksQuerySchema = z.object({
   groupKey: z.string().optional(),
   goalId: z.string().optional(),
@@ -87,3 +98,5 @@ export const listTasksQuerySchema = z.object({
 export type TaskDto = z.infer<typeof taskSchema>;
 export type CreateTaskInput = z.infer<typeof createTaskInputSchema>;
 export type UpdateTaskInput = z.infer<typeof updateTaskInputSchema>;
+export type TaskPlacementInput = z.infer<typeof taskPlacementSchema>;
+export type RelocateTasksInput = z.infer<typeof relocateTasksInputSchema>;

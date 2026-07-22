@@ -3630,21 +3630,32 @@
     border: 1px solid transparent;
     border-radius: 8px;
     background:
-      linear-gradient(var(--fk-color-surface-subtle), var(--fk-color-surface-subtle)) padding-box,
+      linear-gradient(var(--fk-color-surface-base, var(--fk-color-surface-subtle)), var(--fk-color-surface-base, var(--fk-color-surface-subtle)))
+        padding-box,
       linear-gradient(to bottom, rgb(255 255 255 / 16%), rgb(0 0 0 / 4%)) border-box;
     box-shadow: var(--fk-shadow-subtle-element);
     cursor: grabbing;
     transform: rotate(-1deg);
+    opacity: 1;
+    isolation: isolate;
   }
 
   .fk-task-item--placeholder {
-    background:
-      linear-gradient(var(--fk-color-surface-muted), var(--fk-color-surface-muted)) padding-box,
-      linear-gradient(to bottom, rgb(0 0 0 / 5%), rgb(255 255 255 / 5%)) border-box;
+    background: var(--fk-color-surface-muted);
     border: 1px solid transparent;
     border-radius: 8px;
-    min-height: 68px;
     width: var(--fk-task-column-width, 800px);
+    pointer-events: none;
+  }
+
+  /* When an explicit height is locked in (inline), don't let has-meta inflate further. */
+  .fk-task-item--placeholder[style*="height"] {
+    min-height: 0;
+  }
+
+  /* Hide content reliably (visibility can flash with nested paints). */
+  .fk-task-item--placeholder .fk-task-item__primary-row {
+    opacity: 0;
   }
 
   .fk-task-item__drag,

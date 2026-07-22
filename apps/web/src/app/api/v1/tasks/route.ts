@@ -37,6 +37,10 @@ export async function PUT(request: Request) {
   try {
     const session = await requireAppSession();
     const body = await request.json();
+    if (body && typeof body === "object" && "placements" in body) {
+      const tasks = await taskService.relocateUserTasks(session.user.id, body);
+      return jsonOk({ data: tasks });
+    }
     if (body && typeof body === "object" && "orderedIds" in body) {
       const tasks = await taskService.reorderUserTasks(session.user.id, body);
       return jsonOk({ data: tasks });

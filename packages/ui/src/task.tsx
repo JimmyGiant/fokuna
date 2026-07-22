@@ -47,6 +47,10 @@ export interface TaskListItemProps extends HTMLAttributes<HTMLDivElement> {
   dueTone?: TagTone;
   /** Right-click menu entries for this row (not nested children). */
   contextMenuItems?: FokunaContextMenuEntry[];
+  /** Spread onto the drag-handle control (optional; prefer rowDragProps for whole-row drag). */
+  dragHandleProps?: HTMLAttributes<HTMLButtonElement>;
+  /** Spread onto the row surface (not nested children) for whole-row dnd-kit listeners. */
+  rowDragProps?: HTMLAttributes<HTMLDivElement>;
   onCompletedChange?: (completed: boolean) => void;
   onExpandedChange?: (expanded: boolean) => void;
   onFavoriteChange?: (favorite: boolean) => void;
@@ -70,6 +74,8 @@ export function TaskListItem({
   defaultExpanded = true,
   indentLevel = 0,
   contextMenuItems,
+  dragHandleProps,
+  rowDragProps,
   onCompletedChange,
   onExpandedChange,
   onFavoriteChange,
@@ -98,12 +104,53 @@ export function TaskListItem({
   }
 
   if (state === "placeholder") {
-    return <div {...props} className={cn("fk-task-item fk-task-item--placeholder", className)} />;
+    // Congruent surface (MVP §3.1): same geometry as the dragged row (incl. meta),
+    // content invisible — height locked by the sortable wrapper / inline style.
+    return (
+      <div
+        {...props}
+        aria-hidden
+        className={cn("fk-task-item", "fk-task-item--placeholder", className)}
+        data-has-meta={hasMeta || undefined}
+        data-indent={resolvedIndent || undefined}
+        data-state="placeholder"
+      >
+        <div className="fk-task-item__primary-row">
+          <span className="fk-task-item__drag" />
+          <span className="fk-task-item__expand-spacer" />
+          <span className="fk-task-item__content">
+            <strong>{title}</strong>
+            {hasMeta ? (
+              <span className="fk-task-item__meta">
+                {subtasks ? <Tag icon={<SubtaskIcon />}>{subtasks}</Tag> : null}
+                {resolvedGoal ? (
+                  <Tag icon="focus-target" tone="teal">
+                    {resolvedGoal}
+                  </Tag>
+                ) : null}
+                {due ? (
+                  <Tag icon="calendar" tone={dueTone}>
+                    {due}
+                  </Tag>
+                ) : null}
+                {tags.map((tag) => (
+                  <Tag icon="tag" key={tag}>
+                    {tag}
+                  </Tag>
+                ))}
+              </span>
+            ) : null}
+          </span>
+          <span className="fk-task-item__favorite" />
+        </div>
+      </div>
+    );
   }
 
   const item = (
     <div
       {...props}
+      {...rowDragProps}
       aria-grabbed={state === "dragged" || undefined}
       className={cn("fk-task-item", className)}
       data-has-meta={hasMeta || undefined}
@@ -112,14 +159,15 @@ export function TaskListItem({
       data-milestone-task={milestoneTask || undefined}
       data-expanded={isExpandable ? isExpanded : undefined}
       data-state={state}
-      draggable
     >
       <div className="fk-task-item__primary-row">
         <button
           aria-label="Aufgabe verschieben"
           className="fk-task-item__drag"
           onClick={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
           type="button"
+          {...dragHandleProps}
         >
           <FokunaIcon name="drag-handle-grid" size={16} stroke={1.5} />
         </button>
@@ -132,6 +180,7 @@ export function TaskListItem({
               event.stopPropagation();
               setExpanded(!isExpanded);
             }}
+            onPointerDown={(event) => event.stopPropagation()}
             type="button"
           >
             <FokunaIcon
@@ -147,6 +196,7 @@ export function TaskListItem({
           data-no-drag
           onClick={(event) => event.stopPropagation()}
           onKeyDown={(event) => event.stopPropagation()}
+          onPointerDown={(event) => event.stopPropagation()}
         >
           <Checkbox
             checked={completed}
@@ -189,6 +239,7 @@ export function TaskListItem({
             if (!onFavoriteChange) setInternalFavorite(next);
             onFavoriteChange?.(next);
           }}
+          onPointerDown={(event) => event.stopPropagation()}
           type="button"
         >
           <FokunaIcon fill={isFavorite ? "on" : "off"} name="star" />

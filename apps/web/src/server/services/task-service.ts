@@ -1,8 +1,10 @@
 import {
   createTaskInputSchema,
+  relocateTasksInputSchema,
   reorderTasksInputSchema,
   updateTaskInputSchema,
   type CreateTaskInput,
+  type RelocateTasksInput,
   type TaskDto,
   type UpdateTaskInput,
 } from "@fokuna/api-contracts";
@@ -40,6 +42,11 @@ export async function reorderUserTasks(
 ) {
   const input = reorderTasksInputSchema.parse(raw);
   return taskRepository.reorderTasks(userId, input.groupKey, input.orderedIds);
+}
+
+export async function relocateUserTasks(userId: string, raw: RelocateTasksInput) {
+  const input = relocateTasksInputSchema.parse(raw);
+  return taskRepository.relocateTasks(userId, input.placements);
 }
 
 export async function archiveUserTask(userId: string, taskId: string) {
