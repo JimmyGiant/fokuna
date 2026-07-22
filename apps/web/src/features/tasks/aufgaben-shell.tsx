@@ -46,7 +46,6 @@ import {
   type DeleteEntityKind,
 } from "@/components/confirm-delete-modal";
 import { DnDGhostShell } from "@/components/dnd/dnd-ghost-shell";
-import { resolveSortableInsertIndex } from "@/components/dnd/sortable-insert-index";
 import { sortableItemStyle } from "@/components/dnd/sortable-styles";
 import { apiGet, apiSend } from "@/lib/api";
 import { TaxonomyCreateModal, TaxonomyOrganizeModal } from "./taxonomy-manager-modal";
@@ -247,10 +246,6 @@ function SecondarySectionDroppable({
   const [liveSortableIds, setLiveSortableIds] = useState<string[] | null>(null);
   const liveIdsRef = useRef<string[] | null>(null);
   const dragActiveRef = useRef(false);
-  const overIdRef = useRef<string | null>(null);
-  const lastInsertIndexRef = useRef<number | null>(null);
-  const lastOverRectRef = useRef<{ top: number; height: number } | null>(null);
-  const lastSyncedOverIdRef = useRef<string | null>(null);
   const itemsBySortableId = useMemo(() => {
     const map = new Map(section.items.map((item) => [item.sortableId, item]));
     return map;
@@ -269,49 +264,6 @@ function SecondarySectionDroppable({
     }
   }, [baseSortableIds, liveSortableIds]);
 
-  function applyLiveSort(input: {
-    activeId: string;
-    overId: string;
-    dragCenterY: number;
-    overRect: { top: number; height: number };
-    overChanged: boolean;
-  }) {
-    const ids = liveIdsRef.current;
-    if (!ids || !dragActiveRef.current) return;
-
-    const activeIndex = ids.indexOf(input.activeId);
-    const overIndex = ids.indexOf(input.overId);
-    if (activeIndex < 0 || overIndex < 0) return;
-
-    const overMeta = parseSidebarTaxonomySortableId(input.overId);
-    if (!overMeta || overMeta.section !== section.id) return;
-
-    let nextIndex: number;
-    if (input.overChanged || lastSyncedOverIdRef.current !== input.overId) {
-      nextIndex = overIndex;
-      lastSyncedOverIdRef.current = input.overId;
-    } else {
-      nextIndex = resolveSortableInsertIndex({
-        activeIndex,
-        overIndex,
-        dragCenterY: input.dragCenterY,
-        overRect: input.overRect,
-        lastInsertIndex: lastInsertIndexRef.current,
-      });
-    }
-
-    if (nextIndex === activeIndex) {
-      lastInsertIndexRef.current = nextIndex;
-      return;
-    }
-    if (lastInsertIndexRef.current === nextIndex) return;
-
-    const next = arrayMove(ids, activeIndex, nextIndex);
-    liveIdsRef.current = next;
-    lastInsertIndexRef.current = nextIndex;
-    setLiveSortableIds(next);
-  }
-
   useDndMonitor({
     onDragStart(event) {
       if (!isTaxonomyDragActive(event.active)) return;
@@ -322,68 +274,39 @@ function SecondarySectionDroppable({
       if (!meta || meta.section !== section.id) return;
 
       const ids = section.items.map((item) => item.sortableId);
-      const draggedId = String(event.active.id);
       dragActiveRef.current = true;
       liveIdsRef.current = ids;
-      overIdRef.current = draggedId;
-      lastSyncedOverIdRef.current = draggedId;
-      lastInsertIndexRef.current = ids.indexOf(draggedId);
-      lastOverRectRef.current = null;
       setLiveSortableIds(ids);
     },
     onDragOver(event) {
-      if (!dragActiveRef.current || !liveIdsRef.current) return;
+      const ids = liveIdsRef.current;
+      if (!ids || !dragActiveRef.current || !event.over) return;
       if (!isTaxonomyDragActive(event.active)) return;
 
-      const nextOver = event.over ? String(event.over.id) : null;
-      const overChanged = nextOver != null && nextOver !== overIdRef.current;
-      overIdRef.current = nextOver;
+      const draggedId = String(event.active.id);
+      const overId = String(event.over.id);
+      // After a live move, `over` is often the placeholder itself — wait for a neighbor.
+      if (draggedId === overId) return;
 
-      if (!event.over || !nextOver) {
-        lastOverRectRef.current = null;
-        return;
-      }
+      const overMeta =
+        (isSidebarTaxonomyDrag(event.over.data.current)
+          ? event.over.data.current
+          : null) ?? parseSidebarTaxonomySortableId(overId);
+      if (!overMeta || overMeta.section !== section.id) return;
 
-      lastOverRectRef.current = {
-        top: event.over.rect.top,
-        height: event.over.rect.height,
-      };
-      const translated = event.active.rect.current.translated;
-      const dragCenterY = translated
-        ? translated.top + translated.height / 2
-        : event.over.rect.top + event.over.rect.height / 2;
+      const activeIndex = ids.indexOf(draggedId);
+      const overIndex = ids.indexOf(overId);
+      if (activeIndex < 0 || overIndex < 0 || activeIndex === overIndex) return;
 
-      applyLiveSort({
-        activeId: String(event.active.id),
-        overId: nextOver,
-        dragCenterY,
-        overRect: lastOverRectRef.current,
-        overChanged,
-      });
-    },
-    onDragMove(event) {
-      if (!dragActiveRef.current || !liveIdsRef.current) return;
-      if (!isTaxonomyDragActive(event.active)) return;
-
-      const currentOver = overIdRef.current;
-      const overRect = lastOverRectRef.current;
-      const translated = event.active.rect.current.translated;
-      if (!currentOver || !overRect || !translated) return;
-
-      applyLiveSort({
-        activeId: String(event.active.id),
-        overId: currentOver,
-        dragCenterY: translated.top + translated.height / 2,
-        overRect,
-        overChanged: false,
-      });
+      // Short L2 rows: move as soon as `over` flips — no midpoint hysteresis
+      // (that fights DOM remounts and causes flicker on ~32px rows).
+      const next = arrayMove(ids, activeIndex, overIndex);
+      liveIdsRef.current = next;
+      setLiveSortableIds(next);
     },
     onDragEnd() {
       if (!dragActiveRef.current) return;
       dragActiveRef.current = false;
-      overIdRef.current = null;
-      lastOverRectRef.current = null;
-      lastSyncedOverIdRef.current = null;
 
       const live = liveIdsRef.current;
       if (!live) return;
@@ -409,10 +332,6 @@ function SecondarySectionDroppable({
     onDragCancel() {
       if (!dragActiveRef.current) return;
       dragActiveRef.current = false;
-      overIdRef.current = null;
-      lastOverRectRef.current = null;
-      lastSyncedOverIdRef.current = null;
-      lastInsertIndexRef.current = null;
       liveIdsRef.current = null;
       setLiveSortableIds(null);
     },

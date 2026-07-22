@@ -42,18 +42,11 @@ const measuring = {
 };
 
 const collisionDetection: CollisionDetection = (args) => {
-  // Taxonomy live-reorder: ignore the active placeholder rect so `over` can
-  // advance to the neighbor under the pointer (placeholder has no hit target).
-  const containers = isTaxonomyDragActive(args.active)
-    ? args.droppableContainers.filter((entry) => entry.id !== args.active.id)
-    : args.droppableContainers;
-  const scoped = { ...args, droppableContainers: containers };
-
-  const pointerHits = pointerWithin(scoped);
+  const pointerHits = pointerWithin(args);
   if (pointerHits.length > 0) {
     return [pointerHits[pointerHits.length - 1]!];
   }
-  return closestCenter(scoped);
+  return closestCenter(args);
 };
 
 export type TasksListDndHandlers = {
