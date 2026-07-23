@@ -8,7 +8,13 @@ export const dynamic = "force-dynamic";
 export default async function AufgabenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string; task?: string; category?: string; label?: string }>;
+  searchParams: Promise<{
+    filter?: string;
+    task?: string;
+    category?: string;
+    label?: string;
+    priority?: string;
+  }>;
 }) {
   const params = await searchParams;
   const filter = params.filter ?? "all";
@@ -19,6 +25,8 @@ export default async function AufgabenPage({
     secondaryActiveId = `category:${params.category}`;
   } else if (params.label) {
     secondaryActiveId = `label:${params.label}`;
+  } else if (params.priority) {
+    secondaryActiveId = `priority:${params.priority}`;
   }
 
   return (

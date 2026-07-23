@@ -13,6 +13,13 @@ import {
 } from "./task";
 
 describe("task composition patterns", () => {
+  it("reserves a drag column on section headers so titles share the checkbox axis", () => {
+    const { container } = render(<TaskGroupHeader title="Überfällig" />);
+    const header = container.querySelector(".fk-task-group__header");
+    expect(header?.querySelector(".fk-task-group__drag-spacer")).toBeInTheDocument();
+    expect(header?.querySelector(".fk-task-group__drag")).not.toBeInTheDocument();
+  });
+
   it("marks milestone group headers without changing the base component", () => {
     const { container } = render(<TaskGroupHeader milestone title="Meilenstein A" />);
     expect(container.firstElementChild).toHaveAttribute("data-milestone", "true");

@@ -367,13 +367,14 @@ function todayIsoDate() {
 
 function listTitleForFilter(
   filter: string,
-  options?: { categoryName?: string; labelName?: string },
+  options?: { categoryName?: string; labelName?: string; priorityName?: string },
 ): string {
   if (filter === "favorites") return "Favoriten";
   if (filter === "today") return "Heute";
   if (filter === "inbox") return "Eingang";
   if (options?.categoryName) return options.categoryName;
   if (options?.labelName) return options.labelName;
+  if (options?.priorityName) return options.priorityName;
   return "Alle Aufgaben";
 }
 
@@ -399,6 +400,7 @@ export function TasksView() {
   const filter = searchParams.get("filter") ?? "all";
   const categoryId = searchParams.get("category");
   const labelId = searchParams.get("label");
+  const priorityFilter = searchParams.get("priority");
   const selectedTaskId = searchParams.get("task");
   const openLabelsAfterTaskCloseRef = useRef(false);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -522,6 +524,10 @@ export function TasksView() {
     () => labels.find((label) => label.id === labelId) ?? null,
     [labelId, labels],
   );
+  const activePriority = useMemo(
+    () => priorityOptions.find((option) => option.value === priorityFilter) ?? null,
+    [priorityFilter],
+  );
 
   function resolveTaskTagLabels(task: TaskDto): TaskListTag[] {
     return task.labelIds
@@ -575,6 +581,7 @@ export function TasksView() {
       if (filter === "inbox" && task.categoryId !== null) return false;
       if (categoryId && task.categoryId !== categoryId) return false;
       if (labelId && !task.labelIds.includes(labelId)) return false;
+      if (priorityFilter && normalizePriority(task.priority) !== priorityFilter) return false;
       return matchesSearch(task);
     }
 
@@ -583,8 +590,8 @@ export function TasksView() {
     const matchedSelf = all.filter((task) => matchesFilter(task));
     const matchedIds = new Set(matchedSelf.map((task) => task.id));
 
-    // Favoriten / Label: only matching tasks (nested ones are promoted when flattening).
-    if (filter === "favorites" || labelId) {
+    // Favoriten / Label / Priorität: only matching tasks (nested ones are promoted when flattening).
+    if (filter === "favorites" || labelId || priorityFilter) {
       return matchedSelf;
     }
 
@@ -595,7 +602,7 @@ export function TasksView() {
       }
       return false;
     });
-  }, [categoryId, filter, labelId, labelsById, search, showCompleted, sourceTasks]);
+  }, [categoryId, filter, labelId, labelsById, priorityFilter, search, showCompleted, sourceTasks]);
 
   const childrenByParent = useMemo(() => {
     const map = new Map<string, TaskDto[]>();
@@ -680,14 +687,14 @@ export function TasksView() {
     () =>
       flattenTasksForDragList({
         filter,
-        promoteOrphans: filter === "favorites" || Boolean(labelId),
+        promoteOrphans: filter === "favorites" || Boolean(labelId) || Boolean(priorityFilter),
         visibleTasks,
         expandedById,
         orderedGroupKeys,
         overdueTreeIds,
         activeId,
       }),
-    [activeId, expandedById, filter, labelId, orderedGroupKeys, overdueTreeIds, visibleTasks],
+    [activeId, expandedById, filter, labelId, orderedGroupKeys, overdueTreeIds, priorityFilter, visibleTasks],
   );
 
   /** Live-reordered flat items — DOM order tracks the placeholder slot. */
@@ -872,7 +879,7 @@ export function TasksView() {
     const snapshot = tasks.find((task) => task.id === id) ?? null;
     const flat = flattenTasksForDragList({
       filter,
-      promoteOrphans: filter === "favorites" || Boolean(labelId),
+      promoteOrphans: filter === "favorites" || Boolean(labelId) || Boolean(priorityFilter),
       visibleTasks,
       expandedById,
       orderedGroupKeys,
@@ -1237,6 +1244,7 @@ export function TasksView() {
       ...(createDueDate ? { dueDate: createDueDate } : {}),
       ...(categoryId ? { categoryId } : {}),
       ...(labelId ? { labelIds: [labelId] } : {}),
+      ...(activePriority ? { priority: activePriority.value } : {}),
     });
   }
 
@@ -1251,6 +1259,7 @@ export function TasksView() {
   const listTitle = listTitleForFilter(filter, {
     categoryName: activeCategory?.name,
     labelName: activeLabel?.name,
+    priorityName: activePriority?.label,
   });
 
   return (

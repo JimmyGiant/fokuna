@@ -49,6 +49,7 @@ import { DnDGhostShell } from "@/components/dnd/dnd-ghost-shell";
 import { sortableItemStyle } from "@/components/dnd/sortable-styles";
 import { apiGet, apiSend } from "@/lib/api";
 import { TaxonomyCreateModal, TaxonomyOrganizeModal } from "./taxonomy-manager-modal";
+import { priorityOptions } from "./task-property-options";
 import {
   SIDEBAR_DROP,
   collectCategoryDeleteTaskIds,
@@ -60,6 +61,10 @@ import {
   type SidebarTaxonomySection,
 } from "./taxonomy";
 import { TasksDndHost } from "./tasks-dnd-host";
+
+function normalizePriority(priority: TaskDto["priority"]): TaskDto["priority"] {
+  return priority === "high" ? "urgent" : priority;
+}
 
 type ShellSecondaryItem = SidebarSecondaryItem & {
   sortableId: string;
@@ -223,6 +228,46 @@ function SidebarTaxonomyDragOverlay({
         </DnDGhostShell>
       ) : null}
     </DragOverlay>
+  );
+}
+
+function SecondarySectionStatic({
+  label,
+  items,
+  activeId,
+}: {
+  label: string;
+  items: SidebarSecondaryItem[];
+  activeId?: string;
+}) {
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <section
+      className="fk-sidebar__secondary-section"
+      data-expanded={expanded || undefined}
+    >
+      <header>
+        <strong>{label}</strong>
+        {/* No add control — predefined entries (e.g. priority levels). */}
+        <span aria-hidden="true" />
+        <button
+          aria-expanded={expanded}
+          aria-label={expanded ? `${label} einklappen` : `${label} ausklappen`}
+          onClick={() => setExpanded((current) => !current)}
+          type="button"
+        >
+          <FokunaIcon name={expanded ? "chevron-up" : "chevron-down"} size={16} stroke={1.5} />
+        </button>
+      </header>
+      {expanded ? (
+        <ul className="fk-sidebar__secondary-list">
+          {items.map((item) => (
+            <SecondaryNavItem activeId={activeId} item={item} key={item.id} />
+          ))}
+        </ul>
+      ) : null}
+    </section>
   );
 }
 
@@ -665,6 +710,24 @@ export function AufgabenShell({
     [categories, goals, labels, tasks],
   );
 
+  const prioritySectionItems: SidebarSecondaryItem[] = useMemo(
+    () =>
+      priorityOptions.map((option) => ({
+        id: `priority:${option.value}`,
+        label: option.label,
+        href: `/app/aufgaben?priority=${option.value}`,
+        icon: "flag" as const,
+        iconColor: option.color,
+        badge: String(
+          countOpenTasks(
+            tasks,
+            (task) => normalizePriority(task.priority) === option.value,
+          ),
+        ),
+      })),
+    [tasks],
+  );
+
   const persistTaxonomyOrder = useCallback(
     async (section: SidebarTaxonomySection, orderedIds: string[]) => {
       const path =
@@ -828,6 +891,11 @@ export function AufgabenShell({
                       section={section}
                     />
                   ))}
+                  <SecondarySectionStatic
+                    activeId={secondaryActiveId}
+                    items={prioritySectionItems}
+                    label="Priorität"
+                  />
                 </div>
               }
               secondaryActiveId={secondaryActiveId}

@@ -382,11 +382,14 @@ export function TaskGroupHeader({
       data-milestone={milestone || undefined}
     >
       {milestone ? <span aria-hidden="true" className="fk-task-group__milestone" /> : null}
+      {/* Always reserve the 16px drag column so section titles share the L1 checkbox / list-title axis. */}
       {draggable ? (
         <span className="fk-task-group__drag">
-          <FokunaIcon name="drag-handle-grid" />
+          <FokunaIcon name="drag-handle-grid" size={16} stroke={1.5} />
         </span>
-      ) : null}
+      ) : (
+        <span aria-hidden="true" className="fk-task-group__drag-spacer" />
+      )}
       <button
         aria-expanded={expanded}
         aria-label={expanded ? "Gruppe einklappen" : "Gruppe ausklappen"}
