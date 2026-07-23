@@ -3793,11 +3793,16 @@
      * chevron col = checkbox col = 16px, gap = 8px → step = 24px.
      * Indent via margin-left so the row shrinks and starts at the handle —
      * placeholder shifts L/R with projected depth during drag (no slide animation).
+     *
+     * Bottom divider (via ::after) skips the drag gutter:
+     * default → checkbox; with expand chevron → chevron column.
      */
     --fk-task-indent-step: 24px;
     --fk-task-indent-level: 0;
+    /* pad 8 + drag 16 + gap 8 + expand/spacer 16 + gap 8 */
+    --fk-task-divider-inset: calc(8px + 16px + 8px + 16px + 8px);
     background: transparent;
-    border-bottom: 1px solid var(--fk-color-border-default);
+    border-bottom: none;
     box-sizing: border-box;
     color: var(--fk-color-text-primary);
     display: grid;
@@ -3806,12 +3811,29 @@
     margin-left: calc(var(--fk-task-indent-level) * var(--fk-task-indent-step));
     min-height: 40px;
     padding: 8px;
+    position: relative;
     transition:
       background var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
       box-shadow var(--fk-motion-duration-fast) var(--fk-motion-ease-standard);
     width: calc(
       var(--fk-task-column-width) - (var(--fk-task-indent-level) * var(--fk-task-indent-step))
     );
+  }
+
+  .fk-task-item:has(.fk-task-item__expand) {
+    /* pad 8 + drag 16 + gap 8 → chevron */
+    --fk-task-divider-inset: calc(8px + 16px + 8px);
+  }
+
+  .fk-task-item::after {
+    background: var(--fk-color-border-default);
+    bottom: 0;
+    content: "";
+    height: 1px;
+    left: var(--fk-task-divider-inset);
+    pointer-events: none;
+    position: absolute;
+    right: 0;
   }
 
   .fk-task-item[data-has-meta="true"] {
@@ -3858,6 +3880,11 @@
     transform: rotate(-1deg);
     opacity: 1;
     isolation: isolate;
+  }
+
+  .fk-task-item[data-state="dragged"]::after,
+  .fk-task-item--placeholder::after {
+    content: none;
   }
 
   .fk-task-item--placeholder {
@@ -4078,8 +4105,8 @@
       border-color 320ms var(--fk-motion-ease-exit);
   }
 
-  .fk-task-item[data-complete-phase="collapsed"] {
-    border-bottom-color: transparent;
+  .fk-task-item[data-complete-phase="collapsed"]::after {
+    content: none;
   }
 
   /* Collapse shell: 1fr → 0fr with a longer ease-out for a premium close. */
@@ -4236,10 +4263,23 @@
     font-size: var(--fk-type-font-font-size-label-lg);
     line-height: var(--fk-type-font-line-height-label-lg);
     gap: 8px;
-    border-bottom: 1px solid var(--fk-color-border-default);
+    /* pad 8 + drag/spacer 16 + gap 8 → toggle/chevron */
+    --fk-task-divider-inset: calc(8px + 16px + 8px);
+    border-bottom: none;
     min-height: 40px;
     padding: 8px;
     position: relative;
+  }
+
+  .fk-task-group__header::after {
+    background: var(--fk-color-border-default);
+    bottom: 0;
+    content: "";
+    height: 1px;
+    left: var(--fk-task-divider-inset);
+    pointer-events: none;
+    position: absolute;
+    right: 0;
   }
 
   .fk-task-group__title {
@@ -4289,6 +4329,8 @@
 
   .fk-task-group__header[data-milestone="true"] {
     padding-left: 30px;
+    /* pad 30 + drag/spacer 16 + gap 8 → toggle */
+    --fk-task-divider-inset: calc(30px + 16px + 8px);
   }
 
   .fk-task-group__milestone {
@@ -4337,6 +4379,23 @@
     > .fk-task-item-tree__children
     .fk-task-item:last-child {
     border-bottom: none;
+  }
+
+  .fk-task-list > .fk-task-item:has(+ .fk-add-task)::after,
+  .fk-task-list > *:has(+ .fk-add-task) .fk-task-item::after,
+  .fk-task-list[data-adding="true"] > *:nth-last-child(2) .fk-task-item::after,
+  .fk-task-list > .fk-task-item-tree:has(+ .fk-add-task) .fk-task-item:last-child::after,
+  .fk-task-list > *:has(+ .fk-add-task) > .fk-task-item-tree .fk-task-item:last-child::after,
+  .fk-task-list
+    > .fk-task-item-tree:has(+ .fk-add-task)
+    > .fk-task-item-tree__children
+    .fk-task-item:last-child::after,
+  .fk-task-list
+    > *:has(+ .fk-add-task)
+    > .fk-task-item-tree
+    > .fk-task-item-tree__children
+    .fk-task-item:last-child::after {
+    content: none;
   }
 
   .fk-milestone-group {
@@ -4634,6 +4693,11 @@
     pointer-events: none;
     position: relative;
     z-index: 1;
+  }
+
+  .fk-task-group__header--placeholder::after,
+  .fk-task-group__header[data-state="dragged"]::after {
+    content: none;
   }
 
   .fk-task-group__header--placeholder .fk-task-group__drag,
@@ -4957,6 +5021,8 @@
   .fk-task-modal-slot__body .fk-task-group__header {
     padding-left: 0;
     padding-right: 8px;
+    /* Drag spacer hidden — divider starts at toggle. */
+    --fk-task-divider-inset: 0;
   }
 
   .fk-task-modal-slot__body .fk-task-group__drag-spacer {
@@ -4971,6 +5037,13 @@
     max-width: none;
     padding-left: 24px;
     width: auto;
+    /* pad 24 + drag 16 + gap 8 + expand/spacer 16 + gap 8 → checkbox */
+    --fk-task-divider-inset: calc(24px + 16px + 8px + 16px + 8px);
+  }
+
+  .fk-task-modal-slot__body .fk-task-item:has(.fk-task-item__expand) {
+    /* pad 24 + drag 16 + gap 8 → chevron */
+    --fk-task-divider-inset: calc(24px + 16px + 8px);
   }
 
   /* Must win over the transparent item background above. */
