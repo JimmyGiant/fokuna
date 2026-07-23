@@ -77,6 +77,15 @@
 
 ---
 
+## Erledigte Aufgaben — Anzeige-Fenster
+
+| Stufe | Status | Hinweis |
+|-------|--------|---------|
+| Client-Window (20 Roots / Bucket, Load-more) | `Done` | Offen zuerst, dann erledigt (`completedAt` desc); kein DnD für Erledigte; Label ohne „+“ |
+| **Server-Paging** (`completedAt` cursor/limit) | `Not started` | **Logische Ausbaustufe** — Ziel: Payload-Reduktion; Seam: `packages/domain/src/completed-task-window.ts` |
+
+---
+
 ## Bewusst deferred (Handshake)
 
 - Dedizierte Duplicate-API

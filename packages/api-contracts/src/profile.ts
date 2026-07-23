@@ -1,6 +1,11 @@
 import { z } from "zod";
 
-export const tasksSidebarNavReorderIdSchema = z.enum(["favorites", "today", "inbox"]);
+export const tasksSidebarNavReorderIdSchema = z.enum([
+  "all",
+  "favorites",
+  "today",
+  "inbox",
+]);
 export const tasksSidebarSectionIdSchema = z.enum([
   "categories",
   "goals",
@@ -8,6 +13,7 @@ export const tasksSidebarSectionIdSchema = z.enum([
   "priority",
 ]);
 export const tasksSidebarHideableIdSchema = z.enum([
+  "all",
   "favorites",
   "today",
   "categories",
@@ -17,7 +23,7 @@ export const tasksSidebarHideableIdSchema = z.enum([
 ]);
 
 export const tasksSidebarPreferencesSchema = z.object({
-  navOrder: z.array(tasksSidebarNavReorderIdSchema).length(3),
+  navOrder: z.array(tasksSidebarNavReorderIdSchema).length(4),
   sectionOrder: z.array(tasksSidebarSectionIdSchema).length(4),
   hiddenIds: z.array(tasksSidebarHideableIdSchema),
 });

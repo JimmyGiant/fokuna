@@ -136,6 +136,17 @@
   gap: 0;
 }
 
+.completedLoadMore {
+  display: flex;
+  justify-content: flex-start;
+  /* Align with task title column: pad 8 + drag 16 + gap 8 + expand 16 + gap 8 + checkbox 16 + gap 8 */
+  padding: 8px 8px 8px 56px;
+}
+
+.completedLoadMore :global(.fk-button[data-type="icon-text-inline"]):hover:not(:disabled) {
+  color: var(--fk-color-text-action-secondary-hover);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .main,
   .aside,

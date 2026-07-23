@@ -1,9 +1,15 @@
 /**
  * Aufgaben-Sidebar L2 prefs — account-scoped, syncable across web/native.
- * "all" is always first and never hidden; "inbox" is never hidden.
+ * Nav entries are reorderable; Alle / Favoriten / Heute (+ sections) are hideable.
+ * Eingang stays always visible (inbox catch-all).
  */
 
-export const DEFAULT_TASKS_SIDEBAR_NAV_ORDER = ["favorites", "today", "inbox"] as const;
+export const DEFAULT_TASKS_SIDEBAR_NAV_ORDER = [
+  "all",
+  "favorites",
+  "today",
+  "inbox",
+] as const;
 export const DEFAULT_TASKS_SIDEBAR_SECTION_ORDER = [
   "categories",
   "goals",
@@ -13,13 +19,15 @@ export const DEFAULT_TASKS_SIDEBAR_SECTION_ORDER = [
 
 export type TasksSidebarNavReorderId = (typeof DEFAULT_TASKS_SIDEBAR_NAV_ORDER)[number];
 export type TasksSidebarSectionId = (typeof DEFAULT_TASKS_SIDEBAR_SECTION_ORDER)[number];
+/** Nav/section entries that may be hidden — `inbox` stays always visible. */
 export type TasksSidebarHideableId =
+  | "all"
   | "favorites"
   | "today"
   | TasksSidebarSectionId;
 
 export interface TasksSidebarPreferences {
-  /** Order of Favoriten / Heute / Eingang under fixed „Alle Aufgaben“. */
+  /** Order of Alle / Favoriten / Heute / Eingang. */
   navOrder: TasksSidebarNavReorderId[];
   /** Order of taxonomy blocks (Kategorien, Ziele, Labels, Priorität). */
   sectionOrder: TasksSidebarSectionId[];
@@ -47,6 +55,7 @@ export interface UiPreferences {
 const NAV_SET = new Set<string>(DEFAULT_TASKS_SIDEBAR_NAV_ORDER);
 const SECTION_SET = new Set<string>(DEFAULT_TASKS_SIDEBAR_SECTION_ORDER);
 const HIDEABLE_SET = new Set<string>([
+  "all",
   "favorites",
   "today",
   ...DEFAULT_TASKS_SIDEBAR_SECTION_ORDER,
@@ -79,15 +88,15 @@ export function normalizeTasksPreferences(
   };
 }
 
-/** Normalize order arrays: keep known ids, append missing defaults, drop unknowns. */
+/**
+ * Normalize order arrays: keep known ids, append missing defaults, drop unknowns.
+ * Legacy prefs without `"all"` get it prepended (previous fixed-first behavior).
+ */
 export function normalizeTasksSidebarPreferences(
   input: Partial<TasksSidebarPreferences>,
 ): TasksSidebarPreferences {
   return {
-    navOrder: uniquePreserveOrder(
-      [...(input.navOrder ?? []), ...DEFAULT_TASKS_SIDEBAR_NAV_ORDER],
-      DEFAULT_TASKS_SIDEBAR_NAV_ORDER,
-    ),
+    navOrder: normalizeNavOrder(input.navOrder),
     sectionOrder: uniquePreserveOrder(
       [...(input.sectionOrder ?? []), ...DEFAULT_TASKS_SIDEBAR_SECTION_ORDER],
       DEFAULT_TASKS_SIDEBAR_SECTION_ORDER,
@@ -96,6 +105,16 @@ export function normalizeTasksSidebarPreferences(
       HIDEABLE_SET.has(id),
     ),
   };
+}
+
+function normalizeNavOrder(
+  input: readonly string[] | undefined,
+): TasksSidebarNavReorderId[] {
+  const raw = input ?? [];
+  const candidates = raw.includes("all")
+    ? [...raw, ...DEFAULT_TASKS_SIDEBAR_NAV_ORDER]
+    : ["all", ...raw, ...DEFAULT_TASKS_SIDEBAR_NAV_ORDER];
+  return uniquePreserveOrder(candidates, DEFAULT_TASKS_SIDEBAR_NAV_ORDER);
 }
 
 function uniquePreserveOrder<T extends string>(

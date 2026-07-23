@@ -47,13 +47,7 @@
   user-select: none;
 }
 
-.row[data-fixed="true"] {
-  cursor: default;
-  touch-action: auto;
-  user-select: auto;
-}
-
-.row:not([data-fixed="true"]):hover {
+.row:hover {
   background: var(--fk-color-surface-soft);
 }
 
@@ -76,10 +70,6 @@
 
 .row[data-hidden="true"] .label {
   opacity: 0.45;
-}
-
-.row[data-fixed="true"] .label {
-  color: var(--fk-color-text-secondary);
 }
 
 .drag,
@@ -108,14 +98,9 @@
   color: var(--fk-color-icon-primary);
 }
 
-.dragSpacer,
 .visibilitySpacer {
   display: block;
   height: 28px;
-  width: 16px;
-}
-
-.visibilitySpacer {
   justify-self: end;
   width: 28px;
 }

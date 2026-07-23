@@ -27,9 +27,24 @@ describe("tasks sidebar preferences", () => {
         hiddenIds: ["today", "inbox", "labels", "nope"] as never,
       }),
     ).toEqual({
-      navOrder: ["inbox", "favorites", "today"],
+      // Legacy without "all" → prepend "all"
+      navOrder: ["all", "inbox", "favorites", "today"],
       sectionOrder: ["priority", "categories", "goals", "labels"],
+      // inbox is never hideable — stripped
       hiddenIds: ["today", "labels"],
+    });
+  });
+
+  it("preserves an explicit all position and allows hiding all (not inbox)", () => {
+    expect(
+      normalizeTasksSidebarPreferences({
+        navOrder: ["favorites", "all", "today", "inbox"],
+        hiddenIds: ["all", "inbox"] as never,
+      }),
+    ).toEqual({
+      navOrder: ["favorites", "all", "today", "inbox"],
+      sectionOrder: [...DEFAULT_TASKS_SIDEBAR_SECTION_ORDER],
+      hiddenIds: ["all"],
     });
   });
 
@@ -37,13 +52,13 @@ describe("tasks sidebar preferences", () => {
     expect(
       resolveTasksSidebarPreferences({
         tasksSidebar: {
-          navOrder: ["today", "inbox", "favorites"],
+          navOrder: ["today", "inbox", "favorites", "all"],
           sectionOrder: ["labels", "goals", "priority", "categories"],
           hiddenIds: ["favorites", "priority"],
         },
       }),
     ).toEqual({
-      navOrder: ["today", "inbox", "favorites"],
+      navOrder: ["today", "inbox", "favorites", "all"],
       sectionOrder: ["labels", "goals", "priority", "categories"],
       hiddenIds: ["favorites", "priority"],
     });

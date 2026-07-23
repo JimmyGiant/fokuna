@@ -25,11 +25,15 @@ import type {
 import {
   TASK_MAX_INDENT_LEVEL,
   TASK_SECTION_ROOT_KEY,
+  applyCompletedTaskWindow,
   applyPlacementsToTasks,
   buildTaskDragLayout,
   canCreateSubtaskAtDepth,
   commitTaskTreeMove,
+  COMPLETED_TASK_PAGE_SIZE,
+  COMPLETED_WINDOW_BUCKET,
   flattenTasksForTree,
+  formatRemainingCompletedLabel,
   getTaskTreeProjection,
   layoutToPlacements,
   mergePlacements,
@@ -301,6 +305,7 @@ function SortableFlatTask({
   completePhase,
   completedOverride,
   completedStyled = true,
+  sortableDisabled = false,
   onExpandedChange,
   onOpen,
   onToggle,
@@ -323,6 +328,8 @@ function SortableFlatTask({
   completedOverride?: boolean;
   /** When false, completed rows keep the plain checkbox (no strikethrough). */
   completedStyled?: boolean;
+  /** Completed rows stay visible but are not draggable/sortable. */
+  sortableDisabled?: boolean;
   onExpandedChange: (expanded: boolean) => void;
   onOpen: (task: TaskDto) => void;
   onToggle: (task: TaskDto, completed: boolean) => void;
@@ -332,6 +339,7 @@ function SortableFlatTask({
     id: task.id,
     animateLayoutChanges,
     transition: null,
+    disabled: sortableDisabled,
   });
 
   const showPlaceholder = isDragging && !slotHidden;
@@ -701,7 +709,7 @@ export function TasksView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { toast, dismiss } = useToast();
   const { labels, labelsById, categories, openLabelManager } = useTaskTaxonomy();
   const filter = searchParams.get("filter") ?? "all";
   const categoryId = searchParams.get("category");
@@ -744,11 +752,18 @@ export function TasksView() {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
+  /** Completed roots revealed per list/section bucket (client window → later server page). */
+  const [completedRevealByBucket, setCompletedRevealByBucket] = useState<Record<string, number>>(
+    {},
+  );
   /** Complete-sequence phases while animating (and brief mark before persist settles). */
   const [completePhaseById, setCompletePhaseById] = useState<Record<string, TaskCompletePhase>>(
     {},
   );
   const completeTimersRef = useRef<Map<string, number[]>>(new Map());
+  /** Task ids bundled into the current „X Aufgaben erledigt“ toast (replaced while open). */
+  const completedToastBatchRef = useRef<string[]>([]);
+  const completedToastClearTimerRef = useRef<number | null>(null);
   const [pendingDeleteTask, setPendingDeleteTask] = useState<{
     id: string;
     title: string;
@@ -903,12 +918,90 @@ export function TasksView() {
     setCompletePhaseById((current) => ({ ...current, [taskId]: phase }));
   }
 
+  const COMPLETED_TOAST_DURATION_MS = 6000;
+
+  function clearCompletedToastBatch() {
+    completedToastBatchRef.current = [];
+    if (completedToastClearTimerRef.current != null) {
+      window.clearTimeout(completedToastClearTimerRef.current);
+      completedToastClearTimerRef.current = null;
+    }
+  }
+
+  function formatTasksCompletedTitle(count: number) {
+    return count === 1 ? "1 Aufgabe erledigt" : `${count} Aufgaben erledigt`;
+  }
+
+  function undoCompletedToastBatch() {
+    const toUndo = [...completedToastBatchRef.current];
+    clearCompletedToastBatch();
+    for (const id of toUndo) {
+      clearCompleteTimers(id);
+      clearCompletePhase(id);
+      updateMutation.mutate({ id, isCompleted: false });
+    }
+  }
+
+  function showCompletedToast() {
+    const count = completedToastBatchRef.current.length;
+    if (count === 0) return;
+    if (completedToastClearTimerRef.current != null) {
+      window.clearTimeout(completedToastClearTimerRef.current);
+    }
+    toast({
+      id: "tasks-completed",
+      duration: COMPLETED_TOAST_DURATION_MS,
+      title: formatTasksCompletedTitle(count),
+      action: {
+        label: "Rückgängig",
+        altText: "Erledigen rückgängig machen",
+        leadingIcon: "arrow-undo-down",
+        onClick: undoCompletedToastBatch,
+      },
+    });
+    completedToastClearTimerRef.current = window.setTimeout(() => {
+      completedToastBatchRef.current = [];
+      completedToastClearTimerRef.current = null;
+    }, COMPLETED_TOAST_DURATION_MS);
+  }
+
+  function notifyTasksCompleted(taskId: string) {
+    if (!completedToastBatchRef.current.includes(taskId)) {
+      completedToastBatchRef.current = [...completedToastBatchRef.current, taskId];
+    }
+    showCompletedToast();
+  }
+
+  function removeFromCompletedToastBatch(taskId: string) {
+    if (!completedToastBatchRef.current.includes(taskId)) return;
+    completedToastBatchRef.current = completedToastBatchRef.current.filter((id) => id !== taskId);
+    if (completedToastBatchRef.current.length === 0) {
+      clearCompletedToastBatch();
+      dismiss("tasks-completed");
+      return;
+    }
+    showCompletedToast();
+  }
+
+  function persistTaskCompleted(taskId: string, options?: { onSettled?: () => void }) {
+    updateMutation.mutate(
+      { id: taskId, isCompleted: true },
+      {
+        onSuccess: () => {
+          notifyTasksCompleted(taskId);
+        },
+        onSettled: options?.onSettled,
+      },
+    );
+  }
+
   useEffect(
     () => () => {
       for (const timers of completeTimersRef.current.values()) {
         for (const id of timers) window.clearTimeout(id);
       }
       completeTimersRef.current.clear();
+      clearCompletedToastBatch();
     },
     [],
   );
@@ -917,6 +1010,7 @@ export function TasksView() {
     if (!completed) {
       clearCompleteTimers(task.id);
       clearCompletePhase(task.id);
+      removeFromCompletedToastBatch(task.id);
       updateMutation.mutate({ id: task.id, isCompleted: false });
       return;
     }
@@ -925,7 +1019,7 @@ export function TasksView() {
     if (!completeAnimations) {
       clearCompleteTimers(task.id);
       clearCompletePhase(task.id);
-      updateMutation.mutate({ id: task.id, isCompleted: true });
+      persistTaskCompleted(task.id);
       return;
     }
 
@@ -937,11 +1031,17 @@ export function TasksView() {
     const mark = reduced ? 0 : TASK_COMPLETE_SEQUENCE_MS.mark;
 
     if (showCompleted) {
-      // Completed stay visible — full mark motion, no fade/collapse.
-      updateMutation.mutate({ id: task.id, isCompleted: true });
+      // Completed stay visible — play full mark motion first, then persist.
+      // Persisting immediately would flip `isCompleted`, reorder via the
+      // completed window, and remount/move the row mid-transition (re-check
+      // looked like it skipped the animation).
       scheduleCompleteTimer(task.id, mark, () => {
-        clearCompleteTimers(task.id);
-        clearCompletePhase(task.id);
+        persistTaskCompleted(task.id, {
+          onSettled: () => {
+            clearCompleteTimers(task.id);
+            clearCompletePhase(task.id);
+          },
+        });
       });
       return;
     }
@@ -956,17 +1056,14 @@ export function TasksView() {
       setCompletePhase(task.id, "fading");
       scheduleCompleteTimer(task.id, fade + gap, () => {
         setCompletePhase(task.id, "collapsed");
-        updateMutation.mutate(
-          { id: task.id, isCompleted: true },
-          {
-            onSettled: () => {
-              scheduleCompleteTimer(task.id, collapse, () => {
-                clearCompleteTimers(task.id);
-                clearCompletePhase(task.id);
-              });
-            },
+        persistTaskCompleted(task.id, {
+          onSettled: () => {
+            scheduleCompleteTimer(task.id, collapse, () => {
+              clearCompleteTimers(task.id);
+              clearCompletePhase(task.id);
+            });
           },
-        );
+        });
       });
     });
   }
@@ -1103,20 +1200,6 @@ export function TasksView() {
 
   const treeTasks = sectionListMode ? sectionScopedTasks : visibleTasks;
 
-  const childrenByParent = useMemo(() => {
-    const map = new Map<string, TaskDto[]>();
-    for (const task of treeTasks) {
-      if (!task.parentTaskId) continue;
-      const list = map.get(task.parentTaskId) ?? [];
-      list.push(task);
-      map.set(task.parentTaskId, list);
-    }
-    for (const list of map.values()) {
-      list.sort((a, b) => a.sortOrder - b.sortOrder);
-    }
-    return map;
-  }, [treeTasks]);
-
   const overdueTreeIds = useMemo(() => {
     if (filter !== "today") return new Set<string>();
     const today = todayIsoDate();
@@ -1136,6 +1219,49 @@ export function TasksView() {
     return ids;
   }, [filter, visibleTasks]);
 
+  const unifyFlatList = filter !== "today" && !sectionListMode;
+
+  const completedWindow = useMemo(
+    () =>
+      applyCompletedTaskWindow({
+        tasks: treeTasks,
+        showCompleted,
+        revealByBucket: completedRevealByBucket,
+        bucketKeyForRoot: (root) => {
+          if (filter === "today" && overdueTreeIds.has(root.id)) {
+            return COMPLETED_WINDOW_BUCKET.overdue;
+          }
+          if (unifyFlatList) return COMPLETED_WINDOW_BUCKET.list;
+          return root.groupKey;
+        },
+      }),
+    [
+      completedRevealByBucket,
+      filter,
+      overdueTreeIds,
+      showCompleted,
+      treeTasks,
+      unifyFlatList,
+    ],
+  );
+
+  const displayTreeTasks = completedWindow.displayTasks;
+  const remainingCompletedByBucket = completedWindow.remainingByBucket;
+
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string, TaskDto[]>();
+    for (const task of displayTreeTasks) {
+      if (!task.parentTaskId) continue;
+      const list = map.get(task.parentTaskId) ?? [];
+      list.push(task);
+      map.set(task.parentTaskId, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.sortOrder - b.sortOrder);
+    }
+    return map;
+  }, [displayTreeTasks]);
+
   const overdueRootCount = useMemo(() => {
     if (filter !== "today") return 0;
     return visibleTasks.filter(
@@ -1152,7 +1278,7 @@ export function TasksView() {
 
   const rootTasksByGroup = useMemo(() => {
     const map = new Map<string, TaskDto[]>();
-    for (const task of treeTasks) {
+    for (const task of displayTreeTasks) {
       if (task.parentTaskId) continue;
       if (overdueTreeIds.has(task.id)) continue;
       const list = map.get(task.groupKey) ?? [];
@@ -1163,12 +1289,11 @@ export function TasksView() {
       list.sort((a, b) => a.sortOrder - b.sortOrder);
     }
     return map;
-  }, [overdueTreeIds, treeTasks]);
+  }, [displayTreeTasks, overdueTreeIds]);
 
   const createGroupKey = sectionListMode
     ? TASK_SECTION_ROOT_KEY
     : createGroupKeyForFilter(filter);
-  const unifyFlatList = filter !== "today" && !sectionListMode;
 
   const orderedGroupKeys = useMemo(() => {
     if (sectionListMode) {
@@ -1193,7 +1318,7 @@ export function TasksView() {
       flattenTasksForDragList({
         filter,
         promoteOrphans: filter === "favorites" || Boolean(labelId) || Boolean(priorityFilter),
-        visibleTasks: treeTasks,
+        visibleTasks: displayTreeTasks,
         expandedById,
         orderedGroupKeys,
         overdueTreeIds,
@@ -1202,13 +1327,13 @@ export function TasksView() {
       }),
     [
       activeId,
+      displayTreeTasks,
       expandedById,
       filter,
       labelId,
       orderedGroupKeys,
       overdueTreeIds,
       priorityFilter,
-      treeTasks,
       unifyFlatList,
     ],
   );
@@ -1301,10 +1426,16 @@ export function TasksView() {
     return null;
   }, [activeId, dragFlatItems, dragProjection]);
 
-  const allSortableIds = useMemo(
-    () => dragFlatItems.map((item) => item.id).filter((id) => id !== editingTaskId),
-    [dragFlatItems, editingTaskId],
-  );
+  const allSortableIds = useMemo(() => {
+    const byId = new Map(displayTreeTasks.map((task) => [task.id, task]));
+    return dragFlatItems
+      .map((item) => item.id)
+      .filter((id) => {
+        if (id === editingTaskId) return false;
+        const task = byId.get(id);
+        return Boolean(task && !task.isCompleted);
+      });
+  }, [displayTreeTasks, dragFlatItems, editingTaskId]);
   const activeTask = dragOverlayTask;
   const selectedTask = (tasksQuery.data ?? []).find((task) => task.id === selectedTaskId) ?? null;
   const tasksById = useMemo(
@@ -1368,7 +1499,40 @@ export function TasksView() {
   useEffect(() => {
     setRootAdding(false);
     setEditingTaskId(null);
+    setCompletedRevealByBucket({});
   }, [categoryId, filter, labelId]);
+
+  useEffect(() => {
+    if (!showCompleted) setCompletedRevealByBucket({});
+  }, [showCompleted]);
+
+  function revealMoreCompleted(bucketKey: string) {
+    setCompletedRevealByBucket((current) => ({
+      ...current,
+      [bucketKey]: (current[bucketKey] ?? COMPLETED_TASK_PAGE_SIZE) + COMPLETED_TASK_PAGE_SIZE,
+    }));
+  }
+
+  function renderCompletedLoadMore(bucketKey: string) {
+    if (!showCompleted) return null;
+    const remaining = remainingCompletedByBucket[bucketKey] ?? 0;
+    if (remaining <= 0) return null;
+    return (
+      <div className={styles.completedLoadMore} key={`completed-more:${bucketKey}`}>
+        <Button
+          buttonType="icon-text-inline"
+          intent="tertiary"
+          leadingIcon="refresh"
+          onClick={() => revealMoreCompleted(bucketKey)}
+          size="sm"
+          trailingIcon={null}
+          type="button"
+        >
+          {formatRemainingCompletedLabel(remaining)}
+        </Button>
+      </div>
+    );
+  }
 
   function clearDragUi() {
     cancelScheduledDragClear();
@@ -1571,12 +1735,13 @@ export function TasksView() {
       );
       return;
     }
-    const tasks = treeTasks;
+    const tasks = displayTreeTasks;
     const snapshot = tasks.find((task) => task.id === id) ?? null;
+    if (snapshot?.isCompleted) return;
     const flat = flattenTasksForDragList({
       filter,
       promoteOrphans: filter === "favorites" || Boolean(labelId) || Boolean(priorityFilter),
-      visibleTasks: treeTasks,
+      visibleTasks: displayTreeTasks,
       expandedById,
       orderedGroupKeys,
       overdueTreeIds,
@@ -2134,6 +2299,7 @@ export function TasksView() {
             effectiveTargetGroupKey != null &&
             dragOriginGroupKey !== effectiveTargetGroupKey
           }
+          sortableDisabled={task.isCompleted}
           subtaskLabel={subtaskLabel}
           tags={resolveTaskTagLabels(task)}
           task={task}
@@ -2293,6 +2459,7 @@ export function TasksView() {
                         title="Überfällig"
                       >
                         {renderFlatRows((item) => overdueTreeIds.has(item.id))}
+                        {renderCompletedLoadMore(COMPLETED_WINDOW_BUCKET.overdue)}
                       </TaskGroup>
                     ) : null}
                     {overdueRootCount > 0 ? (
@@ -2307,10 +2474,12 @@ export function TasksView() {
                         {...addTaskDefaults}
                       >
                         {renderFlatRows((item) => !overdueTreeIds.has(item.id))}
+                        {renderCompletedLoadMore(createGroupKeyForFilter("today"))}
                       </TaskGroup>
                     ) : (
                       <div className={`${styles.rootList} fk-task-list`} key="today-flat">
                         {renderFlatRows((item) => !overdueTreeIds.has(item.id))}
+                        {renderCompletedLoadMore(createGroupKeyForFilter("today"))}
                         <AddTask
                           keepOpenOnSubmit
                           onSubmit={async (payload) => {
@@ -2331,6 +2500,7 @@ export function TasksView() {
                       {renderFlatRows((item) => item.groupKey === TASK_SECTION_ROOT_KEY, {
                         groupKey: TASK_SECTION_ROOT_KEY,
                       })}
+                      {renderCompletedLoadMore(TASK_SECTION_ROOT_KEY)}
                       {rootAdding ? (
                         <AddTask
                           expanded
@@ -2440,6 +2610,7 @@ export function TasksView() {
                           {renderFlatRows((item) => item.groupKey === section.id, {
                             groupKey: section.id,
                           })}
+                          {renderCompletedLoadMore(section.id)}
                         </SortableTaskSection>
                       );
                     })}
@@ -2456,6 +2627,7 @@ export function TasksView() {
                 ) : (
                   <div className={`${styles.rootList} fk-task-list`} key="flat-list">
                     {renderFlatRows(() => true)}
+                    {renderCompletedLoadMore(COMPLETED_WINDOW_BUCKET.list)}
                     <AddTask
                       keepOpenOnSubmit
                       onSubmit={async (payload) => {
@@ -2630,6 +2802,11 @@ export function TasksView() {
         }}
         onUpdate={async (taskId, patch) => {
           await updateMutation.mutateAsync({ id: taskId, ...patch });
+          if (patch.isCompleted === true) {
+            notifyTasksCompleted(taskId);
+          } else if (patch.isCompleted === false) {
+            removeFromCompletedToastBatch(taskId);
+          }
         }}
         open={Boolean(selectedTask)}
         breadcrumbItems={selectedBreadcrumbItems}

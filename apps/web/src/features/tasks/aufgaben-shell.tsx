@@ -651,15 +651,17 @@ export function AufgabenShell({
           icon: "inbox-empty" as const,
           droppableId: SIDEBAR_DROP.inbox,
         },
-      }) satisfies Record<string, SidebarSecondaryItem>,
+      }) satisfies Record<
+        "all" | "favorites" | "today" | "inbox",
+        SidebarSecondaryItem
+      >,
     [],
   );
 
   const secondaryItems: SidebarSecondaryItem[] = useMemo(() => {
-    const ordered = sidebarPrefs.navOrder
+    return sidebarPrefs.navOrder
       .filter((id) => id === "inbox" || !hiddenSidebarIds.has(id))
       .map((id) => secondaryNavById[id]);
-    return [secondaryNavById.all, ...ordered];
   }, [hiddenSidebarIds, secondaryNavById, sidebarPrefs.navOrder]);
 
   const secondarySections: ShellSecondarySection[] = useMemo(    () => [

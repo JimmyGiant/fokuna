@@ -35,7 +35,7 @@ import { sortableItemStyle } from "@/components/dnd/sortable-styles";
 
 import styles from "./sidebar-edit-modal.module.css";
 
-const NAV_LABELS: Record<TasksSidebarNavReorderId | "all", string> = {
+const NAV_LABELS: Record<TasksSidebarNavReorderId, string> = {
   all: "Alle Aufgaben",
   favorites: "Favoriten",
   today: "Heute",
@@ -49,11 +49,13 @@ const SECTION_LABELS: Record<TasksSidebarSectionId, string> = {
   priority: "Priorität",
 };
 
-const NAV_HIDEABLE = new Set<string>(["favorites", "today"]);
 const animateLayoutChanges: AnimateLayoutChanges = () => false;
 
-function isNavHideable(id: string): id is Extract<TasksSidebarHideableId, "favorites" | "today"> {
-  return NAV_HIDEABLE.has(id);
+function isNavHideable(id: TasksSidebarNavReorderId): id is Extract<
+  TasksSidebarHideableId,
+  "all" | "favorites" | "today"
+> {
+  return id === "all" || id === "favorites" || id === "today";
 }
 
 function SortableEditRow({
@@ -109,16 +111,6 @@ function SortableEditRow({
       ) : (
         <span aria-hidden="true" className={styles.visibilitySpacer} />
       )}
-    </li>
-  );
-}
-
-function FixedRow({ label }: { label: string }) {
-  return (
-    <li className={styles.row} data-fixed="true">
-      <span aria-hidden="true" className={styles.dragSpacer} />
-      <span className={styles.label}>{label}</span>
-      <span aria-hidden="true" className={styles.visibilitySpacer} />
     </li>
   );
 }
@@ -293,7 +285,6 @@ export function SidebarEditModal({
           sensors={navSensors}
         >
           <ul className={styles.list}>
-            <FixedRow label={NAV_LABELS.all} />
             <SortableContext items={draft.navOrder} strategy={verticalListSortingStrategy}>
               {draft.navOrder.map((id) => (
                 <SortableEditRow

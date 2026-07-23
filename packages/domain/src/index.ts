@@ -1,3 +1,4 @@
+export * from "./completed-task-window";
 export * from "./dates";
 export * from "./focus-timer";
 export * from "./ids";

@@ -4001,9 +4001,18 @@
     top: calc(50% + 1px);
     transform: scaleX(0);
     transform-origin: left center;
-    /* Default = uncheck exit: shorter, no delay (draw uses a longer enter below). */
+    /* Default = uncheck exit: shorter, no delay (draw uses keyframes on mark). */
     transition: transform 200ms var(--fk-motion-ease-exit);
     width: 100%;
+  }
+
+  @keyframes fk-task-strikethrough-draw {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
   }
 
   .fk-task-item__title > strong,
@@ -4037,15 +4046,21 @@
     transition: none;
   }
 
-  /* Animated mark: color + meta immediately, strikethrough after a short delay. */
+  /* Animated mark: color + meta immediately, strikethrough via keyframes (restarts on re-check). */
   .fk-task-item[data-complete-phase] .fk-task-item__title > strong {
     color: var(--fk-color-text-quarternary);
   }
 
-  .fk-task-item[data-complete-phase] .fk-task-item__title::after {
+  .fk-task-item[data-complete-phase="marked"] .fk-task-item__title::after {
+    /* Keyframes re-run each time `marked` is applied; transitions often skip on re-check. */
+    animation: fk-task-strikethrough-draw 360ms var(--fk-motion-ease-enter) 160ms both;
+    transition: none;
+  }
+
+  .fk-task-item[data-complete-phase="fading"] .fk-task-item__title::after,
+  .fk-task-item[data-complete-phase="collapsed"] .fk-task-item__title::after {
     transform: scaleX(1);
-    /* Draw: after color fade, then L→R. */
-    transition: transform 360ms var(--fk-motion-ease-enter) 160ms;
+    transition: none;
   }
 
   .fk-task-item[data-complete-phase] .fk-task-item__meta {
@@ -6706,6 +6721,7 @@
   .fk-task-item[data-complete-phase="fading"],
   .fk-task-item[data-complete-phase="collapsed"],
   .fk-task-complete-slot {
+    animation: none !important;
     transition: none !important;
     transition-delay: 0s !important;
   }
