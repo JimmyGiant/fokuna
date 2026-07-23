@@ -283,6 +283,11 @@ export function commitTaskTreeMove(input: {
   liveOrderedIds: string[];
   /** When true, keep each task’s groupKey (unified All/Favorites lists). */
   preserveGroupKeys?: boolean;
+  /**
+   * Override destination group (e.g. empty section drop with no task `over`).
+   * Ignored when `preserveGroupKeys` is true.
+   */
+  forceGroupKey?: string;
 }): TaskPlacement[] {
   const {
     tasks,
@@ -291,6 +296,7 @@ export function commitTaskTreeMove(input: {
     projected,
     liveOrderedIds,
     preserveGroupKeys = false,
+    forceGroupKey,
   } = input;
   const byId = new Map(tasks.map((task) => [task.id, task]));
   const active = byId.get(activeId);
@@ -299,7 +305,7 @@ export function commitTaskTreeMove(input: {
   const over = byId.get(overId);
   const resolvedGroupKey = preserveGroupKeys
     ? active.groupKey
-    : (over?.groupKey ?? active.groupKey);
+    : (forceGroupKey ?? over?.groupKey ?? active.groupKey);
 
   const childrenByParent = new Map<string, TaskDragNode[]>();
   for (const task of sortTasks(tasks)) {

@@ -10,6 +10,7 @@ import type {
 import { applySortOrders, createId } from "@fokuna/domain";
 
 import { getMemoryStore } from "../memory/store";
+import { deleteSectionsForScope } from "./task-section-service";
 
 export async function listCategories(userId: string): Promise<CategoryDto[]> {
   return [...getMemoryStore().categories.values()]
@@ -121,6 +122,8 @@ export async function deleteCategory(userId: string, categoryId: string): Promis
 
   store.categories.delete(categoryId);
 
+  deleteSectionsForScope(userId, { categoryId });
+
   for (const [blockId, block] of store.blocks) {
     if (block.userId === userId && block.categoryId === categoryId) {
       store.blocks.set(blockId, { ...block, categoryId: null });
@@ -210,5 +213,6 @@ export async function deleteLabel(userId: string, labelId: string): Promise<bool
       });
     }
   }
+  deleteSectionsForScope(userId, { labelId });
   return true;
 }

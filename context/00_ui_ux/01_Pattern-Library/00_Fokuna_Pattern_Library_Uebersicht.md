@@ -1395,6 +1395,25 @@ Wichtig fuer Umsetzung:
 - Kein zusaetzliches Sonner-Package noetig — Basis ist Radix Toast im bestehenden `radix-ui`-Stack, an Fokuna Tokens angepasst.
 - Live-Specimen: `/pattern-library/toast`.
 
+### 44 Task Add Group
+
+Screenshot: [26_Task_Add_Item.png](26_Task_Add_Item.png) (visuell abgeleitet von Task Add Item)
+
+`Task Add Group` ist der Inline-Einstieg zum Anlegen benutzerdefinierter Listenabschnitte auf Kategorie- und Label-Seiten. Die Komponente entspricht dem Verhalten von Task Add Item (inactive/active, Escape, Klick ausserhalb, Abbrechen), enthaelt aber nur den Abschnittsnamen — keine Beschreibung, keine Prioritaet und kein Datum. Die aktive Form ist bewusst kompakt (nur Name + Actions).
+
+Varianten und Properties:
+
+- `type`: `inactive` oder `active`.
+- `title input`: Abschnittsname.
+- `actions`: Abbrechen und Abschnitt hinzufuegen.
+
+Wichtig fuer Umsetzung:
+
+- Pro Gesamtliste genau ein Add-Group-Element am unteren Ende.
+- Abstand zum darueberliegenden letzten „Aufgabe hinzufuegen“ 24 px.
+- Neue Abschnitte werden immer am Listenende angelegt und spaeter per Drag & Drop umsortiert.
+- Nur auf Kategorie- und Label-Seiten; nicht auf Alle / Favoriten / Heute / Eingang / Prioritaet.
+
 ## Einsatz im Lastenheft
 
 Diese Pattern-Library-Uebersicht soll zusammen mit den View-Screenshots und View-Uebergabenotizen gelesen werden. Die Views zeigen das konkrete Produktverhalten; diese Datei zeigt die wiederverwendbaren Bausteine dahinter. Fuer technische Folgearbeiten sollte erst geprueft werden, ob ein UI-Element bereits in dieser Pattern Library existiert, bevor ein neues technisches Component Pattern definiert wird.

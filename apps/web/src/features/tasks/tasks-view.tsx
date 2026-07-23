@@ -2,6 +2,8 @@
 
 import {
   DragOverlay,
+  useDraggable,
+  useDroppable,
   type DragMoveEvent,
   type DragOverEvent,
   type DragStartEvent,
@@ -13,8 +15,10 @@ import {
   verticalListSortingStrategy,
   type AnimateLayoutChanges,
 } from "@dnd-kit/sortable";
-import type { BlockDto, CalendarEntryDto, TaskDto } from "@fokuna/api-contracts";
+import type { BlockDto, CalendarEntryDto, TaskDto, TaskSectionDto } from "@fokuna/api-contracts";
 import {
+  TASK_MAX_INDENT_LEVEL,
+  TASK_SECTION_ROOT_KEY,
   applyPlacementsToTasks,
   buildTaskDragLayout,
   canCreateSubtaskAtDepth,
@@ -25,13 +29,13 @@ import {
   mergePlacements,
   removeChildrenOfActive,
   todayIsoDateString,
-  TASK_MAX_INDENT_LEVEL,
   type FlatTreeItem,
   type TaskIndentLevel,
   type TaskPlacement,
 } from "@fokuna/domain";
 import { FokunaIcon, type IconName } from "@fokuna/icons";
 import {
+  AddGroup,
   AddTask,
   BlockRail,
   Button,
@@ -43,6 +47,7 @@ import {
   SearchField,
   Switcher,
   TaskGroup,
+  TaskGroupHeader,
   TaskListItem,
   getCalendarEntryPosition,
   type AddTaskSubmitPayload,
@@ -55,7 +60,7 @@ import {
 } from "@fokuna/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import {
   DnDGhostShell,
@@ -73,6 +78,13 @@ import { colorTokenToCssVar, colorTokenToTone } from "./taxonomy";
 import { TaskDetailModal } from "./task-detail-modal";
 import { TaskDueDateMenuPanel, TaskEstimateMenuPanel, TaskLabelsMenuPanel } from "./task-property-editor";
 import { priorityOptions } from "./task-property-options";
+import {
+  applySectionGroupKeys,
+  countTasksDeletedWithSection,
+  sectionListPath,
+  sectionQueryKey,
+  type TaskSectionsPayload,
+} from "./task-sections";
 import { useTasksListDndRegistration } from "./tasks-dnd-host";
 import styles from "./tasks-view.module.css";
 
@@ -165,6 +177,8 @@ function flattenTasksForDragList(input: {
   orderedGroupKeys: string[];
   overdueTreeIds: Set<string>;
   activeId: string | null;
+  /** When false, keep Abschnitt / section buckets (Heute + Kategorie/Label sections). */
+  unifyRoots?: boolean;
 }): FlatTreeItem[] {
   const {
     filter,
@@ -174,6 +188,7 @@ function flattenTasksForDragList(input: {
     orderedGroupKeys,
     overdueTreeIds,
     activeId,
+    unifyRoots = filter !== "today",
   } = input;
 
   const tasksForTree = promoteOrphans ? promoteOrphanNestedTasks(visibleTasks) : visibleTasks;
@@ -186,8 +201,6 @@ function flattenTasksForDragList(input: {
     return removeChildrenOfActive([...overdueFlat, ...todayFlat], activeId);
   }
 
-  // Alle / Favoriten / Eingang / Kategorie / Label: one continuous list, no Abschnitt buckets.
-  const unifyRoots = filter !== "today";
   return removeChildrenOfActive(
     flattenTasksForTree(tasksForTree, expandedById, orderedGroupKeys, unifyRoots),
     activeId,
@@ -262,6 +275,8 @@ function SortableFlatTask({
   expanded,
   lockedHeight,
   nestHint,
+  /** Keep mounted for dnd-kit, but collapse the origin slot while over another section. */
+  slotHidden = false,
   subtaskLabel,
   goalTitle,
   category,
@@ -278,6 +293,7 @@ function SortableFlatTask({
   expanded: boolean;
   lockedHeight?: number | null;
   nestHint?: boolean;
+  slotHidden?: boolean;
   subtaskLabel?: string;
   goalTitle?: string;
   category?: TaskListTag;
@@ -294,6 +310,8 @@ function SortableFlatTask({
     transition: null,
   });
 
+  const showPlaceholder = isDragging && !slotHidden;
+
   const indentStyle = {
     boxSizing: "border-box" as const,
     marginLeft: `calc(${depth} * var(--fk-task-indent-step, 24px))`,
@@ -301,7 +319,7 @@ function SortableFlatTask({
   };
 
   const lockedStyle =
-    isDragging && lockedHeight
+    showPlaceholder && lockedHeight
       ? {
           boxSizing: "border-box" as const,
           flexShrink: 0,
@@ -312,52 +330,306 @@ function SortableFlatTask({
         }
       : undefined;
 
+  const hiddenStyle = slotHidden
+    ? {
+        border: "none" as const,
+        flexShrink: 0,
+        height: 0,
+        marginBottom: 0,
+        marginLeft: 0,
+        marginRight: 0,
+        marginTop: 0,
+        maxHeight: 0,
+        minHeight: 0,
+        overflow: "hidden" as const,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+        paddingTop: 0,
+        pointerEvents: "none" as const,
+      }
+    : undefined;
+
   return (
     <div
       className={styles.sortableRow}
       data-indent={depth || undefined}
-      data-placeholder={isDragging ? "true" : undefined}
+      data-placeholder={showPlaceholder ? "true" : undefined}
+      data-slot-hidden={slotHidden || undefined}
       ref={setNodeRef}
       style={{
         ...indentStyle,
         // Live DOM order owns the slot — never apply sortable transforms/transitions.
         ...sortableItemStyle({ transform: null, transition: undefined, layoutControlled: true }),
         ...lockedStyle,
+        ...hiddenStyle,
       }}
     >
-      <TaskListItem
-        category={category}
-        className={nestHint ? styles.nestTarget : undefined}
-        completed={task.isCompleted}
-        contextMenuItems={isDragging ? undefined : contextMenuItems}
-        due={formatDueLabel(task.dueDate)}
-        dueTone={dueMetaTone(task.dueDate)}
-        expandable={hasChildren}
-        expanded={expanded}
-        favorite={task.isFavorite}
-        goal={goalTitle}
-        indentLevel={depth}
-        onClick={isDragging ? undefined : () => onOpen(task)}
-        onCompletedChange={
-          isDragging ? undefined : (completed) => onToggle(task, completed)
+      {slotHidden ? null : (
+        <TaskListItem
+          category={category}
+          className={nestHint ? styles.nestTarget : undefined}
+          completed={task.isCompleted}
+          contextMenuItems={isDragging ? undefined : contextMenuItems}
+          due={formatDueLabel(task.dueDate)}
+          dueTone={dueMetaTone(task.dueDate)}
+          expandable={hasChildren}
+          expanded={expanded}
+          favorite={task.isFavorite}
+          goal={goalTitle}
+          indentLevel={depth}
+          onClick={isDragging ? undefined : () => onOpen(task)}
+          onCompletedChange={
+            isDragging ? undefined : (completed) => onToggle(task, completed)
+          }
+          onExpandedChange={isDragging ? undefined : onExpandedChange}
+          onFavoriteChange={
+            isDragging ? undefined : (favorite) => onFavorite(task, favorite)
+          }
+          priority={task.priority}
+          rowDragProps={isDragging ? undefined : { ...attributes, ...listeners }}
+          state={showPlaceholder ? "placeholder" : "default"}
+          style={{
+            marginLeft: 0,
+            width: "100%",
+            flex: "none",
+            ...lockedStyle,
+          }}
+          subtasks={subtaskLabel}
+          tags={tags}
+          title={task.title}
+        />
+      )}
+    </div>
+  );
+}
+
+function SortableTaskSection({
+  section,
+  count,
+  children,
+  renaming,
+  renameTitle,
+  contextMenuItems,
+  lockedHeight,
+  emptyDropDisabled = false,
+  onExpandedChange,
+  onTitleChange,
+  onRenameCommit,
+  onRenameCancel,
+  onAddSubmit,
+}: {
+  section: TaskSectionDto;
+  count: number;
+  children: ReactNode;
+  renaming: boolean;
+  renameTitle: string;
+  contextMenuItems: FokunaContextMenuEntry[];
+  lockedHeight?: number | null;
+  /** When the section already has task rows, disable the add-row droppable (avoids over-flicker). */
+  emptyDropDisabled?: boolean;
+  onExpandedChange?: (expanded: boolean) => void;
+  onTitleChange: (title: string) => void;
+  onRenameCommit: (title: string) => void;
+  onRenameCancel: () => void;
+  onAddSubmit: (payload: AddTaskSubmitPayload) => void | Promise<void>;
+}) {
+  const [expanded, setExpanded] = useState(true);
+  const [adding, setAdding] = useState(false);
+  const {
+    attributes,
+    listeners,
+    setNodeRef: setDragRef,
+    isDragging,
+  } = useDraggable({
+    id: `section:${section.id}`,
+    data: { type: "task-section", sectionId: section.id },
+    disabled: renaming,
+  });
+  // Header-only droppable — never wrap task rows (steals pointerWithin from tasks).
+  const { setNodeRef: setHeaderDropRef } = useDroppable({
+    id: `section-drop:${section.id}`,
+    data: { type: "task-section-drop", sectionId: section.id },
+  });
+  const { setNodeRef: setEmptyDropRef } = useDroppable({
+    id: `section-empty:${section.id}`,
+    disabled: emptyDropDisabled,
+    data: { type: "task-section-empty", sectionId: section.id },
+  });
+
+  function handleExpandedChange(next: boolean) {
+    setExpanded(next);
+    onExpandedChange?.(next);
+  }
+
+  function setHeaderRef(node: HTMLDivElement | null) {
+    setDragRef(node);
+    setHeaderDropRef(node);
+  }
+
+  const lockedStyle =
+    isDragging && lockedHeight
+      ? {
+          boxSizing: "border-box" as const,
+          height: lockedHeight,
+          maxHeight: lockedHeight,
+          minHeight: lockedHeight,
+          overflow: "hidden" as const,
         }
-        onExpandedChange={isDragging ? undefined : onExpandedChange}
-        onFavoriteChange={
-          isDragging ? undefined : (favorite) => onFavorite(task, favorite)
-        }
-        priority={task.priority}
-        rowDragProps={isDragging ? undefined : { ...attributes, ...listeners }}
-        state={isDragging ? "placeholder" : "default"}
+      : undefined;
+
+  return (
+    <section
+      className="fk-task-group"
+      data-expanded={expanded && !isDragging ? true : undefined}
+      data-placeholder={isDragging ? "true" : undefined}
+    >
+      <div
+        ref={setHeaderRef}
         style={{
-          marginLeft: 0,
-          width: "100%",
-          flex: "none",
+          ...sortableItemStyle({ transform: null, transition: undefined, layoutControlled: true }),
           ...lockedStyle,
         }}
-        subtasks={subtaskLabel}
-        tags={tags}
-        title={task.title}
-      />
+      >
+        <TaskGroupHeader
+          contextMenuItems={isDragging || renaming ? undefined : contextMenuItems}
+          count={count}
+          draggable
+          expanded={expanded}
+          onExpandedChange={handleExpandedChange}
+          onRenameCancel={onRenameCancel}
+          onRenameCommit={onRenameCommit}
+          onTitleChange={onTitleChange}
+          renaming={renaming}
+          rowDragProps={
+            isDragging || renaming
+              ? undefined
+              : {
+                  ...attributes,
+                  ...listeners,
+                  style: { cursor: "grab", touchAction: "none" as const },
+                }
+          }
+          state={isDragging ? "placeholder" : "default"}
+          style={lockedStyle}
+          title={renaming ? renameTitle : section.title}
+        />
+      </div>
+      {expanded && !isDragging ? (
+        <div className="fk-task-group__items fk-task-list" data-adding={adding || undefined}>
+          {children}
+          <div
+            className="fk-task-group__empty-drop"
+            ref={emptyDropDisabled ? undefined : setEmptyDropRef}
+          >
+            {adding ? (
+              <AddTask
+                expanded
+                keepOpenOnSubmit
+                onExpandedChange={setAdding}
+                onSubmit={onAddSubmit}
+              />
+            ) : (
+              <button className="fk-task-group__add" onClick={() => setAdding(true)} type="button">
+                <FokunaIcon name="add-small" size={24} />
+                Aufgabe hinzufügen
+              </button>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+/** Section id from header drop target (`section-drop:*` or `section:*`). */
+function parseSectionHeaderTargetId(overId: string | null): string | null {
+  if (!overId) return null;
+  if (overId.startsWith("section-drop:")) return overId.slice("section-drop:".length);
+  if (overId.startsWith("section:") && !overId.startsWith("section-empty:")) {
+    return overId.slice("section:".length);
+  }
+  return null;
+}
+
+/** Virtual group key from empty-zone droppable (`section-empty:*`). */
+function parseSectionEmptyTargetKey(overId: string | null): string | null {
+  if (!overId?.startsWith("section-empty:")) return null;
+  return overId.slice("section-empty:".length);
+}
+
+/** Destination section group key while dragging a task over section UI. */
+function parseTaskSectionTargetKey(overId: string | null): string | null {
+  const emptyKey = parseSectionEmptyTargetKey(overId);
+  if (emptyKey) return emptyKey;
+  return parseSectionHeaderTargetId(overId);
+}
+
+/**
+ * Live flat id order after inserting `activeId` into a section group
+ * (start = header drop; end = empty / add-row drop).
+ */
+function moveIdToSectionGroup(
+  ids: string[],
+  itemsById: Map<string, FlatTreeItem>,
+  targetGroupKey: string,
+  orderedGroupKeys: string[],
+  position: "start" | "end",
+  activeId: string,
+): { nextIds: string[]; nextIndex: number } {
+  const withoutActive = ids.filter((id) => id !== activeId);
+  const targetOrd = orderedGroupKeys.indexOf(targetGroupKey);
+
+  let firstInGroup = -1;
+  let lastInGroup = -1;
+  let insertBeforeNextGroup = withoutActive.length;
+
+  if (targetOrd >= 0) {
+    for (let i = 0; i < withoutActive.length; i++) {
+      const item = itemsById.get(withoutActive[i]!);
+      if (!item) continue;
+      const keyOrd = orderedGroupKeys.indexOf(item.groupKey);
+      if (item.groupKey === targetGroupKey) {
+        if (firstInGroup < 0) firstInGroup = i;
+        lastInGroup = i;
+      } else if (keyOrd > targetOrd && insertBeforeNextGroup === withoutActive.length) {
+        insertBeforeNextGroup = i;
+      }
+    }
+  }
+
+  let insertAt = insertBeforeNextGroup;
+  if (position === "start" && firstInGroup >= 0) insertAt = firstInGroup;
+  if (position === "end" && lastInGroup >= 0) insertAt = lastInGroup + 1;
+
+  const nextIds = [
+    ...withoutActive.slice(0, insertAt),
+    activeId,
+    ...withoutActive.slice(insertAt),
+  ];
+  return { nextIds, nextIndex: insertAt };
+}
+
+function SectionEmptyDropZone({
+  sectionKey,
+  disabled = false,
+  children,
+}: {
+  sectionKey: string;
+  disabled?: boolean;
+  children: ReactNode;
+}) {
+  const { setNodeRef } = useDroppable({
+    id: `section-empty:${sectionKey}`,
+    disabled,
+    data: {
+      type: "task-section-empty",
+      sectionId: sectionKey === TASK_SECTION_ROOT_KEY ? null : sectionKey,
+    },
+  });
+  return (
+    <div className="fk-task-group__empty-drop" ref={disabled ? undefined : setNodeRef}>
+      {children}
     </div>
   );
 }
@@ -414,6 +686,11 @@ export function TasksView() {
     hasChildren: boolean;
     subtaskLabel?: string;
   } | null>(null);
+  const [dragOverlaySection, setDragOverlaySection] = useState<{
+    id: string;
+    title: string;
+    count: number;
+  } | null>(null);
   const [dragOriginPlacements, setDragOriginPlacements] = useState<TaskPlacement[] | null>(null);
   /**
    * Live flat order while dragging — placeholder moves with the slot (MVP §4.1).
@@ -421,6 +698,9 @@ export function TasksView() {
    */
   const [dragOrderedIds, setDragOrderedIds] = useState<string[] | null>(null);
   const dragOrderedIdsRef = useRef<string[] | null>(null);
+  /** Live section order while dragging a section header. */
+  const [dragOrderedSectionIds, setDragOrderedSectionIds] = useState<string[] | null>(null);
+  const dragOrderedSectionIdsRef = useRef<string[] | null>(null);
   /** Last committed insert index — hysteresis + skip redundant moves. */
   const lastInsertIndexRef = useRef<number | null>(null);
   const lastOverRectRef = useRef<{ top: number; height: number } | null>(null);
@@ -435,10 +715,24 @@ export function TasksView() {
     id: string;
     title: string;
   } | null>(null);
+  const [pendingDeleteSection, setPendingDeleteSection] = useState<{
+    id: string;
+    title: string;
+    taskCount: number;
+  } | null>(null);
+  const [renamingSectionId, setRenamingSectionId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
+
+  const sectionListMode = Boolean(categoryId || labelId);
 
   const tasksQuery = useQuery({
     queryKey: ["tasks"],
     queryFn: () => apiGet<TaskDto[]>("/api/v1/tasks"),
+  });
+  const sectionsQuery = useQuery({
+    queryKey: sectionQueryKey({ categoryId, labelId }),
+    queryFn: () => apiGet<TaskSectionsPayload>(sectionListPath({ categoryId, labelId })),
+    enabled: sectionListMode,
   });
   const calendarQuery = useQuery({
     queryKey: ["calendar-entries"],
@@ -452,6 +746,9 @@ export function TasksView() {
     queryKey: ["goals"],
     queryFn: () => apiGet<Array<{ id: string; title: string }>>("/api/v1/goals"),
   });
+
+  const listSections = sectionsQuery.data?.sections ?? [];
+  const listMemberships = sectionsQuery.data?.memberships ?? [];
 
   const createMutation = useMutation({
     mutationFn: (payload: {
@@ -470,6 +767,55 @@ export function TasksView() {
     }) => apiSend<TaskDto>("/api/v1/tasks", "POST", payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+  });
+
+  const createSectionMutation = useMutation({
+    mutationFn: (payload: { title: string; categoryId?: string; labelId?: string }) =>
+      apiSend<TaskSectionDto>("/api/v1/task-sections", "POST", payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["task-sections"] });
+    },
+  });
+
+  const updateSectionMutation = useMutation({
+    mutationFn: ({ id, ...patch }: { id: string; title?: string }) =>
+      apiSend<TaskSectionDto>(`/api/v1/task-sections/${id}`, "PATCH", patch),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["task-sections"] });
+    },
+  });
+
+  const deleteSectionMutation = useMutation({
+    mutationFn: (id: string) => apiSend<{ id: string }>(`/api/v1/task-sections/${id}`, "DELETE"),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["task-sections"] }),
+        queryClient.invalidateQueries({ queryKey: ["tasks"] }),
+      ]);
+    },
+  });
+
+  const reorderSectionsMutation = useMutation({
+    mutationFn: (payload: {
+      orderedIds: string[];
+      categoryId?: string;
+      labelId?: string;
+    }) => apiSend<TaskSectionDto[]>("/api/v1/task-sections", "PUT", payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["task-sections"] });
+    },
+  });
+
+  const setMembershipMutation = useMutation({
+    mutationFn: (payload: {
+      taskId: string;
+      sectionId: string | null;
+      categoryId?: string;
+      labelId?: string;
+    }) => apiSend("/api/v1/task-sections", "PATCH", payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["task-sections"] });
     },
   });
 
@@ -605,9 +951,17 @@ export function TasksView() {
     });
   }, [categoryId, filter, labelId, labelsById, priorityFilter, search, showCompleted, sourceTasks]);
 
+  /** Category/label lists: virtual groupKey from section membership for DnD/rendering. */
+  const sectionScopedTasks = useMemo(() => {
+    if (!sectionListMode) return visibleTasks;
+    return applySectionGroupKeys(visibleTasks, listSections, listMemberships);
+  }, [listMemberships, listSections, sectionListMode, visibleTasks]);
+
+  const treeTasks = sectionListMode ? sectionScopedTasks : visibleTasks;
+
   const childrenByParent = useMemo(() => {
     const map = new Map<string, TaskDto[]>();
-    for (const task of visibleTasks) {
+    for (const task of treeTasks) {
       if (!task.parentTaskId) continue;
       const list = map.get(task.parentTaskId) ?? [];
       list.push(task);
@@ -617,7 +971,7 @@ export function TasksView() {
       list.sort((a, b) => a.sortOrder - b.sortOrder);
     }
     return map;
-  }, [visibleTasks]);
+  }, [treeTasks]);
 
   const overdueTreeIds = useMemo(() => {
     if (filter !== "today") return new Set<string>();
@@ -654,7 +1008,7 @@ export function TasksView() {
 
   const rootTasksByGroup = useMemo(() => {
     const map = new Map<string, TaskDto[]>();
-    for (const task of visibleTasks) {
+    for (const task of treeTasks) {
       if (task.parentTaskId) continue;
       if (overdueTreeIds.has(task.id)) continue;
       const list = map.get(task.groupKey) ?? [];
@@ -665,12 +1019,18 @@ export function TasksView() {
       list.sort((a, b) => a.sortOrder - b.sortOrder);
     }
     return map;
-  }, [overdueTreeIds, visibleTasks]);
+  }, [overdueTreeIds, treeTasks]);
 
-  const createGroupKey = createGroupKeyForFilter(filter);
-  const unifyFlatList = filter !== "today";
+  const createGroupKey = sectionListMode
+    ? TASK_SECTION_ROOT_KEY
+    : createGroupKeyForFilter(filter);
+  const unifyFlatList = filter !== "today" && !sectionListMode;
 
   const orderedGroupKeys = useMemo(() => {
+    if (sectionListMode) {
+      const keys = [TASK_SECTION_ROOT_KEY, ...listSections.map((section) => section.id)];
+      return keys;
+    }
     const keys = [...rootTasksByGroup.keys()];
     keys.sort((a, b) => {
       if (a === createGroupKey) return -1;
@@ -681,7 +1041,7 @@ export function TasksView() {
       keys.unshift(createGroupKey);
     }
     return keys;
-  }, [createGroupKey, rootTasksByGroup]);
+  }, [createGroupKey, listSections, rootTasksByGroup, sectionListMode]);
 
   /** Base flat tree (children of active hidden while dragging). */
   const dragFlatBase = useMemo(
@@ -689,13 +1049,24 @@ export function TasksView() {
       flattenTasksForDragList({
         filter,
         promoteOrphans: filter === "favorites" || Boolean(labelId) || Boolean(priorityFilter),
-        visibleTasks,
+        visibleTasks: treeTasks,
         expandedById,
         orderedGroupKeys,
         overdueTreeIds,
         activeId,
+        unifyRoots: unifyFlatList,
       }),
-    [activeId, expandedById, filter, labelId, orderedGroupKeys, overdueTreeIds, priorityFilter, visibleTasks],
+    [
+      activeId,
+      expandedById,
+      filter,
+      labelId,
+      orderedGroupKeys,
+      overdueTreeIds,
+      priorityFilter,
+      treeTasks,
+      unifyFlatList,
+    ],
   );
 
   /** Live-reordered flat items — DOM order tracks the placeholder slot. */
@@ -711,11 +1082,59 @@ export function TasksView() {
     for (const item of dragFlatBase) {
       if (!dragOrderedIds.includes(item.id)) ordered.push(item);
     }
+    // Intentionally do NOT rewrite groupKey while dragging: moving a sortable
+    // between section parents remounts it and loops onDragOver → max update depth.
     return ordered;
   }, [dragFlatBase, dragOrderedIds]);
 
+  /** Stable origin group for the active task (section membership before cross-drag). */
+  const dragOriginGroupKey = useMemo(() => {
+    if (!activeId || activeId.startsWith("section:")) return null;
+    return dragFlatBase.find((item) => item.id === activeId)?.groupKey ?? null;
+  }, [activeId, dragFlatBase]);
+
+  /** Destination group implied by current `over` (task row or section chrome). */
+  const dragTargetGroupKey = useMemo(() => {
+    if (!sectionListMode || !activeId || activeId.startsWith("section:")) return null;
+    const sectionKey = parseTaskSectionTargetKey(overId);
+    if (sectionKey) return sectionKey;
+    if (overId && !overId.startsWith("section")) {
+      return dragFlatBase.find((item) => item.id === overId)?.groupKey ?? null;
+    }
+    return null;
+  }, [activeId, dragFlatBase, overId, sectionListMode]);
+
+  /**
+   * Last known target while dragging — avoids origin placeholder flashing back
+   * when the pointer briefly leaves all droppables between sections.
+   */
+  const [stickyTargetGroupKey, setStickyTargetGroupKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!activeId || activeId.startsWith("section:")) {
+      setStickyTargetGroupKey(null);
+      return;
+    }
+    if (dragTargetGroupKey) setStickyTargetGroupKey(dragTargetGroupKey);
+  }, [activeId, dragTargetGroupKey]);
+
+  const effectiveTargetGroupKey = dragTargetGroupKey ?? stickyTargetGroupKey;
+
+  const visibleListSections = useMemo(() => {
+    if (!dragOrderedSectionIds) return listSections;
+    const byId = new Map(listSections.map((section) => [section.id, section]));
+    const ordered: TaskSectionDto[] = [];
+    for (const id of dragOrderedSectionIds) {
+      const section = byId.get(id);
+      if (section) ordered.push(section);
+    }
+    for (const section of listSections) {
+      if (!dragOrderedSectionIds.includes(section.id)) ordered.push(section);
+    }
+    return ordered;
+  }, [dragOrderedSectionIds, listSections]);
+
   const dragProjection =
-    activeId && overId
+    activeId && overId && !activeId.startsWith("section:")
       ? getTaskTreeProjection(
           dragFlatItems,
           activeId,
@@ -723,7 +1142,7 @@ export function TasksView() {
           offsetLeft,
           INDENTATION_WIDTH,
           undefined,
-          !unifyFlatList,
+          !unifyFlatList && !sectionListMode,
         )
       : null;
 
@@ -810,9 +1229,13 @@ export function TasksView() {
     setActiveHeight(null);
     setDragOverlayTask(null);
     setDragOverlayMeta(null);
+    setDragOverlaySection(null);
     setDragOriginPlacements(null);
     dragOrderedIdsRef.current = null;
     setDragOrderedIds(null);
+    dragOrderedSectionIdsRef.current = null;
+    setDragOrderedSectionIds(null);
+    setStickyTargetGroupKey(null);
     lastInsertIndexRef.current = null;
     lastOverRectRef.current = null;
     overIdRef.current = null;
@@ -820,9 +1243,63 @@ export function TasksView() {
   }
 
   function commitFlatOrder(nextIds: string[], nextIndex: number) {
+    const prev = dragOrderedIdsRef.current;
+    if (
+      prev &&
+      prev.length === nextIds.length &&
+      prev.every((id, index) => id === nextIds[index])
+    ) {
+      lastInsertIndexRef.current = nextIndex;
+      return;
+    }
     dragOrderedIdsRef.current = nextIds;
     lastInsertIndexRef.current = nextIndex;
     setDragOrderedIds(nextIds);
+  }
+
+  function commitSectionOrder(nextIds: string[], nextIndex: number) {
+    const prev = dragOrderedSectionIdsRef.current;
+    if (
+      prev &&
+      prev.length === nextIds.length &&
+      prev.every((id, index) => id === nextIds[index])
+    ) {
+      lastInsertIndexRef.current = nextIndex;
+      return;
+    }
+    dragOrderedSectionIdsRef.current = nextIds;
+    lastInsertIndexRef.current = nextIndex;
+    setDragOrderedSectionIds(nextIds);
+  }
+
+  function applyLiveSectionSort(input: {
+    activeId: string;
+    overId: string;
+    overChanged: boolean;
+  }) {
+    if (!input.activeId.startsWith("section:")) return;
+    const ids = dragOrderedSectionIdsRef.current;
+    if (!ids) return;
+
+    const fromId = input.activeId.slice("section:".length);
+    const toId = parseSectionHeaderTargetId(input.overId);
+    if (!toId || fromId === toId) return;
+
+    const activeIndex = ids.indexOf(fromId);
+    const overIndex = ids.indexOf(toId);
+    if (activeIndex < 0 || overIndex < 0) return;
+
+    if (!input.overChanged && lastSyncedOverIdRef.current === input.overId) {
+      if (lastInsertIndexRef.current === overIndex) return;
+    }
+    lastSyncedOverIdRef.current = input.overId;
+
+    if (overIndex === activeIndex) {
+      lastInsertIndexRef.current = overIndex;
+      return;
+    }
+    if (lastInsertIndexRef.current === overIndex) return;
+    commitSectionOrder(arrayMove(ids, activeIndex, overIndex), overIndex);
   }
 
   function applyLiveFlatSort(input: {
@@ -833,18 +1310,51 @@ export function TasksView() {
     /** True when dnd-kit just flipped `over` — move placeholder immediately (same 10–15% feel). */
     overChanged: boolean;
   }) {
+    if (input.activeId.startsWith("section:")) {
+      applyLiveSectionSort({
+        activeId: input.activeId,
+        overId: input.overId,
+        overChanged: input.overChanged,
+      });
+      return;
+    }
+
     const ids = dragOrderedIdsRef.current;
     if (!ids) return;
 
     const activeIndex = ids.indexOf(input.activeId);
-    const overIndex = ids.indexOf(input.overId);
-    if (activeIndex < 0 || overIndex < 0) return;
+    if (activeIndex < 0) return;
 
-    // Live reorder: Abschnitte only on Heute; flat filters allow any visible pair.
+    // Section header / empty-row targets: move into that group at start or end.
+    // Only on over-change — lingering onMove would thrash against task rows.
+    const sectionTargetKey = sectionListMode ? parseTaskSectionTargetKey(input.overId) : null;
+    if (sectionTargetKey) {
+      if (!input.overChanged && lastSyncedOverIdRef.current === input.overId) return;
+      const itemsById = new Map(dragFlatBase.map((item) => [item.id, item]));
+      const position = parseSectionEmptyTargetKey(input.overId) ? "end" : "start";
+      const { nextIds, nextIndex } = moveIdToSectionGroup(
+        ids,
+        itemsById,
+        sectionTargetKey,
+        orderedGroupKeys,
+        position,
+        input.activeId,
+      );
+      lastSyncedOverIdRef.current = input.overId;
+      commitFlatOrder(nextIds, nextIndex);
+      return;
+    }
+
+    if (input.overId.startsWith("section")) return;
+
+    const overIndex = ids.indexOf(input.overId);
+    if (overIndex < 0) return;
+
+    // Live reorder: Heute blocks cross-Abschnitt moves; section lists allow Root↔Abschnitt.
     const activeMeta = dragFlatBase.find((item) => item.id === input.activeId);
     const overMeta = dragFlatBase.find((item) => item.id === input.overId);
     if (!activeMeta || !overMeta) return;
-    if (!unifyFlatList && activeMeta.groupKey !== overMeta.groupKey) return;
+    if (!unifyFlatList && !sectionListMode && activeMeta.groupKey !== overMeta.groupKey) return;
 
     let nextIndex: number;
 
@@ -876,16 +1386,52 @@ export function TasksView() {
   function onDragStart(event: DragStartEvent) {
     cancelScheduledDragClear();
     const id = String(event.active.id);
-    const tasks = tasksQuery.data ?? [];
+    if (id.startsWith("section:")) {
+      const sectionId = id.slice("section:".length);
+      const section = listSections.find((entry) => entry.id === sectionId) ?? null;
+      const sectionRoots = rootTasksByGroup.get(sectionId)?.length ?? 0;
+      const sectionTaskCount = section
+        ? countTasksDeletedWithSection(sectionId, tasksQuery.data ?? [], listMemberships)
+        : 0;
+      const orderedIds = listSections.map((entry) => entry.id);
+      dragOrderedSectionIdsRef.current = orderedIds;
+      lastInsertIndexRef.current = orderedIds.indexOf(sectionId);
+      lastOverRectRef.current = null;
+      overIdRef.current = id;
+      lastSyncedOverIdRef.current = id;
+      setDragOrderedSectionIds(orderedIds);
+      setDragOrderedIds(null);
+      dragOrderedIdsRef.current = null;
+      setDragOverlayTask(null);
+      setDragOverlayMeta(null);
+      setDragOriginPlacements(null);
+      setActiveId(id);
+      setOverId(id);
+      setOffsetLeft(0);
+      const measured = event.active.rect.current.initial?.height ?? null;
+      setActiveHeight(measured != null ? Math.max(measured, 40) : 40);
+      setDragOverlaySection(
+        section
+          ? {
+              id: section.id,
+              title: section.title,
+              count: sectionTaskCount || sectionRoots,
+            }
+          : null,
+      );
+      return;
+    }
+    const tasks = treeTasks;
     const snapshot = tasks.find((task) => task.id === id) ?? null;
     const flat = flattenTasksForDragList({
       filter,
       promoteOrphans: filter === "favorites" || Boolean(labelId) || Boolean(priorityFilter),
-      visibleTasks,
+      visibleTasks: treeTasks,
       expandedById,
       orderedGroupKeys,
       overdueTreeIds,
       activeId: id,
+      unifyRoots: unifyFlatList,
     });
     const orderedIds = flat.map((item) => item.id);
     dragOrderedIdsRef.current = orderedIds;
@@ -894,6 +1440,9 @@ export function TasksView() {
     overIdRef.current = id;
     lastSyncedOverIdRef.current = id;
     setDragOrderedIds(orderedIds);
+    setDragOrderedSectionIds(null);
+    dragOrderedSectionIdsRef.current = null;
+    setDragOverlaySection(null);
     setActiveId(id);
     setOverId(id);
     setOffsetLeft(0);
@@ -977,17 +1526,88 @@ export function TasksView() {
     over: { id: string | number } | null;
     active: { id: string | number };
   }) {
-    const tasks = tasksQuery.data ?? [];
-    const origin = dragOriginPlacements;
     const active = String(event.active.id);
     const over = event.over ? String(event.over.id) : null;
+
+    if (active.startsWith("section:")) {
+      const liveOrderedIds =
+        dragOrderedSectionIdsRef.current ?? listSections.map((section) => section.id);
+      clearDragUi();
+      if (!sectionListMode) return;
+      const unchanged =
+        liveOrderedIds.length === listSections.length &&
+        liveOrderedIds.every((id, index) => listSections[index]?.id === id);
+      if (unchanged) return;
+      reorderSectionsMutation.mutate({
+        orderedIds: liveOrderedIds,
+        ...(categoryId ? { categoryId } : {}),
+        ...(labelId ? { labelId } : {}),
+      });
+      return;
+    }
+
+    const origin = dragOriginPlacements;
     const flatSnapshot = dragFlatItems;
     const liveOrderedIds = dragOrderedIdsRef.current ?? flatSnapshot.map((item) => item.id);
     const offsetSnapshot = offsetLeft;
+    const scopedSnapshot = treeTasks;
+    const sourceById = new Map((tasksQuery.data ?? []).map((task) => [task.id, task]));
+    const sectionTargetKey = sectionListMode ? parseTaskSectionTargetKey(over) : null;
 
     clearDragUi();
 
     if (!over || !origin) return;
+
+    // Empty section / header drop without a task row under the pointer.
+    if (sectionListMode && sectionTargetKey) {
+      const source = sourceById.get(active);
+      if (!source || source.parentTaskId) return;
+      const previousKey =
+        origin.find((placement) => placement.id === active)?.groupKey ?? TASK_SECTION_ROOT_KEY;
+      if (previousKey !== sectionTargetKey) {
+        void setMembershipMutation.mutateAsync({
+          taskId: active,
+          sectionId: sectionTargetKey === TASK_SECTION_ROOT_KEY ? null : sectionTargetKey,
+          ...(categoryId ? { categoryId } : {}),
+          ...(labelId ? { labelId } : {}),
+        });
+      }
+      const projected = {
+        depth: 0,
+        maxDepth: 0,
+        minDepth: 0,
+        parentId: null,
+      };
+      const patch = commitTaskTreeMove({
+        tasks: scopedSnapshot,
+        expandedById,
+        activeId: active,
+        overId: active,
+        projected,
+        liveOrderedIds,
+        forceGroupKey: sectionTargetKey,
+      });
+      if (patch.length === 0) return;
+      const remappedOrigin = origin.map((placement) => {
+        const task = sourceById.get(placement.id);
+        return {
+          ...placement,
+          groupKey: task?.groupKey ?? createGroupKeyForFilter(filter),
+        };
+      });
+      const placements = mergePlacements(origin, patch).map((placement) => {
+        const task = sourceById.get(placement.id);
+        return {
+          ...placement,
+          groupKey: task?.groupKey ?? createGroupKeyForFilter(filter),
+        };
+      });
+      if (placementsEqual(remappedOrigin, placements)) return;
+      relocateMutation.mutate({ placements });
+      return;
+    }
+
+    if (over.startsWith("section")) return;
 
     const projected = getTaskTreeProjection(
       flatSnapshot,
@@ -996,12 +1616,12 @@ export function TasksView() {
       offsetSnapshot,
       INDENTATION_WIDTH,
       undefined,
-      !unifyFlatList,
+      !unifyFlatList && !sectionListMode,
     );
     if (!projected) return;
 
     const patch = commitTaskTreeMove({
-      tasks,
+      tasks: scopedSnapshot,
       expandedById,
       activeId: active,
       overId: over,
@@ -1015,8 +1635,40 @@ export function TasksView() {
       setExpandedById((current) => ({ ...current, [projected.parentId!]: true }));
     }
 
-    const placements = mergePlacements(origin, patch);
-    if (placementsEqual(origin, placements)) return;
+    const remappedOrigin = origin.map((placement) => {
+      const source = sourceById.get(placement.id);
+      return {
+        ...placement,
+        groupKey: source?.groupKey ?? createGroupKeyForFilter(filter),
+      };
+    });
+    const placements = mergePlacements(origin, patch).map((placement) => {
+      const source = sourceById.get(placement.id);
+      return {
+        ...placement,
+        groupKey: source?.groupKey ?? createGroupKeyForFilter(filter),
+      };
+    });
+
+    if (sectionListMode) {
+      const originById = new Map(origin.map((placement) => [placement.id, placement]));
+      const patchById = new Map(patch.map((placement) => [placement.id, placement]));
+      for (const [taskId, next] of patchById) {
+        const previous = originById.get(taskId);
+        if (!previous) continue;
+        const source = sourceById.get(taskId);
+        if (!source || source.parentTaskId) continue;
+        if (previous.groupKey === next.groupKey) continue;
+        void setMembershipMutation.mutateAsync({
+          taskId,
+          sectionId: next.groupKey === TASK_SECTION_ROOT_KEY ? null : next.groupKey,
+          ...(categoryId ? { categoryId } : {}),
+          ...(labelId ? { labelId } : {}),
+        });
+      }
+    }
+
+    if (placementsEqual(remappedOrigin, placements)) return;
 
     relocateMutation.mutate({ placements });
   }
@@ -1181,7 +1833,42 @@ export function TasksView() {
     ];
   }
 
-  function renderFlatRows(predicate: (item: FlatTreeItem) => boolean) {
+  /**
+   * Insert index for a cross-section destination placeholder (sortable stays in origin).
+   * Returns null when not dragging across groups into `groupKey`.
+   */
+  function foreignPlaceholderIndex(groupKey: string): number | null {
+    if (!activeId || !dragOrderedIds || !effectiveTargetGroupKey || !dragOriginGroupKey) {
+      return null;
+    }
+    if (effectiveTargetGroupKey !== groupKey) return null;
+    if (dragOriginGroupKey === groupKey) return null;
+
+    const activeIndex = dragOrderedIds.indexOf(activeId);
+    if (activeIndex < 0) return null;
+
+    const itemsById = new Map(dragFlatBase.map((item) => [item.id, item]));
+    let insertAt = 0;
+    for (let i = 0; i < activeIndex; i++) {
+      const item = itemsById.get(dragOrderedIds[i]!);
+      if (item?.groupKey === groupKey) insertAt += 1;
+    }
+    return insertAt;
+  }
+
+  function sectionHasPeerTasks(groupKey: string): boolean {
+    return dragFlatBase.some(
+      (item) =>
+        item.groupKey === groupKey &&
+        item.parentId == null &&
+        item.id !== activeId,
+    );
+  }
+
+  function renderFlatRows(
+    predicate: (item: FlatTreeItem) => boolean,
+    options?: { groupKey?: string },
+  ) {
     const tasksByVisibleId = new Map(visibleTasks.map((task) => [task.id, task]));
     const flatRows: FlatTaskRow[] = dragFlatItems.filter(predicate).flatMap((item) => {
       const task = tasksByVisibleId.get(item.id);
@@ -1199,7 +1886,7 @@ export function TasksView() {
       ];
     });
 
-    return flatRows.map(({ task, depth, hasChildren }) => {
+    const nodes = flatRows.map(({ task, depth, hasChildren }) => {
       const childList = childrenByParent.get(task.id) ?? [];
       const subtaskLabel =
         childList.length > 0
@@ -1227,12 +1914,43 @@ export function TasksView() {
           onToggle={(current, completed) =>
             updateMutation.mutate({ id: current.id, isCompleted: completed })
           }
+          slotHidden={
+            activeId === task.id &&
+            dragOriginGroupKey != null &&
+            effectiveTargetGroupKey != null &&
+            dragOriginGroupKey !== effectiveTargetGroupKey
+          }
           subtaskLabel={subtaskLabel}
           tags={resolveTaskTagLabels(task)}
           task={task}
         />
       );
     });
+
+    const groupKey = options?.groupKey;
+    if (groupKey) {
+      const insertAt = foreignPlaceholderIndex(groupKey);
+      if (insertAt != null) {
+        nodes.splice(
+          Math.min(insertAt, nodes.length),
+          0,
+          <div
+            aria-hidden
+            className={`fk-task-item fk-task-item--placeholder ${styles.sortableRow}`}
+            key={`section-insert:${groupKey}`}
+            style={{
+              boxSizing: "border-box",
+              height: activeHeight ?? 40,
+              maxHeight: activeHeight ?? 40,
+              minHeight: activeHeight ?? 40,
+              width: "var(--fk-task-column-width, 800px)",
+            }}
+          />,
+        );
+      }
+    }
+
+    return nodes;
   }
 
   const createDueDate = filter === "today" ? todayIsoDate() : undefined;
@@ -1249,12 +1967,13 @@ export function TasksView() {
 
   async function submitNewTask(
     { title, description, priority, dueDate }: AddTaskSubmitPayload,
-    groupKey = createGroupKey,
+    options?: { sectionId?: string | null },
   ) {
-    await createMutation.mutateAsync({
+    const systemGroupKey = createGroupKeyForFilter(filter);
+    const created = await createMutation.mutateAsync({
       title,
       description: description || undefined,
-      groupKey,
+      groupKey: systemGroupKey,
       ...(dueDate ? { dueDate } : createDueDate ? { dueDate: createDueDate } : {}),
       ...(priority && priority !== "none"
         ? { priority }
@@ -1264,6 +1983,14 @@ export function TasksView() {
       ...(categoryId ? { categoryId } : {}),
       ...(labelId ? { labelIds: [labelId] } : {}),
     });
+    if (sectionListMode && options?.sectionId) {
+      await setMembershipMutation.mutateAsync({
+        taskId: created.id,
+        sectionId: options.sectionId,
+        ...(categoryId ? { categoryId } : {}),
+        ...(labelId ? { labelId } : {}),
+      });
+    }
   }
 
   useTasksListDndRegistration({
@@ -1380,6 +2107,120 @@ export function TasksView() {
                       </div>
                     )}
                   </>
+                ) : sectionListMode ? (
+                  <>
+                    <div className={`${styles.rootList} fk-task-list`} key="section-root">
+                      {renderFlatRows((item) => item.groupKey === TASK_SECTION_ROOT_KEY, {
+                        groupKey: TASK_SECTION_ROOT_KEY,
+                      })}
+                      <SectionEmptyDropZone
+                        disabled={sectionHasPeerTasks(TASK_SECTION_ROOT_KEY)}
+                        sectionKey={TASK_SECTION_ROOT_KEY}
+                      >
+                        <AddTask
+                          keepOpenOnSubmit
+                          onSubmit={async (payload) => {
+                            await submitNewTask(payload);
+                          }}
+                          {...addTaskDefaults}
+                        />
+                      </SectionEmptyDropZone>
+                    </div>
+                    {visibleListSections.map((section) => {
+                      const sectionRoots =
+                        rootTasksByGroup.get(section.id)?.length ?? 0;
+                      const sectionTaskCount = countTasksDeletedWithSection(
+                        section.id,
+                        tasksQuery.data ?? [],
+                        listMemberships,
+                      );
+                      return (
+                        <SortableTaskSection
+                          contextMenuItems={[
+                            {
+                              label: "Umbenennen",
+                              icon: "edit",
+                              onSelect: () => {
+                                setRenamingSectionId(section.id);
+                                setRenameDraft(section.title);
+                              },
+                            },
+                            {
+                              label: "Löschen",
+                              icon: "delete",
+                              destructive: true,
+                              onSelect: () => {
+                                setPendingDeleteSection({
+                                  id: section.id,
+                                  title: section.title,
+                                  taskCount: sectionTaskCount,
+                                });
+                              },
+                            },
+                          ]}
+                          count={sectionTaskCount || sectionRoots}
+                          emptyDropDisabled={sectionHasPeerTasks(section.id)}
+                          key={section.id}
+                          lockedHeight={
+                            activeId === `section:${section.id}` ? activeHeight : null
+                          }
+                          onAddSubmit={async (payload) => {
+                            await submitNewTask(payload, { sectionId: section.id });
+                          }}
+                          onRenameCancel={() => {
+                            setRenamingSectionId(null);
+                            setRenameDraft("");
+                          }}
+                          onRenameCommit={(nextTitle) => {
+                            const trimmed = nextTitle.trim();
+                            const previousTitle = section.title;
+                            setRenamingSectionId(null);
+                            setRenameDraft("");
+                            if (!trimmed || trimmed === previousTitle) return;
+                            updateSectionMutation.mutate(
+                              { id: section.id, title: trimmed },
+                              {
+                                onSuccess: () => {
+                                  toast({
+                                    id: `section-rename:${section.id}`,
+                                    title: "Abschnitt umbenannt",
+                                    action: {
+                                      label: "Rückgängig",
+                                      altText: "Umbenennen rückgängig machen",
+                                      leadingIcon: "arrow-undo-down",
+                                      onClick: () => {
+                                        updateSectionMutation.mutate({
+                                          id: section.id,
+                                          title: previousTitle,
+                                        });
+                                      },
+                                    },
+                                  });
+                                },
+                              },
+                            );
+                          }}
+                          onTitleChange={setRenameDraft}
+                          renameTitle={renameDraft}
+                          renaming={renamingSectionId === section.id}
+                          section={section}
+                        >
+                          {renderFlatRows((item) => item.groupKey === section.id, {
+                            groupKey: section.id,
+                          })}
+                        </SortableTaskSection>
+                      );
+                    })}
+                    <AddGroup
+                      onSubmit={async ({ title }) => {
+                        await createSectionMutation.mutateAsync({
+                          title,
+                          ...(categoryId ? { categoryId } : {}),
+                          ...(labelId ? { labelId } : {}),
+                        });
+                      }}
+                    />
+                  </>
                 ) : (
                   <div className={`${styles.rootList} fk-task-list`} key="flat-list">
                     {renderFlatRows(() => true)}
@@ -1394,7 +2235,29 @@ export function TasksView() {
                 )}
               </SortableContext>
               <DragOverlay dropAnimation={null}>
-                {activeTask ? (
+                {dragOverlaySection ? (
+                  <DnDGhostShell>
+                    <TaskGroupHeader
+                      count={dragOverlaySection.count}
+                      draggable
+                      expanded
+                      state="dragged"
+                      style={{
+                        width: "var(--fk-task-column-width, 800px)",
+                        ...(activeHeight
+                          ? {
+                              boxSizing: "border-box",
+                              height: activeHeight,
+                              maxHeight: activeHeight,
+                              minHeight: activeHeight,
+                              overflow: "hidden",
+                            }
+                          : {}),
+                      }}
+                      title={dragOverlaySection.title}
+                    />
+                  </DnDGhostShell>
+                ) : activeTask ? (
                   <DnDGhostShell>
                     <TaskListItem
                       category={resolveTaskCategory(activeTask)}
@@ -1552,6 +2415,20 @@ export function TasksView() {
           }}
           onOpenChange={(open) => {
             if (!open) setPendingDeleteTask(null);
+          }}
+          open
+        />
+      ) : null}
+      {pendingDeleteSection ? (
+        <ConfirmDeleteModal
+          {...deleteConfirmCopy("section", pendingDeleteSection.title, {
+            taskCount: pendingDeleteSection.taskCount,
+          })}
+          onConfirm={async () => {
+            await deleteSectionMutation.mutateAsync(pendingDeleteSection.id);
+          }}
+          onOpenChange={(open) => {
+            if (!open) setPendingDeleteSection(null);
           }}
           open
         />

@@ -3,6 +3,7 @@ import { toIsoDateString } from "@fokuna/domain";
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  AddGroup,
   AddTask,
   MilestoneTaskGroup,
   TaskGroup,
@@ -153,6 +154,23 @@ describe("task composition patterns", () => {
     expect(screen.queryByText("Kein")).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /Hoch/ }));
     expect(screen.queryByLabelText("Priorität auswählen")).not.toBeInTheDocument();
+  });
+
+  it("adds a section name without description or property chips", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<AddGroup defaultExpanded focusOnExpand={false} onSubmit={onSubmit} />);
+
+    expect(screen.queryByLabelText("Beschreibung")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Priorität|Datum/ })).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Abschnittsname" }), {
+      target: { value: "Sprint A" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Abschnitt hinzufügen" }));
+
+    await vi.waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({ title: "Sprint A" });
+    });
   });
 
   it("submits a new task title from the active add form", async () => {

@@ -337,6 +337,18 @@ export const patternEntries: PatternEntry[] = [
     variantSummary: "Inactive and active",
   },
   {
+    number: 44,
+    slug: "task-add-group",
+    title: "Task Add Group",
+    figmaName: "C - Desktop - Add Group (derived from Add Item)",
+    figmaNodeId: "18529:7288",
+    category: "Tasks",
+    implementation: "AddGroup",
+    screenshot: "26_Task_Add_Item.png",
+    dimensions: ["640 × 48 px", "640 × 88 px active"],
+    variantSummary: "Inactive and active · section name only",
+  },
+  {
     number: 27,
     slug: "task-group-header",
     title: "Task Group Header List Item",

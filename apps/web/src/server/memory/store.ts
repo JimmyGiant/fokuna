@@ -1,4 +1,11 @@
-import type { CategoryDto, LabelDto, TaskDto, UserProfileDto } from "@fokuna/api-contracts";
+import type {
+  CategoryDto,
+  LabelDto,
+  TaskDto,
+  TaskSectionDto,
+  TaskSectionMembershipDto,
+  UserProfileDto,
+} from "@fokuna/api-contracts";
 import { createId, toIsoDateString, todayIsoDateString } from "@fokuna/domain";
 
 import { ensureDemoSeedUser } from "./demo-auth";
@@ -97,6 +104,8 @@ interface MemoryStore {
   tasks: Map<string, TaskDto>;
   categories: Map<string, CategoryDto>;
   labels: Map<string, LabelDto>;
+  taskSections: Map<string, TaskSectionDto>;
+  taskSectionMemberships: Map<string, TaskSectionMembershipDto>;
   goals: Map<string, MemoryGoal>;
   blocks: Map<string, MemoryBlock>;
   calendarEntries: Map<string, MemoryCalendarEntry>;
@@ -112,13 +121,15 @@ const globalStore = globalThis as typeof globalThis & {
   __fokunaMemoryStoreVersion?: number;
 };
 
-const MEMORY_STORE_VERSION = 9;
+const MEMORY_STORE_VERSION = 10;
 
 function createStore(): MemoryStore {
   const store: MemoryStore = {
     tasks: new Map(),
     categories: new Map(),
     labels: new Map(),
+    taskSections: new Map(),
+    taskSectionMemberships: new Map(),
     goals: new Map(),
     blocks: new Map(),
     calendarEntries: new Map(),

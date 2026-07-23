@@ -57,6 +57,24 @@ export interface LabelEntity {
   updatedAt: string;
 }
 
+export interface TaskSectionEntity {
+  id: string;
+  userId: string;
+  title: string;
+  categoryId: string | null;
+  labelId: string | null;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TaskSectionMembershipEntity {
+  id: string;
+  taskId: string;
+  sectionId: string;
+  createdAt: string;
+}
+
 export interface FocusSessionEntity {
   id: string;
   userId: string;

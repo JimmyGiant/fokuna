@@ -4477,6 +4477,91 @@
     cursor: default;
   }
 
+  .fk-add-group,
+  .fk-add-group__trigger {
+    margin-top: 16px;
+  }
+
+  .fk-add-group.fk-add-task {
+    gap: 8px;
+    grid-template-rows: auto auto;
+    height: auto;
+    min-height: 0;
+    padding: 10px 12px;
+  }
+
+  .fk-add-group .fk-add-task__fields {
+    gap: 0;
+  }
+
+  .fk-add-group .fk-add-task__fields input {
+    min-height: 28px;
+  }
+
+  .fk-add-group .fk-add-task__footer {
+    justify-content: flex-end;
+    margin-top: 0;
+    min-height: 28px;
+  }
+
+  .fk-add-group .fk-add-task__meta-actions {
+    display: none;
+  }
+
+  .fk-task-group__header--placeholder {
+    background: var(--fk-color-surface-muted);
+    border: 1px solid transparent;
+    border-radius: 8px;
+    pointer-events: none;
+    position: relative;
+    z-index: 1;
+  }
+
+  .fk-task-group__header--placeholder .fk-task-group__drag,
+  .fk-task-group__header--placeholder .fk-task-group__toggle,
+  .fk-task-group__header--placeholder .fk-task-group__title,
+  .fk-task-group__header--placeholder .fk-task-group__count,
+  .fk-task-group__header--placeholder .fk-task-group__milestone {
+    opacity: 0;
+  }
+
+  .fk-task-group__header[data-state="dragged"] {
+    background:
+      linear-gradient(
+          var(--fk-color-surface-base, var(--fk-color-surface-subtle)),
+          var(--fk-color-surface-base, var(--fk-color-surface-subtle))
+        )
+        padding-box,
+      linear-gradient(to bottom, rgb(255 255 255 / 16%), rgb(0 0 0 / 4%)) border-box;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    box-shadow: var(--fk-shadow-subtle-element);
+    cursor: grabbing;
+    isolation: isolate;
+    opacity: 1;
+    transform: rotate(-1deg);
+  }
+
+  .fk-task-group__header[data-state="dragged"] .fk-task-group__drag {
+    opacity: 1;
+  }
+
+  .fk-task-group__empty-drop {
+    min-height: 8px;
+  }
+
+  .fk-task-group__title-input {
+    background: transparent;
+    border: none;
+    color: var(--fk-color-text-primary);
+    flex: 0 1 auto;
+    font: inherit;
+    min-width: 0;
+    outline: none;
+    padding: 0;
+    width: 100%;
+  }
+
   .fk-add-task__property-popover {
     background: var(--fk-color-surface-base);
     border: 1px solid var(--fk-color-border-default);

@@ -107,6 +107,24 @@ export const label = pgTable(
   (table) => [uniqueIndex("label_user_name_idx").on(table.userId, table.name)],
 );
 
+/** User-defined list sections (category XOR label scope). */
+export const taskSection = pgTable(
+  "task_section",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    title: text("title").notNull(),
+    categoryId: text("category_id").references(() => category.id, { onDelete: "cascade" }),
+    labelId: text("label_id").references(() => label.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("task_section_user_id_idx").on(table.userId, table.id)],
+);
+
 export const goal = pgTable("goal", {
   id: text("id").primaryKey(),
   userId: text("user_id")
@@ -167,6 +185,22 @@ export const task = pgTable("task", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Task ↔ section assignment; scope independence via section.categoryId / section.labelId. */
+export const taskSectionMembership = pgTable(
+  "task_section_membership",
+  {
+    id: text("id").primaryKey(),
+    taskId: text("task_id")
+      .notNull()
+      .references(() => task.id, { onDelete: "cascade" }),
+    sectionId: text("section_id")
+      .notNull()
+      .references(() => taskSection.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("task_section_membership_task_section_idx").on(table.taskId, table.sectionId)],
+);
 
 export const block = pgTable("block", {
   id: text("id").primaryKey(),
@@ -323,6 +357,23 @@ export const taskRelations = relations(task, ({ one }) => ({
 export const categoryRelations = relations(category, ({ many }) => ({
   tasks: many(task),
   blocks: many(block),
+  taskSections: many(taskSection),
 }));
 
-export const labelRelations = relations(label, () => ({}));
+export const labelRelations = relations(label, ({ many }) => ({
+  taskSections: many(taskSection),
+}));
+
+export const taskSectionRelations = relations(taskSection, ({ one, many }) => ({
+  category: one(category, { fields: [taskSection.categoryId], references: [category.id] }),
+  label: one(label, { fields: [taskSection.labelId], references: [label.id] }),
+  memberships: many(taskSectionMembership),
+}));
+
+export const taskSectionMembershipRelations = relations(taskSectionMembership, ({ one }) => ({
+  task: one(task, { fields: [taskSectionMembership.taskId], references: [task.id] }),
+  section: one(taskSection, {
+    fields: [taskSectionMembership.sectionId],
+    references: [taskSection.id],
+  }),
+}));

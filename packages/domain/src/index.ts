@@ -6,5 +6,6 @@ export * from "./reorder";
 export * from "./task-drag-layout";
 export * from "./task-drag-tree";
 export * from "./task-hierarchy";
+export * from "./task-sections";
 export * from "./types";
 export * from "./ui-preferences";

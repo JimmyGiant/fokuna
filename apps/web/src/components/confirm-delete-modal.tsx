@@ -5,7 +5,7 @@ import { useState, type ReactNode } from "react";
 
 import styles from "./confirm-delete-modal.module.css";
 
-export type DeleteEntityKind = "task" | "category" | "label";
+export type DeleteEntityKind = "task" | "category" | "label" | "section";
 
 function Emph({ children }: { children: ReactNode }) {
   return <span className={styles.emphasis}>{children}</span>;
@@ -56,6 +56,23 @@ export function deleteConfirmCopy(
         ),
         confirmLabel: "Löschen",
       };
+    case "section": {
+      const count = options?.taskCount ?? 0;
+      const tasksLabel =
+        count === 1 ? <Emph>1 Aufgabe</Emph> : <Emph>{count} Aufgaben</Emph>;
+      return {
+        title: "Abschnitt wirklich löschen?",
+        description:
+          count > 0 ? (
+            <>
+              Der Abschnitt {quotedName} und seine {tasksLabel} werden unwiderruflich entfernt.
+            </>
+          ) : (
+            <>Der Abschnitt {quotedName} wird unwiderruflich entfernt.</>
+          ),
+        confirmLabel: "Löschen",
+      };
+    }
   }
 }
 

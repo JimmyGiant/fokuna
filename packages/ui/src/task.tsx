@@ -370,7 +370,18 @@ export interface TaskGroupHeaderProps extends HTMLAttributes<HTMLDivElement> {
   draggable?: boolean;
   actions?: ReactNode;
   milestone?: boolean;
+  /** When true, title renders as an input for inline rename. */
+  renaming?: boolean;
+  /** Placeholder slot while this header is dragged (congruent with ghost). */
+  state?: "default" | "placeholder" | "dragged";
+  contextMenuItems?: FokunaContextMenuEntry[];
+  dragHandleProps?: HTMLAttributes<HTMLElement>;
+  /** Whole-header drag surface (preferred — mirrors TaskListItem rowDragProps). */
+  rowDragProps?: HTMLAttributes<HTMLDivElement>;
   onExpandedChange?: (expanded: boolean) => void;
+  onTitleChange?: (title: string) => void;
+  onRenameCommit?: (title: string) => void;
+  onRenameCancel?: () => void;
 }
 
 export function TaskGroupHeader({
@@ -380,20 +391,64 @@ export function TaskGroupHeader({
   draggable,
   actions,
   milestone,
+  renaming = false,
+  state = "default",
+  contextMenuItems,
+  dragHandleProps,
+  rowDragProps,
   onExpandedChange,
+  onTitleChange,
+  onRenameCommit,
+  onRenameCancel,
   className,
   ...props
 }: TaskGroupHeaderProps) {
-  return (
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!renaming) return;
+    const input = titleInputRef.current;
+    if (!input) return;
+    input.focus();
+    input.select();
+  }, [renaming]);
+
+  if (state === "placeholder") {
+    return (
+      <div
+        {...props}
+        aria-hidden
+        className={cn("fk-task-group__header", "fk-task-group__header--placeholder", className)}
+        data-milestone={milestone || undefined}
+        data-state="placeholder"
+      >
+        {milestone ? <span aria-hidden="true" className="fk-task-group__milestone" /> : null}
+        <span aria-hidden="true" className="fk-task-group__drag-spacer" />
+        <span aria-hidden="true" className="fk-task-group__toggle" />
+        <span className="fk-task-group__title">{title}</span>
+        {count !== undefined ? <span className="fk-task-group__count">{count}</span> : null}
+        <span className="fk-task-group__header-spacer" />
+      </div>
+    );
+  }
+
+  const header = (
     <div
       {...props}
+      {...rowDragProps}
       className={cn("fk-task-group__header", className)}
       data-milestone={milestone || undefined}
+      data-renaming={renaming || undefined}
+      data-state={state === "dragged" ? "dragged" : undefined}
     >
       {milestone ? <span aria-hidden="true" className="fk-task-group__milestone" /> : null}
       {/* Always reserve the 16px drag column so section titles share the L1 checkbox / list-title axis. */}
       {draggable ? (
-        <span className="fk-task-group__drag">
+        <span
+          aria-hidden="true"
+          className="fk-task-group__drag"
+          {...(rowDragProps ? undefined : dragHandleProps)}
+        >
           <FokunaIcon name="drag-handle-grid" size={16} stroke={1.5} />
         </span>
       ) : (
@@ -403,17 +458,48 @@ export function TaskGroupHeader({
         aria-expanded={expanded}
         aria-label={expanded ? "Gruppe einklappen" : "Gruppe ausklappen"}
         className="fk-task-group__toggle"
-        onClick={() => onExpandedChange?.(!expanded)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onExpandedChange?.(!expanded);
+        }}
+        onPointerDown={(event) => event.stopPropagation()}
         type="button"
       >
         <FokunaIcon name={expanded ? "chevron-down" : "chevron-right"} size={16} stroke={1.5} />
       </button>
-      <span className="fk-task-group__title">{title}</span>
+      {renaming ? (
+        <input
+          ref={titleInputRef}
+          aria-label="Abschnittsname"
+          className="fk-task-group__title-input"
+          onBlur={() => onRenameCommit?.(title.trim() || title)}
+          onChange={(event) => onTitleChange?.(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+              onRenameCommit?.(title.trim() || title);
+            }
+            if (event.key === "Escape") {
+              event.preventDefault();
+              onRenameCancel?.();
+            }
+          }}
+          onPointerDown={(event) => event.stopPropagation()}
+          value={title}
+        />
+      ) : (
+        <span className="fk-task-group__title">{title}</span>
+      )}
       {count !== undefined ? <span className="fk-task-group__count">{count}</span> : null}
       <span className="fk-task-group__header-spacer" />
       {actions}
     </div>
   );
+
+  if (contextMenuItems && contextMenuItems.length > 0 && !renaming && state !== "dragged") {
+    return <FokunaContextMenu items={contextMenuItems}>{header}</FokunaContextMenu>;
+  }
+  return header;
 }
 
 export interface TaskGroupProps extends HTMLAttributes<HTMLElement> {
@@ -428,12 +514,18 @@ export interface TaskGroupProps extends HTMLAttributes<HTMLElement> {
   /** When false, the inline add-row is omitted (e.g. max nesting depth). Default true. */
   showAdd?: boolean;
   actions?: ReactNode;
+  renaming?: boolean;
+  contextMenuItems?: FokunaContextMenuEntry[];
+  dragHandleProps?: HTMLAttributes<HTMLElement>;
   defaultPriority?: AddTaskPriority;
   defaultDueDate?: string | null;
   lockPriority?: boolean;
   lockDueDate?: boolean;
   onExpandedChange?: (expanded: boolean) => void;
   onAddSubmit?: (payload: AddTaskSubmitPayload) => void | Promise<void>;
+  onTitleChange?: (title: string) => void;
+  onRenameCommit?: (title: string) => void;
+  onRenameCancel?: () => void;
 }
 
 export function TaskGroup({
@@ -447,12 +539,18 @@ export function TaskGroup({
   milestone,
   showAdd = true,
   actions,
+  renaming,
+  contextMenuItems,
+  dragHandleProps,
   defaultPriority,
   defaultDueDate,
   lockPriority,
   lockDueDate,
   onExpandedChange,
   onAddSubmit,
+  onTitleChange,
+  onRenameCommit,
+  onRenameCancel,
   className,
   children,
   ...props
@@ -475,11 +573,17 @@ export function TaskGroup({
     >
       <TaskGroupHeader
         actions={actions}
+        contextMenuItems={contextMenuItems}
         count={count}
+        dragHandleProps={dragHandleProps}
         draggable={draggable}
         expanded={expanded}
         milestone={milestone}
         onExpandedChange={setExpanded}
+        onRenameCancel={onRenameCancel}
+        onRenameCommit={onRenameCommit}
+        onTitleChange={onTitleChange}
+        renaming={renaming}
         title={title}
       />
       {expanded ? (
@@ -986,6 +1090,158 @@ export function AddTask({
               {submitLabel ?? triggerLabel}
             </Button>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export interface AddGroupSubmitPayload {
+  title: string;
+}
+
+export interface AddGroupProps extends Omit<HTMLAttributes<HTMLDivElement>, "onSubmit"> {
+  expanded?: boolean;
+  defaultExpanded?: boolean;
+  focusOnExpand?: boolean;
+  keepOpenOnSubmit?: boolean;
+  namePlaceholder?: string;
+  submitLabel?: string;
+  triggerLabel?: string;
+  onExpandedChange?: (expanded: boolean) => void;
+  onSubmit?: (payload: AddGroupSubmitPayload) => void | Promise<void>;
+}
+
+/** Inline add-row for list sections — derived from AddTask without description/priority/due. */
+export function AddGroup({
+  expanded: expandedProp,
+  defaultExpanded = false,
+  focusOnExpand = true,
+  keepOpenOnSubmit = false,
+  namePlaceholder = "Abschnittsname",
+  submitLabel,
+  triggerLabel = "Abschnitt hinzufügen",
+  onExpandedChange,
+  onSubmit,
+  className,
+  ...props
+}: AddGroupProps) {
+  const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
+  const [title, setTitle] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const expanded = expandedProp ?? internalExpanded;
+
+  function clearDraft() {
+    setTitle("");
+  }
+
+  function setExpanded(nextExpanded: boolean) {
+    if (expandedProp === undefined) setInternalExpanded(nextExpanded);
+    onExpandedChange?.(nextExpanded);
+    if (!nextExpanded) clearDraft();
+  }
+
+  async function handleSubmit() {
+    const nextTitle = title.trim();
+    if (!nextTitle || submitting) return;
+    setSubmitting(true);
+    try {
+      await onSubmit?.({ title: nextTitle });
+      if (keepOpenOnSubmit) {
+        clearDraft();
+        queueMicrotask(() => titleInputRef.current?.focus());
+      } else {
+        setExpanded(false);
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!expanded) return;
+
+    function collapse() {
+      if (expandedProp === undefined) setInternalExpanded(false);
+      onExpandedChange?.(false);
+      clearDraft();
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (rootRef.current?.contains(target)) return;
+      collapse();
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      collapse();
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown, true);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [expanded, expandedProp, onExpandedChange]);
+
+  if (!expanded) {
+    return (
+      <button
+        className={cn("fk-add-task__trigger fk-add-group__trigger", className)}
+        onClick={() => setExpanded(true)}
+        type="button"
+      >
+        <FokunaIcon name="add-small" size={24} />
+        <span>{triggerLabel}</span>
+      </button>
+    );
+  }
+
+  return (
+    <div {...props} className={cn("fk-add-task fk-add-group", className)} ref={rootRef}>
+      <div className="fk-add-task__fields">
+        <input
+          ref={titleInputRef}
+          aria-label={namePlaceholder}
+          autoFocus={focusOnExpand}
+          onChange={(event) => setTitle(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" && !event.shiftKey) {
+              event.preventDefault();
+              void handleSubmit();
+            }
+          }}
+          placeholder={namePlaceholder}
+          value={title}
+        />
+      </div>
+      <div className="fk-add-task__footer">
+        <div className="fk-add-task__meta-actions" />
+        <div className="fk-add-task__submit-actions">
+          <Button
+            buttonType="link"
+            intent="tertiary"
+            onClick={() => setExpanded(false)}
+            size="sm"
+            trailingIcon={null}
+          >
+            Abbrechen
+          </Button>
+          <Button
+            disabled={!title.trim() || submitting}
+            intent="secondary"
+            onClick={() => void handleSubmit()}
+            size="sm"
+          >
+            {submitLabel ?? triggerLabel}
+          </Button>
         </div>
       </div>
     </div>

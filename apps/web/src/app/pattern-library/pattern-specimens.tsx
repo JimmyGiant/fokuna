@@ -7,6 +7,7 @@ import {
 } from "@/components/confirm-delete-modal";
 import {
   AddTask,
+  AddGroup,
   BlockCard,
   BlockRail,
   BlockTile,
@@ -2338,6 +2339,24 @@ export function PatternSpecimen({ slug }: { slug: string }) {
             <div className="fk-task-list">
               <TaskListItem title="Aufgabenname" />
               <AddTask defaultExpanded focusOnExpand={false} />
+            </div>
+          </MatrixRow>
+        </Matrix>
+      );
+
+    case "task-add-group":
+      return (
+        <Matrix>
+          <MatrixRow label="Inactive">
+            <AddGroup />
+          </MatrixRow>
+          <MatrixRow label="Active">
+            <AddGroup defaultExpanded focusOnExpand={false} />
+          </MatrixRow>
+          <MatrixRow label="After add task (≥40px)">
+            <div className="fk-task-list">
+              <AddTask />
+              <AddGroup />
             </div>
           </MatrixRow>
         </Matrix>
