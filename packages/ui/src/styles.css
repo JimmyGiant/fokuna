@@ -3427,6 +3427,8 @@
     display: flex;
     flex-direction: column;
     gap: 16px;
+    /* Fill L2 pane so empty-area context menus work below/between blocks. */
+    min-height: 100%;
   }
 
   .fk-sidebar__secondary-title {

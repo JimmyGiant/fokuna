@@ -7,3 +7,4 @@ export * from "./task-drag-layout";
 export * from "./task-drag-tree";
 export * from "./task-hierarchy";
 export * from "./types";
+export * from "./ui-preferences";

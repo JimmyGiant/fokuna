@@ -6,4 +6,5 @@ export * from "./focus";
 export * from "./goals";
 export * from "./journal";
 export * from "./labels";
+export * from "./profile";
 export * from "./tasks";

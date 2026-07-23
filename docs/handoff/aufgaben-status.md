@@ -81,5 +81,5 @@
 
 - Dedizierte Duplicate-API
 - Bulk-Select (FR-TASK-008)
-- Neon für Goals/Blocks-Catalog (weiter Memory bis explizit)
+- Neon für Goals/Blocks-Catalog (weiter Memory; Cutover-Plan in [product-status.md](./product-status.md#persistenz--neon-pfad-prd--101--102))
 - Ziele-L2 Drop / pixelgenaue Ziele-View (A5)

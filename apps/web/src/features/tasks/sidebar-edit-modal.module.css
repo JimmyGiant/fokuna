@@ -1,0 +1,131 @@
+/*
+ * Organizational Modal spacing (Pattern Library §42 / modals.mdc):
+ * Header 32 32 16 · Body 0 32 · Footer 24 32 32 · Footer end-aligned Gap 12.
+ */
+.modal :global(.fk-modal__header) {
+  padding: 32px 32px 16px;
+}
+
+.modal :global(.fk-modal__body) {
+  overflow: visible;
+  padding: 0 32px;
+}
+
+.modal:has(:global(.fk-modal__footer)) :global(.fk-modal__body) {
+  padding-bottom: 0;
+}
+
+.modal :global(.fk-modal__footer) {
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 24px 32px 32px;
+}
+
+.body {
+  display: grid;
+  gap: 24px;
+}
+
+.list {
+  display: grid;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  align-items: center;
+  border-radius: 8px;
+  cursor: grab;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 16px minmax(0, 1fr) 28px;
+  min-height: 32px;
+  padding: 4px 0 4px 8px;
+  touch-action: none;
+  user-select: none;
+}
+
+.row[data-fixed="true"] {
+  cursor: default;
+  touch-action: auto;
+  user-select: auto;
+}
+
+.row:not([data-fixed="true"]):hover {
+  background: var(--fk-color-surface-soft);
+}
+
+.row[data-placeholder="true"] {
+  background: var(--fk-color-surface-muted);
+  box-shadow: none;
+  opacity: 1;
+}
+
+.row[data-placeholder="true"] > * {
+  visibility: hidden;
+}
+
+.row[data-dragging="true"] {
+  background: var(--fk-color-surface-base);
+  box-shadow: var(--fk-shadow-subtle-element);
+  cursor: grabbing;
+  opacity: 1;
+}
+
+.row[data-hidden="true"] .label {
+  opacity: 0.45;
+}
+
+.row[data-fixed="true"] .label {
+  color: var(--fk-color-text-secondary);
+}
+
+.drag,
+.visibility {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: var(--fk-color-icon-tertiary);
+  display: inline-flex;
+  height: 28px;
+  justify-content: center;
+  padding: 0;
+  pointer-events: none;
+  width: 16px;
+}
+
+.visibility {
+  color: var(--fk-color-icon-secondary);
+  cursor: pointer;
+  justify-self: end;
+  pointer-events: auto;
+  width: 28px;
+}
+
+.visibility:hover {
+  color: var(--fk-color-icon-primary);
+}
+
+.dragSpacer,
+.visibilitySpacer {
+  display: block;
+  height: 28px;
+  width: 16px;
+}
+
+.visibilitySpacer {
+  justify-self: end;
+  width: 28px;
+}
+
+.label {
+  color: var(--fk-color-text-primary);
+  font-size: var(--fk-type-font-font-size-body-md);
+  line-height: var(--fk-type-font-line-height-body-md);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

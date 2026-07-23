@@ -274,6 +274,7 @@ Die Sidebar bleibt stabiler Orientierungsanker. Kontextuelle Aktionen gehoeren i
 
 - **FR-SET-001 / P0:** Einstellungen MUESSEN die Bereiche Allgemein, Kalender, Account, Abrechnung, Benachrichtigungen und Fokusmodus abbilden.
 - **FR-SET-002 / P0:** Persoenliche Praeferenzen, Integrationen und Abrechnung MUESSEN klar getrennt sein.
+- **FR-SET-002a / P0:** UI-Praeferenzen der Aufgaben-Sidebar (Reihenfolge und Sichtbarkeit der L2-Bloecke) MUESSEN account-gebunden in `user_profile.ui_preferences` persistiert werden und sind fuer Web sowie spaetere native Clients ueber die Profile-API verfuegbar — nicht nur lokal im Browser.
 - **FR-SET-003 / P0:** Formulare MUESSEN die Pattern-Library-Komponenten, Validierung, Save-Feedback und Error-Zustaende verwenden.
 - **FR-SET-004 / P0:** Integrationen MUESSEN Verbindungs-, Sync-, Fehler- und Reconnect-Zustaende zeigen.
 - **FR-SET-005 / P0:** Account-Sicherheitsaktionen MUESSEN dem Risiko entsprechende Bestaetigung und erneute Authentifizierung verwenden.

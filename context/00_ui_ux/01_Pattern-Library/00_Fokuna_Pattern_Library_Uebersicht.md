@@ -1334,7 +1334,8 @@ Organizational Modal:
 - Create: Name + Farbe; Erfolg schliesst Modal. Footer: „… verwalten“ (tertiary) + CTA.
 - Liste: Katalogzeilen; Footer „Neues …“.
 - Detail: Felder wie Create; Footer destruktives Loeschen links + Primary Speichern rechts; Zurueck nur im Listenflow. Name und Farbe werden erst mit Speichern persistiert.
-- Referenz: `TaxonomyCreateModal` / `TaxonomyOrganizeModal`.
+- Sidebar-Layout (`Seitenleiste bearbeiten`): gleiche Org-Shell; zwei Listenbloecke (Nav + Taxonomie) mit DnD und Visibility (`eye` / `eye-slash`); Footer Abbrechen + Speichern rechtsbuendig (Gap `12`, analog Confirmation).
+- Referenz: `TaxonomyCreateModal` / `TaxonomyOrganizeModal` / `SidebarEditModal`.
 
 Confirmation Modal:
 

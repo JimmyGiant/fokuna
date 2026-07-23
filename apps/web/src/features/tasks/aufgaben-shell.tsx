@@ -13,8 +13,20 @@ import {
   verticalListSortingStrategy,
   type AnimateLayoutChanges,
 } from "@dnd-kit/sortable";
-import type { CategoryDto, GoalDto, LabelDto, TaskDto } from "@fokuna/api-contracts";
-import { applySortOrders, todayIsoDateString } from "@fokuna/domain";
+import type {
+  CategoryDto,
+  GoalDto,
+  LabelDto,
+  TaskDto,
+  UserProfileDto,
+} from "@fokuna/api-contracts";
+import {
+  applySortOrders,
+  resolveTasksSidebarPreferences,
+  todayIsoDateString,
+  type TasksSidebarPreferences,
+  type TasksSidebarSectionId,
+} from "@fokuna/domain";
 import { FokunaIcon } from "@fokuna/icons";
 import {
   SecondaryNavItem,
@@ -22,6 +34,7 @@ import {
   SidebarAvatar,
   UiShell,
   useToast,
+  FokunaContextMenu,
   type SidebarItem,
   type SidebarSecondaryItem,
   type SidebarSecondarySection,
@@ -50,6 +63,7 @@ import { sortableItemStyle } from "@/components/dnd/sortable-styles";
 import { apiGet, apiSend } from "@/lib/api";
 import { TaxonomyCreateModal, TaxonomyOrganizeModal } from "./taxonomy-manager-modal";
 import { priorityOptions } from "./task-property-options";
+import { SidebarEditModal } from "./sidebar-edit-modal";
 import {
   SIDEBAR_DROP,
   collectCategoryDeleteTaskIds,
@@ -246,6 +260,7 @@ function SecondarySectionStatic({
     <section
       className="fk-sidebar__secondary-section"
       data-expanded={expanded || undefined}
+      onContextMenu={(event) => event.stopPropagation()}
     >
       <header>
         <strong>{label}</strong>
@@ -395,6 +410,7 @@ function SecondarySectionDroppable({
     <section
       className="fk-sidebar__secondary-section"
       data-expanded={expanded || undefined}
+      onContextMenu={(event) => event.stopPropagation()}
     >
       <header>
         <strong>{section.label}</strong>
@@ -468,6 +484,7 @@ export function AufgabenShell({
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [taxonomyUi, setTaxonomyUi] = useState<TaxonomyUi>(null);
+  const [sidebarEditOpen, setSidebarEditOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<{
     kind: DeleteEntityKind;
     id: string;
@@ -478,6 +495,10 @@ export function AufgabenShell({
   const tasksQuery = useQuery({
     queryKey: ["tasks"],
     queryFn: () => apiGet<TaskDto[]>("/api/v1/tasks"),
+  });
+  const profileQuery = useQuery({
+    queryKey: ["profile"],
+    queryFn: () => apiGet<UserProfileDto>("/api/v1/profile"),
   });
   const categoriesQuery = useQuery({
     queryKey: ["categories"],
@@ -490,6 +511,14 @@ export function AufgabenShell({
   const goalsQuery = useQuery({
     queryKey: ["goals"],
     queryFn: () => apiGet<GoalDto[]>("/api/v1/goals"),
+  });
+
+  const updateProfile = useMutation({
+    mutationFn: (payload: { tasksSidebar: TasksSidebarPreferences }) =>
+      apiSend<UserProfileDto>("/api/v1/profile", "PATCH", payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
   });
 
   const tasks = tasksQuery.data ?? [];
@@ -583,36 +612,57 @@ export function AufgabenShell({
     [categories, labels, labelsById, openLabelManager],
   );
 
-  const secondaryItems: SidebarSecondaryItem[] = useMemo(
-    () => [
-      { id: "all", label: "Alle Aufgaben", href: "/app/aufgaben", icon: "checklist" },
-      {
-        id: "favorites",
-        label: "Favoriten",
-        href: "/app/aufgaben?filter=favorites",
-        icon: "star",
-        droppableId: SIDEBAR_DROP.favorites,
-      },
-      {
-        id: "today",
-        label: "Heute",
-        href: "/app/aufgaben?filter=today",
-        icon: "calendar-today",
-        droppableId: SIDEBAR_DROP.today,
-      },
-      {
-        id: "inbox",
-        label: "Eingang",
-        href: "/app/aufgaben?filter=inbox",
-        icon: "inbox-empty",
-        droppableId: SIDEBAR_DROP.inbox,
-      },
-    ],
+  const sidebarPrefs = useMemo(
+    () => resolveTasksSidebarPreferences(profileQuery.data?.uiPreferences),
+    [profileQuery.data?.uiPreferences],
+  );
+  const hiddenSidebarIds = useMemo(
+    () => new Set(sidebarPrefs.hiddenIds),
+    [sidebarPrefs.hiddenIds],
+  );
+
+  const secondaryNavById = useMemo(
+    () =>
+      ({
+        all: {
+          id: "all",
+          label: "Alle Aufgaben",
+          href: "/app/aufgaben",
+          icon: "checklist" as const,
+        },
+        favorites: {
+          id: "favorites",
+          label: "Favoriten",
+          href: "/app/aufgaben?filter=favorites",
+          icon: "star" as const,
+          droppableId: SIDEBAR_DROP.favorites,
+        },
+        today: {
+          id: "today",
+          label: "Heute",
+          href: "/app/aufgaben?filter=today",
+          icon: "calendar-today" as const,
+          droppableId: SIDEBAR_DROP.today,
+        },
+        inbox: {
+          id: "inbox",
+          label: "Eingang",
+          href: "/app/aufgaben?filter=inbox",
+          icon: "inbox-empty" as const,
+          droppableId: SIDEBAR_DROP.inbox,
+        },
+      }) satisfies Record<string, SidebarSecondaryItem>,
     [],
   );
 
-  const secondarySections: ShellSecondarySection[] = useMemo(
-    () => [
+  const secondaryItems: SidebarSecondaryItem[] = useMemo(() => {
+    const ordered = sidebarPrefs.navOrder
+      .filter((id) => id === "inbox" || !hiddenSidebarIds.has(id))
+      .map((id) => secondaryNavById[id]);
+    return [secondaryNavById.all, ...ordered];
+  }, [hiddenSidebarIds, secondaryNavById, sidebarPrefs.navOrder]);
+
+  const secondarySections: ShellSecondarySection[] = useMemo(    () => [
       {
         id: "categories",
         label: "Kategorien",
@@ -727,6 +777,28 @@ export function AufgabenShell({
       })),
     [tasks],
   );
+
+  const orderedSidebarSections = useMemo(() => {
+    const taxonomyById = new Map(
+      secondarySections.map((section) => [section.id as TasksSidebarSectionId, section]),
+    );
+    return sidebarPrefs.sectionOrder
+      .filter((id) => !hiddenSidebarIds.has(id))
+      .map((id) => {
+        if (id === "priority") {
+          return {
+            kind: "priority" as const,
+            id,
+            label: "Priorität",
+            items: prioritySectionItems,
+          };
+        }
+        const section = taxonomyById.get(id);
+        if (!section) return null;
+        return { kind: "taxonomy" as const, section };
+      })
+      .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry));
+  }, [hiddenSidebarIds, prioritySectionItems, secondarySections, sidebarPrefs.sectionOrder]);
 
   const persistTaxonomyOrder = useCallback(
     async (section: SidebarTaxonomySection, orderedIds: string[]) => {
@@ -873,30 +945,47 @@ export function AufgabenShell({
                 />
               }
               secondary={
-                <div className="fk-sidebar__secondary-stack">
-                  <ul className="fk-sidebar__secondary-list fk-sidebar__secondary-list--nav">
-                    {secondaryItems.map((item) => (
-                      <DroppableNavItem
-                        activeId={secondaryActiveId}
-                        item={item}
-                        key={item.id}
-                      />
-                    ))}
-                  </ul>
-                  {secondarySections.map((section) => (
-                    <SecondarySectionDroppable
-                      activeId={secondaryActiveId}
-                      key={section.id}
-                      onReorderCommit={handleTaxonomyReorderCommit}
-                      section={section}
-                    />
-                  ))}
-                  <SecondarySectionStatic
-                    activeId={secondaryActiveId}
-                    items={prioritySectionItems}
-                    label="Priorität"
-                  />
-                </div>
+                <FokunaContextMenu
+                  items={[
+                    {
+                      label: "Seitenleiste bearbeiten",
+                      icon: "edit",
+                      onSelect: () => setSidebarEditOpen(true),
+                    },
+                  ]}
+                >
+                  <div className="fk-sidebar__secondary-stack">
+                    <ul
+                      className="fk-sidebar__secondary-list fk-sidebar__secondary-list--nav"
+                      onContextMenu={(event) => event.stopPropagation()}
+                    >
+                      {secondaryItems.map((item) => (
+                        <DroppableNavItem
+                          activeId={secondaryActiveId}
+                          item={item}
+                          key={item.id}
+                        />
+                      ))}
+                    </ul>
+                    {orderedSidebarSections.map((entry) =>
+                      entry.kind === "priority" ? (
+                        <SecondarySectionStatic
+                          activeId={secondaryActiveId}
+                          items={entry.items}
+                          key={entry.id}
+                          label={entry.label}
+                        />
+                      ) : (
+                        <SecondarySectionDroppable
+                          activeId={secondaryActiveId}
+                          key={entry.section.id}
+                          onReorderCommit={handleTaxonomyReorderCommit}
+                          section={entry.section}
+                        />
+                      ),
+                    )}
+                  </div>
+                </FokunaContextMenu>
               }
               secondaryActiveId={secondaryActiveId}
             />
@@ -906,6 +995,28 @@ export function AufgabenShell({
         </UiShell>
         <SidebarTaxonomyDragOverlay itemsBySortableId={taxonomyItemsBySortableId} />
       </TasksDndHost>
+
+      <SidebarEditModal
+        onOpenChange={setSidebarEditOpen}
+        onSave={async (next) => {
+          const previous = sidebarPrefs;
+          await updateProfile.mutateAsync({ tasksSidebar: next });
+          toast({
+            id: "tasks-sidebar-prefs",
+            title: "Seitenleiste bearbeitet",
+            action: {
+              label: "Rückgängig",
+              altText: "Seitenleisten-Änderung rückgängig machen",
+              leadingIcon: "arrow-undo-down",
+              onClick: () => {
+                void updateProfile.mutateAsync({ tasksSidebar: previous });
+              },
+            },
+          });
+        }}
+        open={sidebarEditOpen}
+        value={sidebarPrefs}
+      />
 
       <TaxonomyCreateModal
         kind="category"

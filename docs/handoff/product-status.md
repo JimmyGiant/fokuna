@@ -4,9 +4,10 @@
 **Detail-Arbeit am aktuellen Modul:** [`aufgaben-status.md`](./aufgaben-status.md)  
 **Quellen:** [`context/03_prd/FOKUNA_PRD.md`](../../context/03_prd/FOKUNA_PRD.md) · Figma `ltQMlboZomvr70Z4m0aLQj` · [`context/00_ui_ux/02_Views/`](../../context/00_ui_ux/02_Views/)
 
-**Stand:** 2026-07-22  
+**Stand:** 2026-07-23  
 **Aktueller Fokus:** Aufgaben **A3** fertig → als Nächstes **A4** (Zeitblöcke 05–12)  
-**Nächster Fokus (nach Aufgaben-Kern):** Ziele-Übersicht / Onboarding **oder** Kalender-DnD-Gate (PO entscheidet)
+**Nächster Fokus (nach Aufgaben-Kern):** Ziele-Übersicht / Onboarding **oder** Kalender-DnD-Gate (PO entscheidet)  
+**Infra-Gate (nicht vergessen):** Neon-Cutover — siehe [Persistenz-Pfad](#persistenz--neon-pfad-prd--101--102)
 
 ---
 
@@ -37,7 +38,7 @@ Ziele setzen → Arbeit strukturieren → Zeit planen → fokussiert ausführen 
 |-------|------------|--------|-----------|
 | **0** Bootstrap / Repo | Monorepo, CI, Env | `Done` | pnpm-Workspace läuft |
 | **1** Pattern Library | Tokens, Icons, UI, Katalog | `Done` | V1.1 abgenommen 2026-07-20 |
-| **2** Shell / Auth / DB / API | Shell, Better Auth, Drizzle, Contracts | `Partial` | Fundament da; Catalog Goals/Blocks oft Memory-only |
+| **2** Shell / Auth / DB / API | Shell, Better Auth, Drizzle, Contracts | `Partial` | Schema+Driver da; lokal Memory; Neon-Cutover noch offen |
 | **3** Operatives Zentrum | Aufgaben, Blocks, Kalender + DnD-Gate | `Partial` | Task Page V1 `Done`; Blocks/Kalender/DnD unter Bar |
 | **4** Ziele / Fokus / Journal | Onboarding, Sessions, Templates | `Scaffold` | Routen + dünne Panels |
 | **5** Insights / Integrationen / Billing / Admin | Metriken, Sync, Stripe, Admin | `Scaffold` | Platzhalter-Views |
@@ -67,12 +68,51 @@ Ziele setzen → Arbeit strukturieren → Zeit planen → fokussiert ausführen 
 
 ## Empfohlene Reihenfolge bis Release (grob)
 
-1. **Jetzt:** Aufgaben fertigziehen (Zeitblöcke → Ziele-Tab → Fokus) — Detail in Aufgaben-Status.
+1. **Jetzt:** Aufgaben fertigziehen (Zeitblöcke → Ziele-Tab → Fokus) — Detail in Aufgaben-Status. Lokal weiter **Memory** OK.
 2. **Danach:** Ziele-Modul (Empty → Onboarding → Overview/Detail) *oder* Kalender-Feinschliff/DnD-Gate — PO-Wahl.
 3. Journal (Templates + Check-in/out).
-4. Insights (erst Metrikverträge).
-5. Settings echt (Kalender-OAuth, Stripe, Notifications) + offene PRD-§17-Punkte.
-6. Phase 6 Hardening.
+4. **Infra-Gate — Neon-Cutover** (spätestens hier, ideal früher wenn Auth/Billing angefasst werden): siehe unten.
+5. Insights (erst Metrikverträge).
+6. Settings echt (Kalender-OAuth, Stripe, Notifications) + offene PRD-§17-Punkte.
+7. Phase 6 Hardening.
+
+---
+
+## Persistenz / Neon-Pfad (PRD §10.1 / §10.2)
+
+**Absicht jetzt:** UI und API-Verträge bauen, ohne dass du einen Neon-Account brauchst.  
+**Absicht später:** Ein Driver-Flip + fehlende Repositories — kein Domänen-Neubau.
+
+| Schicht | Heute | Production-Ziel |
+|---------|-------|-----------------|
+| UI / Features | TanStack Query → `/api/v1/*` | unverändert |
+| Contracts | Zod in `@fokuna/api-contracts` | unverändert |
+| Domain | reine Logik in `@fokuna/domain` | unverändert |
+| Schema | Drizzle PostgreSQL in `@fokuna/db` | dasselbe Schema auf Neon EU |
+| Runtime lokal | `FOKUNA_DATA_DRIVER=memory` (In-Process Maps + Demo-Seed) | Dev optional weiter Memory |
+| Runtime Prod | — | `neon` + `DATABASE_URL` |
+
+**Bereits dual (Memory + Neon-Pfad):** Tasks, Profile/`ui_preferences`, Auth-Schiene (Better Auth nur unter `neon`).  
+**Noch Memory-only (Cutover-Arbeit):** Taxonomy (Kategorien/Labels), Catalog (Goals/Blocks/Calendar/Focus/Journal/Integrationen).
+
+### Guardrails während UI-Arbeit (damit nichts in die Tonne geht)
+
+- Keine Persistenz nur in `localStorage` / Zustand für fachliche Daten.
+- Neue Entities zuerst in `@fokuna/db` Schema + Contracts denken; Memory-Store nur als Adapter parallel.
+- Services sprechen DTOs/Contracts — nicht UI-Typen.
+- Schema-Erweiterungen schlank und account-fähig halten (wie `user_profile.ui_preferences`).
+
+### Absprung / Cutover-Kriterien (PO-Trigger)
+
+Spätestens **vor** echtem Login, Billing, Sync oder „Daten sollen überleben“:
+
+1. Neon-Projekt EU + `DATABASE_URL` (Pooling-String).
+2. Drizzle migrate/push; Migrationsordner versionieren.
+3. Memory-only Services auf Repository/Drizzle umstellen (gleiche Contracts).
+4. `FOKUNA_DATA_DRIVER=neon` lokal smoke-testen (Auth + Tasks + Taxonomy + ein Catalog-Slice).
+5. Demo-Auth nur noch als Dev-Fallback; Prod = Better Auth auf Neon.
+
+Memory-Daten werden **nicht** migriert — sie sind Dev-Attrappe. Nach Cutover startet Persistenz neu auf Neon.
 
 ---
 

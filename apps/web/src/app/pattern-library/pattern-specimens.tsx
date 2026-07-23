@@ -1142,6 +1142,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                   setDeleteConfirmKind("task");
                   setDeleteConfirmOpen(true);
                 }}
+                trailingIcon={null}
                 type="button"
               >
                 Aufgabe
@@ -1153,6 +1154,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                   setDeleteConfirmKind("category");
                   setDeleteConfirmOpen(true);
                 }}
+                trailingIcon={null}
                 type="button"
               >
                 Kategorie
@@ -1164,6 +1166,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                   setDeleteConfirmKind("label");
                   setDeleteConfirmOpen(true);
                 }}
+                trailingIcon={null}
                 type="button"
               >
                 Label

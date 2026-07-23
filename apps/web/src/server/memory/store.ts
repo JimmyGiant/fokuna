@@ -1,4 +1,4 @@
-import type { CategoryDto, LabelDto, TaskDto } from "@fokuna/api-contracts";
+import type { CategoryDto, LabelDto, TaskDto, UserProfileDto } from "@fokuna/api-contracts";
 import { createId, toIsoDateString, todayIsoDateString } from "@fokuna/domain";
 
 import { ensureDemoSeedUser } from "./demo-auth";
@@ -104,6 +104,7 @@ interface MemoryStore {
   journalTemplates: Map<string, MemoryJournalTemplate>;
   journalEntries: Map<string, MemoryJournalEntry>;
   integrations: Map<string, MemoryIntegration>;
+  profiles: Map<string, UserProfileDto>;
 }
 
 const globalStore = globalThis as typeof globalThis & {
@@ -111,7 +112,7 @@ const globalStore = globalThis as typeof globalThis & {
   __fokunaMemoryStoreVersion?: number;
 };
 
-const MEMORY_STORE_VERSION = 8;
+const MEMORY_STORE_VERSION = 9;
 
 function createStore(): MemoryStore {
   const store: MemoryStore = {
@@ -125,10 +126,20 @@ function createStore(): MemoryStore {
     journalTemplates: new Map(),
     journalEntries: new Map(),
     integrations: new Map(),
+    profiles: new Map(),
   };
 
   const demoUser = ensureDemoSeedUser();
   const now = new Date().toISOString();
+  store.profiles.set(demoUser.id, {
+    userId: demoUser.id,
+    timezone: "Europe/Berlin",
+    locale: "de",
+    weekStartsOn: 1,
+    uiPreferences: {},
+    createdAt: now,
+    updatedAt: now,
+  });
   const today = todayIsoDateString();
   const tomorrowDate = new Date();
   tomorrowDate.setDate(tomorrowDate.getDate() + 1);

@@ -68,6 +68,8 @@ export const userProfile = pgTable("user_profile", {
   timezone: text("timezone").notNull().default("Europe/Berlin"),
   locale: text("locale").notNull().default("de"),
   weekStartsOn: integer("week_starts_on").notNull().default(1),
+  /** Account-scoped UI prefs (sidebar layout, future theme, …) — Zod: uiPreferencesSchema. */
+  uiPreferences: jsonb("ui_preferences").$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
