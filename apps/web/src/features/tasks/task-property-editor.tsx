@@ -9,6 +9,7 @@ import {
   Dropdown,
   SearchField,
   useFokunaContextMenuClose,
+  useToast,
 } from "@fokuna/ui";
 import { useMemo, useState, type CSSProperties } from "react";
 
@@ -133,6 +134,7 @@ export function TaskLabelsMenuPanel({
   onManageLabels?: () => void;
 }) {
   const closeMenu = useFokunaContextMenuClose();
+  const { toast } = useToast();
   const { labels } = useTaskTaxonomy();
   const [labelQuery, setLabelQuery] = useState("");
   const selectedLabelIds = task.labelIds ?? [];
@@ -154,6 +156,32 @@ export function TaskLabelsMenuPanel({
     return catalog.filter((label) => label.name.toLowerCase().includes(query));
   }, [catalog, labelQuery]);
 
+  function toggleLabel(label: { id: string; name: string }, selected: boolean) {
+    if (selected) {
+      void onUpdate(task.id, {
+        labelIds: selectedLabelIds.filter((id) => id !== label.id),
+      });
+      return;
+    }
+
+    const previousLabelIds = selectedLabelIds;
+    void onUpdate(task.id, {
+      labelIds: [...selectedLabelIds, label.id],
+    });
+    toast({
+      id: `task-label:${task.id}:${label.id}`,
+      title: `Label „${label.name}“ hinzugefügt`,
+      action: {
+        label: "Rückgängig",
+        altText: "Label-Zuweisung rückgängig machen",
+        leadingIcon: "arrow-undo-down",
+        onClick: () => {
+          void onUpdate(task.id, { labelIds: previousLabelIds });
+        },
+      },
+    });
+  }
+
   return (
     <div className="fk-task-tag-manager">
       <SearchField
@@ -173,13 +201,7 @@ export function TaskLabelsMenuPanel({
               aria-pressed={selected}
               data-selected={selected || undefined}
               key={label.id}
-              onClick={() =>
-                void onUpdate(task.id, {
-                  labelIds: selected
-                    ? selectedLabelIds.filter((id) => id !== label.id)
-                    : [...selectedLabelIds, label.id],
-                })
-              }
+              onClick={() => toggleLabel(label, selected)}
               style={{ "--task-tag-surface": label.surface } as CSSProperties}
               type="button"
             >

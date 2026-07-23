@@ -45,6 +45,7 @@ import {
   TaskGroup,
   TaskListItem,
   getCalendarEntryPosition,
+  type AddTaskSubmitPayload,
   type BlockRailItem,
   type BlockTone,
   type FokunaContextMenuEntry,
@@ -1235,16 +1236,33 @@ export function TasksView() {
   }
 
   const createDueDate = filter === "today" ? todayIsoDate() : undefined;
+  const createPriority =
+    activePriority && activePriority.value !== "none" ? activePriority.value : undefined;
+  const addTaskDefaults = {
+    ...(createDueDate
+      ? { defaultDueDate: createDueDate, lockDueDate: true as const }
+      : {}),
+    ...(createPriority
+      ? { defaultPriority: createPriority, lockPriority: true as const }
+      : {}),
+  };
 
-  async function submitNewTask(title: string, description: string, groupKey = createGroupKey) {
+  async function submitNewTask(
+    { title, description, priority, dueDate }: AddTaskSubmitPayload,
+    groupKey = createGroupKey,
+  ) {
     await createMutation.mutateAsync({
       title,
       description: description || undefined,
       groupKey,
-      ...(createDueDate ? { dueDate: createDueDate } : {}),
+      ...(dueDate ? { dueDate } : createDueDate ? { dueDate: createDueDate } : {}),
+      ...(priority && priority !== "none"
+        ? { priority }
+        : createPriority
+          ? { priority: createPriority }
+          : {}),
       ...(categoryId ? { categoryId } : {}),
       ...(labelId ? { labelIds: [labelId] } : {}),
-      ...(activePriority ? { priority: activePriority.value } : {}),
     });
   }
 
@@ -1341,10 +1359,11 @@ export function TasksView() {
                         count={todayRootCount}
                         defaultExpanded
                         key="today-section"
-                        onAddSubmit={async ({ title, description }) => {
-                          await submitNewTask(title, description);
+                        onAddSubmit={async (payload) => {
+                          await submitNewTask(payload);
                         }}
                         title={formatTodaySectionTitle()}
+                        {...addTaskDefaults}
                       >
                         {renderFlatRows((item) => !overdueTreeIds.has(item.id))}
                       </TaskGroup>
@@ -1353,9 +1372,10 @@ export function TasksView() {
                         {renderFlatRows((item) => !overdueTreeIds.has(item.id))}
                         <AddTask
                           keepOpenOnSubmit
-                          onSubmit={async ({ title, description }) => {
-                            await submitNewTask(title, description);
+                          onSubmit={async (payload) => {
+                            await submitNewTask(payload);
                           }}
+                          {...addTaskDefaults}
                         />
                       </div>
                     )}
@@ -1365,9 +1385,10 @@ export function TasksView() {
                     {renderFlatRows(() => true)}
                     <AddTask
                       keepOpenOnSubmit
-                      onSubmit={async ({ title, description }) => {
-                        await submitNewTask(title, description);
+                      onSubmit={async (payload) => {
+                        await submitNewTask(payload);
                       }}
+                      {...addTaskDefaults}
                     />
                   </div>
                 )}

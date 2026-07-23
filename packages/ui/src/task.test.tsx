@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
+import { toIsoDateString } from "@fokuna/domain";
 import { describe, expect, it, vi } from "vitest";
 
 import {
@@ -130,6 +131,28 @@ describe("task composition patterns", () => {
     expect(milestone).toHaveAttribute("data-milestone", "true");
     expect(milestone?.querySelector(".fk-task-item__expand svg")).toBeInTheDocument();
     expect(child).toHaveAttribute("data-milestone-task", "true");
+  });
+
+  it("prefills locked list-context defaults and omits their popovers", () => {
+    const today = toIsoDateString(new Date());
+    const { container } = render(
+      <AddTask
+        defaultDueDate={today}
+        defaultExpanded
+        defaultPriority="urgent"
+        focusOnExpand={false}
+        lockDueDate
+        lockPriority
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /Hoch/ })).toHaveAttribute("data-locked", "true");
+    expect(screen.getByRole("button", { name: /Heute/ })).toHaveAttribute("data-locked", "true");
+    expect(container.querySelector("[data-radix-popper-content-wrapper]")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Heute/ }));
+    expect(screen.queryByText("Kein")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Hoch/ }));
+    expect(screen.queryByLabelText("Priorität auswählen")).not.toBeInTheDocument();
   });
 
   it("submits a new task title from the active add form", async () => {

@@ -913,9 +913,23 @@ export function AufgabenShell({
     }
     if (target.type === "label") {
       if (task.labelIds.includes(target.labelId)) return true;
+      const previousLabelIds = task.labelIds;
+      const labelName = labels.find((entry) => entry.id === target.labelId)?.name;
       await updateTask.mutateAsync({
         id: taskId,
         labelIds: [...task.labelIds, target.labelId],
+      });
+      toast({
+        id: `task-label:${taskId}:${target.labelId}`,
+        title: labelName ? `Label „${labelName}“ hinzugefügt` : "Label hinzugefügt",
+        action: {
+          label: "Rückgängig",
+          altText: "Label-Zuweisung rückgängig machen",
+          leadingIcon: "arrow-undo-down",
+          onClick: () => {
+            void updateTask.mutateAsync({ id: taskId, labelIds: previousLabelIds });
+          },
+        },
       });
       return true;
     }

@@ -4473,6 +4473,10 @@
     color: var(--fk-color-text-primary);
   }
 
+  .fk-add-task__meta-actions button[data-locked="true"] {
+    cursor: default;
+  }
+
   .fk-add-task__property-popover {
     background: var(--fk-color-surface-base);
     border: 1px solid var(--fk-color-border-default);
