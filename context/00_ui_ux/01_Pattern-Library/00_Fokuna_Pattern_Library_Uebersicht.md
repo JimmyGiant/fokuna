@@ -831,15 +831,16 @@ Varianten und Properties:
 - `is subtask`: `false` oder `true`.
 - `type`: `inactive` oder `active`.
 - `title input`: Aufgabenname.
-- `description input`: optionale Beschreibung.
+- `description input`: optionale Beschreibung; `textarea` ohne natives Resize-Handle, startet einzeilig und waechst mit dem Inhalt (Cap ~160px, danach Scroll).
 - `quick properties`: Prioritaet, Datum und weitere Metadaten.
-- `actions`: Abbrechen und Aufgabe hinzufuegen.
+- `actions`: Abbrechen und Aufgabe hinzufuegen (bzw. Speichern bei Inline-Edit).
+- `indentLevel`: optionale Einrueckung fuer Nested/Subtask-Kontext (verschiebt das Card-Inset).
 
 States:
 
 - `inactive`: kompakte Zeile mit Plus und Text, oeffnet das Eingabeformular.
 - `inactive subtask`: gleiche Logik, aber textlich und ggf. eingerueckt fuer Unteraufgaben.
-- `active`: Formular ist geoeffnet; Eingaben und Actions werden sichtbar.
+- `active`: Formular ist geoeffnet; Hoehe richtet sich nach Inhalt (kein fixes 190px).
 - `input filled`: fachlich noetig, auch wenn nicht separat als Variante dargestellt.
 - `submitting/loading`: sollte technisch vorgesehen werden, wenn Aufgabe gespeichert wird.
 - `error`: Validierungsfehler, z. B. leerer Titel, muss ueber Form-Patterns abbildbar sein.
@@ -847,11 +848,14 @@ States:
 Wichtig fuer Umsetzung:
 
 - Der Wechsel von inactive zu active soll die Liste nicht unkontrolliert verschieben.
-- Beim Speichern entsteht ein neues `Task List Item` oder Subtask-Item.
-- Escape, Klick ausserhalb oder Abbrechen schliesst den aktiven Zustand und verwirft ungespeicherte Inhalte (Listen und Aufgaben-Modal). Offene Quick-Property-Popovers schliessen zuerst per Escape. Abbrechen ist ein Link-Button ohne Trailing-Icon.
+- Beim Speichern entsteht ein neues `Task List Item` oder Subtask-Item; Kontextmenue „Bearbeiten“ ersetzt die Zeile durch dieselbe Active-Card (Inset/Border wie Listen-Add).
+- Escape, Klick ausserhalb oder Abbrechen schliesst den aktiven Zustand und verwirft ungespeicherte Inhalte (Listen und Aufgaben-Modal). Offene Quick-Property-Popovers schliessen zuerst per Escape. Abbrechen ist `Button` `type=outline` `intent=tertiary` `size=sm` (gleiche Hoehe wie Speichern/Hinzufuegen, analog Confirmation-Modal) — kein reiner Text-Link.
 - Quick Properties links: `Prioritaet` und `Datum` oeffnen Popovers (Prioritaetsmenue bzw. DatePicker mit Quick-Chips Heute/Morgen/Kein).
 - Enter kann speichern, Shift+Enter sollte in mehrzeiligen Feldern Zeilenumbruch erlauben.
-- Im `active`-Zustand entfaellt der untere Border des unmittelbar vorherigen List Items (bzw. des letzten Items in einem Tree), damit die Formular-Card keine Doppellinie erzeugt. Listen-Container nutzen dafuer die Klasse `fk-task-list`.
+- Beschreibung: `resize: none`, Auto-Grow ab einer Zeile; kein Browser-Resize-Icon unten rechts.
+- Felder und Footer: `gap: 24px` zwischen Beschreibungsbereich und Meta-/Action-Row.
+- Card: `border-radius: 16px`.
+- Im `active`-Zustand entfaellt der untere Border des unmittelbar vorherigen List Items (bzw. des letzten Items in einem Tree), damit die Formular-Card keine Doppellinie erzeugt. Listen-Container nutzen dafuer die Klasse `fk-task-list`. Die Active-Card kann direktes Kind sein oder in `.fk-task-group__empty-drop` liegen (Kategorie-/Label-Abschnitte) — beide Faelle muessen den Vorgaenger-Border ausblenden.
 
 ### 27 Task Group Header List Item
 
@@ -950,7 +954,7 @@ Wichtig fuer Umsetzung:
 - Im Aufgaben-Modal entfaellt auf Ebene 5 der gesamte Unteraufgaben-Block.
 - Task-Titel (`strong`) erhalten `padding-top: 1px` fuer die optische Vertikalzentrierung zur Checkbox.
 - Listen-/Gruppenbreite der Aufgaben-View: `--fk-task-column-width` (Default `800px`); Modal-Subtasks bleiben fluid (`width: auto` / `100%`).
-- Rechtsklick oeffnet ein Kontextmenue: Bearbeiten (Modal), Prioritaet (Submenu mit farbigen Flag-Icons), Faelligkeit, Zeitschaetzung und Labels (Level-2-Panels mit denselben Controls wie die Modal-Rail: Quick-Picks + DatePicker bzw. Dauer-Dropdown bzw. Label-Suche/Liste), Verschieben, Duplizieren, Loeschen.
+- Rechtsklick oeffnet ein Kontextmenue: Bearbeiten (Inline-Add-Item fuer Titel/Beschreibung/Prioritaet/Datum; Klick auf die Zeile oeffnet weiterhin das Modal), Prioritaet (Submenu mit farbigen Flag-Icons), Faelligkeit, Zeitschaetzung und Labels (Level-2-Panels mit denselben Controls wie die Modal-Rail: Quick-Picks + DatePicker bzw. Dauer-Dropdown bzw. Label-Suche/Liste), Verschieben, Duplizieren, Loeschen.
 - Prioritaets-Submenu und Modal-Rail nutzen dieselben farbigen `flag`-Icons; Faelligkeit/Zeitschaetzung sind eingebettete Submenu-Panels (nicht separate Popovers). Verschieben listet vorhandene Gruppen (`groupKey`). Loeschen steht separat als destruktive Aktion.
 - Das Dauer-Dropdown innerhalb des Zeitschaetzungs-Submenus muss oberhalb des Kontextmenues stacken (`.fk-menu--select` ueber `.fk-menu--submenu`).
 
@@ -1399,13 +1403,13 @@ Wichtig fuer Umsetzung:
 
 Screenshot: [26_Task_Add_Item.png](26_Task_Add_Item.png) (visuell abgeleitet von Task Add Item)
 
-`Task Add Group` ist der Inline-Einstieg zum Anlegen benutzerdefinierter Listenabschnitte auf Kategorie- und Label-Seiten. Die Komponente entspricht dem Verhalten von Task Add Item (inactive/active, Escape, Klick ausserhalb, Abbrechen), enthaelt aber nur den Abschnittsnamen — keine Beschreibung, keine Prioritaet und kein Datum. Die aktive Form ist bewusst kompakt (nur Name + Actions).
+`Task Add Group` ist der Inline-Einstieg zum Anlegen benutzerdefinierter Listenabschnitte auf Kategorie- und Label-Seiten. Die Komponente entspricht dem Verhalten von Task Add Item (inactive/active, Escape, Klick ausserhalb, Abbrechen), enthaelt aber nur den Abschnittsnamen — keine Beschreibung, keine Prioritaet und kein Datum. Die aktive Form ist bewusst kompakt (nur Name + Actions), teilt aber Card-Radius (`16px`), Footer-Gap (`24px`) und Abbrechen als `outline`/`tertiary` `sm` mit Task Add Item.
 
 Varianten und Properties:
 
 - `type`: `inactive` oder `active`.
 - `title input`: Abschnittsname.
-- `actions`: Abbrechen und Abschnitt hinzufuegen.
+- `actions`: Abbrechen (`outline` tertiary) und Abschnitt hinzufuegen (`secondary`).
 
 Wichtig fuer Umsetzung:
 
@@ -1413,6 +1417,7 @@ Wichtig fuer Umsetzung:
 - Abstand zum darueberliegenden letzten „Aufgabe hinzufuegen“ 24 px.
 - Neue Abschnitte werden immer am Listenende angelegt und spaeter per Drag & Drop umsortiert.
 - Nur auf Kategorie- und Label-Seiten; nicht auf Alle / Favoriten / Heute / Eingang / Prioritaet.
+- Visuelle Paritaet zu Task Add Item: gleicher Abbrechen-Button und gleicher Card-Radius.
 
 ## Einsatz im Lastenheft
 

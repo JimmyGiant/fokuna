@@ -4207,23 +4207,25 @@
   }
 
   /*
-   * Active Add Task sits flush under the last list item. Hide that item's
+   * Active Add Task sits flush under the previous list item. Hide that item's
    * bottom border so the form card border doesn't create a double line.
-   * Uses adjacent sibling so sortable wrappers and TaskGroup both work.
+   * Prefer direct-sibling AddTask (hoisted out of empty-drop while open).
+   * Descendants (not only `> .fk-task-item`) cover ContextMenu asChild edge cases.
    */
   .fk-task-list > .fk-task-item:has(+ .fk-add-task),
-  .fk-task-list > *:has(+ .fk-add-task) > .fk-task-item,
-  .fk-task-list > .fk-task-item-tree:has(+ .fk-add-task) > .fk-task-item:last-child,
-  .fk-task-list > *:has(+ .fk-add-task) > .fk-task-item-tree > .fk-task-item:last-child,
+  .fk-task-list > *:has(+ .fk-add-task) .fk-task-item,
+  .fk-task-list[data-adding="true"] > *:nth-last-child(2) .fk-task-item,
+  .fk-task-list > .fk-task-item-tree:has(+ .fk-add-task) .fk-task-item:last-child,
+  .fk-task-list > *:has(+ .fk-add-task) > .fk-task-item-tree .fk-task-item:last-child,
   .fk-task-list
     > .fk-task-item-tree:has(+ .fk-add-task)
     > .fk-task-item-tree__children
-    > .fk-task-item:last-child,
+    .fk-task-item:last-child,
   .fk-task-list
     > *:has(+ .fk-add-task)
     > .fk-task-item-tree
     > .fk-task-item-tree__children
-    > .fk-task-item:last-child {
+    .fk-task-item:last-child {
     border-bottom: none;
   }
 
@@ -4364,11 +4366,13 @@
 
     background: var(--fk-color-surface-base);
     border: 1px solid var(--fk-color-border-default);
-    border-radius: 8px;
+    border-radius: 16px;
     box-shadow: none;
     display: grid;
-    grid-template-rows: minmax(0, 1fr) auto;
-    height: 190px;
+    /* Auto height: title + growing description + footer — not a fixed 190px card. */
+    gap: 24px;
+    grid-template-rows: auto auto;
+    height: auto;
     margin-left: var(--fk-add-task-inset);
     padding: 16px;
     width: calc(var(--fk-task-column-width, 800px) - var(--fk-add-task-inset));
@@ -4393,7 +4397,7 @@
     display: grid;
     gap: 8px;
     grid-template-columns: minmax(0, 1fr);
-    min-height: 80px;
+    min-height: 0;
   }
 
   .fk-add-task__description-row[data-empty="true"] {
@@ -4417,7 +4421,6 @@
     font-family: inherit;
     outline: 0;
     padding: 0;
-    resize: vertical;
     width: 100%;
   }
 
@@ -4431,8 +4434,14 @@
   .fk-add-task textarea,
   .fk-task-modal-header textarea {
     color: var(--fk-color-text-secondary);
+    field-sizing: content;
     font-size: var(--fk-type-font-font-size-body-lg);
     line-height: var(--fk-type-font-line-height-body-lg);
+    max-height: 160px;
+    min-height: var(--fk-type-font-line-height-body-lg);
+    overflow-x: hidden;
+    overflow-y: auto;
+    resize: none;
   }
 
   .fk-add-task__footer,

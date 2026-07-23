@@ -11,6 +11,7 @@ import { Dialog, Popover } from "radix-ui";
 import {
   Children,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type HTMLAttributes,
@@ -270,8 +271,9 @@ export function TaskListItem({
         <button
           aria-label="Aufgabe verschieben"
           className="fk-task-item__drag"
+          /* Keep click from opening the row; do NOT stop pointerdown — that
+             blocks whole-row dnd-kit listeners when dragging from the handle. */
           onClick={(event) => event.stopPropagation()}
-          onPointerDown={(event) => event.stopPropagation()}
           type="button"
           {...dragHandleProps}
         >
@@ -740,6 +742,12 @@ export interface AddTaskProps extends Omit<HTMLAttributes<HTMLDivElement>, "onSu
   namePlaceholder?: string;
   submitLabel?: string;
   triggerLabel?: string;
+  /** Prefill title when mounting (e.g. inline edit). Remount via `key` when switching tasks. */
+  initialTitle?: string;
+  /** Prefill description when mounting (e.g. inline edit). */
+  initialDescription?: string;
+  /** Nest under a parent row — shifts the card inset like list indent. */
+  indentLevel?: TaskIndentLevel;
   /** Prefill from list context (e.g. Heute → today, Priorität → that level). */
   defaultPriority?: AddTaskPriority;
   defaultDueDate?: string | null;
@@ -760,6 +768,9 @@ export function AddTask({
   namePlaceholder = "Aufgabenname",
   submitLabel,
   triggerLabel = "Aufgabe hinzufügen",
+  initialTitle = "",
+  initialDescription = "",
+  indentLevel = 0,
   defaultPriority = "none",
   defaultDueDate = null,
   lockPriority = false,
@@ -767,17 +778,19 @@ export function AddTask({
   onExpandedChange,
   onSubmit,
   className,
+  style,
   ...props
 }: AddTaskProps) {
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(initialTitle);
+  const [description, setDescription] = useState(initialDescription);
   const [priority, setPriority] = useState<AddTaskPriority>(defaultPriority);
   const [dueDate, setDueDate] = useState<string | null>(defaultDueDate);
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [dueOpen, setDueOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const nestedPopoverOpenRef = useRef(false);
   const defaultPriorityRef = useRef(defaultPriority);
@@ -786,6 +799,19 @@ export function AddTask({
   defaultDueDateRef.current = defaultDueDate;
   const expanded = expandedProp ?? internalExpanded;
   nestedPopoverOpenRef.current = priorityOpen || dueOpen;
+  const resolvedIndent = Math.min(TASK_MAX_INDENT_LEVEL, Math.max(0, indentLevel)) as TaskIndentLevel;
+
+  function syncDescriptionHeight() {
+    const el = descriptionRef.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${el.scrollHeight}px`;
+  }
+
+  useLayoutEffect(() => {
+    if (!expanded) return;
+    syncDescriptionHeight();
+  }, [description, expanded]);
 
   const priorityOption =
     ADD_TASK_PRIORITY_OPTIONS.find((option) => option.value === priority) ??
@@ -934,7 +960,20 @@ export function AddTask({
   );
 
   return (
-    <div {...props} className={cn("fk-add-task", className)} ref={rootRef}>
+    <div
+      {...props}
+      className={cn("fk-add-task", className)}
+      data-indent={resolvedIndent || undefined}
+      ref={rootRef}
+      style={{
+        ...(resolvedIndent
+          ? {
+              ["--fk-add-task-inset" as string]: `calc(60px + ${resolvedIndent} * var(--fk-task-indent-step, 24px))`,
+            }
+          : {}),
+        ...style,
+      }}
+    >
       <div className="fk-add-task__fields">
         <input
           ref={titleInputRef}
@@ -953,10 +992,16 @@ export function AddTask({
         <div className="fk-add-task__description-row" data-empty={!description || undefined}>
           {!description ? <FokunaIcon name="hamburger-menu" size={16} stroke={1.5} /> : null}
           <textarea
+            ref={descriptionRef}
             aria-label="Beschreibung"
-            onChange={(event) => setDescription(event.target.value)}
+            onChange={(event) => {
+              setDescription(event.target.value);
+              const el = event.currentTarget;
+              el.style.height = "0px";
+              el.style.height = `${el.scrollHeight}px`;
+            }}
             placeholder="Beschreibung"
-            rows={2}
+            rows={1}
             value={description}
           />
         </div>
@@ -1072,7 +1117,7 @@ export function AddTask({
         </div>
         <div className="fk-add-task__submit-actions">
           <Button
-            buttonType="link"
+            buttonType="outline"
             intent="tertiary"
             onClick={() => setExpanded(false)}
             size="sm"
@@ -1226,7 +1271,7 @@ export function AddGroup({
         <div className="fk-add-task__meta-actions" />
         <div className="fk-add-task__submit-actions">
           <Button
-            buttonType="link"
+            buttonType="outline"
             intent="tertiary"
             onClick={() => setExpanded(false)}
             size="sm"

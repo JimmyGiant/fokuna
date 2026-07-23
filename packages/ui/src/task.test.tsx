@@ -134,6 +134,36 @@ describe("task composition patterns", () => {
     expect(child).toHaveAttribute("data-milestone-task", "true");
   });
 
+  it("prefills title and description for inline edit", async () => {
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(
+      <AddTask
+        defaultDueDate="2026-07-22"
+        defaultExpanded
+        defaultPriority="medium"
+        focusOnExpand={false}
+        initialDescription="Kurznotiz"
+        initialTitle="Bestehende Aufgabe"
+        keepOpenOnSubmit={false}
+        onSubmit={onSubmit}
+        submitLabel="Speichern"
+      />,
+    );
+
+    expect(screen.getByDisplayValue("Bestehende Aufgabe")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Kurznotiz")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Speichern" }));
+
+    await vi.waitFor(() => {
+      expect(onSubmit).toHaveBeenCalledWith({
+        title: "Bestehende Aufgabe",
+        description: "Kurznotiz",
+        priority: "medium",
+        dueDate: "2026-07-22",
+      });
+    });
+  });
+
   it("prefills locked list-context defaults and omits their popovers", () => {
     const today = toIsoDateString(new Date());
     const { container } = render(

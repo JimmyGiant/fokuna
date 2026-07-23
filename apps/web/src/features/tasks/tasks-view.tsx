@@ -518,24 +518,24 @@ function SortableTaskSection({
       {expanded && !isDragging ? (
         <div className="fk-task-group__items fk-task-list" data-adding={adding || undefined}>
           {children}
-          <div
-            className="fk-task-group__empty-drop"
-            ref={emptyDropDisabled ? undefined : setEmptyDropRef}
-          >
-            {adding ? (
-              <AddTask
-                expanded
-                keepOpenOnSubmit
-                onExpandedChange={setAdding}
-                onSubmit={onAddSubmit}
-              />
-            ) : (
+          {adding ? (
+            <AddTask
+              expanded
+              keepOpenOnSubmit
+              onExpandedChange={setAdding}
+              onSubmit={onAddSubmit}
+            />
+          ) : (
+            <div
+              className="fk-task-group__empty-drop"
+              ref={emptyDropDisabled ? undefined : setEmptyDropRef}
+            >
               <button className="fk-task-group__add" onClick={() => setAdding(true)} type="button">
                 <FokunaIcon name="add-small" size={24} />
                 Aufgabe hinzufügen
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       ) : null}
     </section>
@@ -722,6 +722,10 @@ export function TasksView() {
   } | null>(null);
   const [renamingSectionId, setRenamingSectionId] = useState<string | null>(null);
   const [renameDraft, setRenameDraft] = useState("");
+  /** Inline edit via AddTask (context menu „Bearbeiten“); row click still opens the modal. */
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  /** Root-list Add Task (category/label lists) — lifted so the form is a direct list sibling. */
+  const [rootAdding, setRootAdding] = useState(false);
 
   const sectionListMode = Boolean(categoryId || labelId);
 
@@ -1158,8 +1162,8 @@ export function TasksView() {
   }, [activeId, dragFlatItems, dragProjection]);
 
   const allSortableIds = useMemo(
-    () => dragFlatItems.map((item) => item.id),
-    [dragFlatItems],
+    () => dragFlatItems.map((item) => item.id).filter((id) => id !== editingTaskId),
+    [dragFlatItems, editingTaskId],
   );
   const activeTask = dragOverlayTask;
   const selectedTask = (tasksQuery.data ?? []).find((task) => task.id === selectedTaskId) ?? null;
@@ -1220,6 +1224,11 @@ export function TasksView() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [openLabelManager, selectedTaskId]);
+
+  useEffect(() => {
+    setRootAdding(false);
+    setEditingTaskId(null);
+  }, [categoryId, filter, labelId]);
 
   function clearDragUi() {
     cancelScheduledDragClear();
@@ -1385,6 +1394,7 @@ export function TasksView() {
 
   function onDragStart(event: DragStartEvent) {
     cancelScheduledDragClear();
+    setEditingTaskId(null);
     const id = String(event.active.id);
     if (id.startsWith("section:")) {
       const sectionId = id.slice("section:".length);
@@ -1731,7 +1741,7 @@ export function TasksView() {
       {
         label: "Bearbeiten",
         icon: "edit",
-        onSelect: () => setTaskQuery(task.id),
+        onSelect: () => setEditingTaskId(task.id),
       },
       {
         type: "submenu",
@@ -1893,6 +1903,65 @@ export function TasksView() {
           ? `${childList.filter((child) => child.isCompleted).length}/${childList.length}`
           : undefined;
 
+      if (editingTaskId === task.id) {
+        const editPriority = normalizePriority(task.priority);
+        const addPriority =
+          editPriority === "low" || editPriority === "medium" || editPriority === "urgent"
+            ? editPriority
+            : "none";
+        return (
+          <AddTask
+            defaultDueDate={task.dueDate ?? null}
+            defaultPriority={addPriority}
+            expanded
+            focusOnExpand
+            indentLevel={depth}
+            initialDescription={task.description ?? ""}
+            initialTitle={task.title}
+            keepOpenOnSubmit={false}
+            key={task.id}
+            onExpandedChange={(next) => {
+              if (!next) setEditingTaskId(null);
+            }}
+            onSubmit={async (payload) => {
+              const previous = {
+                title: task.title,
+                description: task.description,
+                priority: task.priority,
+                dueDate: task.dueDate,
+              };
+              await updateMutation.mutateAsync({
+                id: task.id,
+                title: payload.title,
+                description: payload.description.trim() ? payload.description.trim() : null,
+                priority: payload.priority,
+                dueDate: payload.dueDate,
+              });
+              setEditingTaskId(null);
+              toast({
+                id: `task-edit:${task.id}`,
+                title: "Aufgabe bearbeitet",
+                action: {
+                  label: "Rückgängig",
+                  altText: "Bearbeitung rückgängig machen",
+                  leadingIcon: "arrow-undo-down",
+                  onClick: () => {
+                    updateMutation.mutate({
+                      id: task.id,
+                      title: previous.title,
+                      description: previous.description,
+                      priority: previous.priority,
+                      dueDate: previous.dueDate,
+                    });
+                  },
+                },
+              });
+            }}
+            submitLabel="Speichern"
+          />
+        );
+      }
+
       return (
         <SortableFlatTask
           category={resolveTaskCategory(task)}
@@ -1910,7 +1979,10 @@ export function TasksView() {
           onFavorite={(current, favorite) =>
             updateMutation.mutate({ id: current.id, isFavorite: favorite })
           }
-          onOpen={(current) => setTaskQuery(current.id)}
+          onOpen={(current) => {
+            setEditingTaskId(null);
+            setTaskQuery(current.id);
+          }}
           onToggle={(current, completed) =>
             updateMutation.mutate({ id: current.id, isCompleted: completed })
           }
@@ -2109,22 +2181,40 @@ export function TasksView() {
                   </>
                 ) : sectionListMode ? (
                   <>
-                    <div className={`${styles.rootList} fk-task-list`} key="section-root">
+                    <div
+                      className={`${styles.rootList} fk-task-list`}
+                      data-adding={rootAdding || undefined}
+                      key="section-root"
+                    >
                       {renderFlatRows((item) => item.groupKey === TASK_SECTION_ROOT_KEY, {
                         groupKey: TASK_SECTION_ROOT_KEY,
                       })}
-                      <SectionEmptyDropZone
-                        disabled={sectionHasPeerTasks(TASK_SECTION_ROOT_KEY)}
-                        sectionKey={TASK_SECTION_ROOT_KEY}
-                      >
+                      {rootAdding ? (
                         <AddTask
+                          expanded
                           keepOpenOnSubmit
+                          onExpandedChange={setRootAdding}
                           onSubmit={async (payload) => {
                             await submitNewTask(payload);
                           }}
                           {...addTaskDefaults}
                         />
-                      </SectionEmptyDropZone>
+                      ) : (
+                        <SectionEmptyDropZone
+                          disabled={sectionHasPeerTasks(TASK_SECTION_ROOT_KEY)}
+                          sectionKey={TASK_SECTION_ROOT_KEY}
+                        >
+                          <AddTask
+                            expanded={false}
+                            keepOpenOnSubmit
+                            onExpandedChange={setRootAdding}
+                            onSubmit={async (payload) => {
+                              await submitNewTask(payload);
+                            }}
+                            {...addTaskDefaults}
+                          />
+                        </SectionEmptyDropZone>
+                      )}
                     </div>
                     {visibleListSections.map((section) => {
                       const sectionRoots =

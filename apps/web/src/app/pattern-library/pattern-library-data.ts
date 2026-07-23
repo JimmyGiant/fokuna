@@ -333,8 +333,8 @@ export const patternEntries: PatternEntry[] = [
     category: "Tasks",
     implementation: "AddTask",
     screenshot: "26_Task_Add_Item.png",
-    dimensions: ["640 × 48 px", "640 × 190 px active"],
-    variantSummary: "Inactive and active",
+    dimensions: ["640 × 48 px", "640 × auto active (compact, grows with description)"],
+    variantSummary: "Inactive and active · auto-growing description · radius 16 · outline cancel",
   },
   {
     number: 44,
@@ -346,7 +346,7 @@ export const patternEntries: PatternEntry[] = [
     implementation: "AddGroup",
     screenshot: "26_Task_Add_Item.png",
     dimensions: ["640 × 48 px", "640 × 88 px active"],
-    variantSummary: "Inactive and active · section name only",
+    variantSummary: "Inactive and active · section name only · radius 16 · outline cancel",
   },
   {
     number: 27,

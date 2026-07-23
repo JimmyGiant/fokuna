@@ -2332,8 +2332,16 @@ export function PatternSpecimen({ slug }: { slug: string }) {
           <MatrixRow label="Inactive">
             <AddTask />
           </MatrixRow>
-          <MatrixRow label="Active">
+          <MatrixRow label="Active (compact)">
             <AddTask defaultExpanded focusOnExpand={false} />
+          </MatrixRow>
+          <MatrixRow label="Active with description">
+            <AddTask
+              defaultExpanded
+              focusOnExpand={false}
+              initialDescription={"Zeile eins\nZeile zwei — wächst mit dem Inhalt."}
+              initialTitle="Aufgabenname"
+            />
           </MatrixRow>
           <MatrixRow label="Active after list item">
             <div className="fk-task-list">
