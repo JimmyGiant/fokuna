@@ -1,7 +1,9 @@
 import type { UpdateUserProfileInput, UserProfileDto } from "@fokuna/api-contracts";
 import { eq, userProfile } from "@fokuna/db";
 import {
+  normalizeTasksPreferences,
   normalizeTasksSidebarPreferences,
+  resolveTasksPreferences,
   resolveTasksSidebarPreferences,
   type UiPreferences,
 } from "@fokuna/domain";
@@ -36,6 +38,13 @@ function mergeUiPreferences(
       hiddenIds: input.tasksSidebar.hiddenIds ?? current.hiddenIds,
       navOrder: input.tasksSidebar.navOrder ?? current.navOrder,
       sectionOrder: input.tasksSidebar.sectionOrder ?? current.sectionOrder,
+    });
+  }
+  if (input.tasks) {
+    const current = resolveTasksPreferences(existing);
+    next.tasks = normalizeTasksPreferences({
+      ...current,
+      ...input.tasks,
     });
   }
   return next;

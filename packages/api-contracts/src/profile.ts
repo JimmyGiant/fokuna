@@ -22,8 +22,13 @@ export const tasksSidebarPreferencesSchema = z.object({
   hiddenIds: z.array(tasksSidebarHideableIdSchema),
 });
 
+export const tasksPreferencesSchema = z.object({
+  completeAnimations: z.boolean(),
+});
+
 export const uiPreferencesSchema = z.object({
   tasksSidebar: tasksSidebarPreferencesSchema.optional(),
+  tasks: tasksPreferencesSchema.optional(),
 });
 
 export const userProfileDtoSchema = z.object({
@@ -45,6 +50,8 @@ export const updateUserProfileInputSchema = z.object({
   uiPreferences: uiPreferencesSchema.optional(),
   /** Partial sidebar prefs — merged server-side onto existing uiPreferences.tasksSidebar. */
   tasksSidebar: tasksSidebarPreferencesSchema.partial().optional(),
+  /** Partial Aufgaben prefs — merged server-side onto existing uiPreferences.tasks. */
+  tasks: tasksPreferencesSchema.partial().optional(),
 });
 
 export type UpdateUserProfileInput = z.infer<typeof updateUserProfileInputSchema>;

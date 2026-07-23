@@ -27,8 +27,21 @@ export interface TasksSidebarPreferences {
   hiddenIds: TasksSidebarHideableId[];
 }
 
+/** List / complete-flow prefs for Aufgaben (account-scoped). */
+export interface TasksPreferences {
+  /**
+   * Animated mark / fade / collapse when completing a task.
+   * Default `true`. When `false`, the completed look applies instantly (no motion);
+   * hide-completed still removes the row immediately after persist.
+   */
+  completeAnimations: boolean;
+}
+
+export const DEFAULT_TASKS_COMPLETE_ANIMATIONS = true;
+
 export interface UiPreferences {
   tasksSidebar?: TasksSidebarPreferences;
+  tasks?: TasksPreferences;
 }
 
 const NAV_SET = new Set<string>(DEFAULT_TASKS_SIDEBAR_NAV_ORDER);
@@ -45,6 +58,25 @@ export function resolveTasksSidebarPreferences(raw: unknown): TasksSidebarPrefer
       ? (raw as UiPreferences)
       : ({} as UiPreferences);
   return normalizeTasksSidebarPreferences(ui.tasksSidebar ?? {});
+}
+
+export function resolveTasksPreferences(raw: unknown): TasksPreferences {
+  const ui =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as UiPreferences)
+      : ({} as UiPreferences);
+  return normalizeTasksPreferences(ui.tasks ?? {});
+}
+
+export function normalizeTasksPreferences(
+  input: Partial<TasksPreferences>,
+): TasksPreferences {
+  return {
+    completeAnimations:
+      typeof input.completeAnimations === "boolean"
+        ? input.completeAnimations
+        : DEFAULT_TASKS_COMPLETE_ANIMATIONS,
+  };
 }
 
 /** Normalize order arrays: keep known ids, append missing defaults, drop unknowns. */

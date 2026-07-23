@@ -69,8 +69,10 @@ import {
   type BlockRailItem,
   type ControlSize,
   type FokunaContextMenuEntry,
+  TASK_COMPLETE_SEQUENCE_MS,
+  type TaskCompletePhase,
 } from "@fokuna/ui";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 import styles from "./pattern-library.module.css";
@@ -113,6 +115,112 @@ const blockRailItems: BlockRailItem[] = [
   { id: "recovery", label: "Regeneration", icon: "tennis", tone: "pink" },
   { id: "focus", label: "Fokus", icon: "focus-target", tone: "teal", badge: 3 },
 ];
+
+type CompleteSequencePhase = "idle" | TaskCompletePhase;
+
+function prefersReducedMotion() {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function TaskCompleteSequenceSpecimen() {
+  const [phase, setPhase] = useState<CompleteSequencePhase>("idle");
+  const timersRef = useRef<number[]>([]);
+
+  function clearTimers() {
+    for (const id of timersRef.current) window.clearTimeout(id);
+    timersRef.current = [];
+  }
+
+  useEffect(() => () => clearTimers(), []);
+
+  function schedule(ms: number, fn: () => void) {
+    const id = window.setTimeout(fn, ms);
+    timersRef.current.push(id);
+  }
+
+  function play() {
+    clearTimers();
+    setPhase("marked");
+
+    const reduced = prefersReducedMotion();
+    const hold = reduced ? 0 : TASK_COMPLETE_SEQUENCE_MS.hold;
+    const fade = reduced ? 0 : TASK_COMPLETE_SEQUENCE_MS.fade;
+    const gap = reduced ? 0 : TASK_COMPLETE_SEQUENCE_MS.gap;
+
+    schedule(hold, () => {
+      setPhase("fading");
+      schedule(fade + gap, () => {
+        setPhase("collapsed");
+      });
+    });
+  }
+
+  function reset() {
+    clearTimers();
+    setPhase("idle");
+  }
+
+  const completePhase = phase === "idle" ? undefined : phase;
+
+  return (
+    <Matrix>
+      <MatrixRow label="Abhaken-Sequenz">
+        <div className={styles.toastTriggerRow}>
+          <Button
+            disabled={phase !== "idle"}
+            intent="secondary"
+            onClick={play}
+            size="sm"
+            trailingIcon={null}
+            type="button"
+          >
+            Abhaken
+          </Button>
+          <Button intent="tertiary" onClick={reset} size="sm" trailingIcon={null} type="button">
+            Reset
+          </Button>
+        </div>
+        <p
+          style={{
+            color: "var(--fk-color-text-secondary)",
+            fontSize: 13,
+            margin: "8px 0 12px",
+          }}
+        >
+          Mark: Farbe, dann Strikethrough L→R (nur Titelbreite) → Hold → Fade → soft Collapse.
+          Live: Fade/Collapse nur bei „Erledigte ausblenden“.
+        </p>
+        <div className="fk-task-list" style={{ maxWidth: 640 }}>
+          <TaskListItem title="Nachbar oben" />
+          <div
+            className="fk-task-complete-slot"
+            data-phase={phase === "collapsed" ? "collapsed" : undefined}
+          >
+            <div className="fk-task-complete-slot__inner">
+              <TaskListItem
+                completePhase={completePhase}
+                completed={phase !== "idle"}
+                due="Morgen"
+                dueTone="coral"
+                onCompletedChange={(next) => {
+                  if (next && phase === "idle") play();
+                }}
+                priority="medium"
+                subtasks="1/3"
+                title="Konzept finalisieren"
+              />
+            </div>
+          </div>
+          <TaskListItem title="Nachbar unten A" />
+          <TaskListItem title="Nachbar unten B" />
+        </div>
+      </MatrixRow>
+    </Matrix>
+  );
+}
 
 function Matrix({ children }: { children: React.ReactNode }) {
   return <div className={styles.specimenMatrix}>{children}</div>;
@@ -2369,6 +2477,9 @@ export function PatternSpecimen({ slug }: { slug: string }) {
           </MatrixRow>
         </Matrix>
       );
+
+    case "task-complete-sequence":
+      return <TaskCompleteSequenceSpecimen />;
 
     case "task-group-header":
       return (

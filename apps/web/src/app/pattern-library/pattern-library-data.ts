@@ -349,6 +349,19 @@ export const patternEntries: PatternEntry[] = [
     variantSummary: "Inactive and active · section name only · radius 16 · outline cancel",
   },
   {
+    number: 45,
+    slug: "task-complete-sequence",
+    title: "Task Complete Sequence",
+    figmaName: "C - Desktop - Task List Item (complete sequence storyboard)",
+    figmaNodeId: "18519:13887",
+    category: "Tasks",
+    implementation: "TaskListItem completePhase",
+    screenshot: "29_Task_List_Item.png",
+    dimensions: ["640 × auto (storyboard)"],
+    variantSummary:
+      "Storyboard · marked (title + meta) · hold · fade · collapse · Play/Reset · reduced-motion",
+  },
+  {
     number: 27,
     slug: "task-group-header",
     title: "Task Group Header List Item",

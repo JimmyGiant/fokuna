@@ -47,6 +47,27 @@ export interface AddTaskSubmitPayload {
 
 export type TaskItemState = "default" | "hover" | "selected" | "dragged" | "placeholder";
 
+/**
+ * Presentational complete-sequence phases (storyboard + live list).
+ * When unset and the row is not completed, no complete styling applies.
+ */
+export type TaskCompletePhase = "marked" | "fading" | "collapsed";
+
+/** Shared timings for the complete-task sequence (ms). */
+export const TASK_COMPLETE_SEQUENCE_MS = {
+  /**
+   * Color (~240) + strikethrough delay (160) + draw (360).
+   * Keep `marked` this long even when completed stay visible (no fade).
+   */
+  mark: 560,
+  /** Stand after mark before row fade — kept short so collapse can feel longer. */
+  hold: 560,
+  fade: 320,
+  gap: 40,
+  /** Height collapse after fade (must match CSS transition). */
+  collapse: 420,
+} as const;
+
 /** List-item tag chip — string keeps legacy specimens; object carries label color. */
 export type TaskListTag = string | { label: string; tone?: TagTone; swatch?: string };
 
@@ -90,6 +111,15 @@ export interface TaskListItemProps extends HTMLAttributes<HTMLDivElement> {
   dragHandleProps?: HTMLAttributes<HTMLButtonElement>;
   /** Spread onto the row surface (not nested children) for whole-row dnd-kit listeners. */
   rowDragProps?: HTMLAttributes<HTMLDivElement>;
+  /**
+   * Visual complete-sequence phase. Storyboard-driven; omit in live lists.
+   */
+  completePhase?: TaskCompletePhase;
+  /**
+   * When false, a completed checkbox does not apply strikethrough / meta dimming.
+   * Default true (Pattern Library + animated complete flow).
+   */
+  completedStyled?: boolean;
   onCompletedChange?: (completed: boolean) => void;
   onExpandedChange?: (expanded: boolean) => void;
   onFavoriteChange?: (favorite: boolean) => void;
@@ -183,6 +213,8 @@ export function TaskListItem({
   contextMenuItems,
   dragHandleProps,
   rowDragProps,
+  completePhase,
+  completedStyled = true,
   onCompletedChange,
   onExpandedChange,
   onFavoriteChange,
@@ -235,7 +267,9 @@ export function TaskListItem({
           <span className="fk-task-item__drag" />
           <span className="fk-task-item__expand-spacer" />
           <span className="fk-task-item__content">
-            <strong>{title}</strong>
+            <span className="fk-task-item__title">
+              <strong>{title}</strong>
+            </span>
             {hasMeta ? (
               <TaskListMeta
                 category={category}
@@ -260,6 +294,8 @@ export function TaskListItem({
       {...rowDragProps}
       aria-grabbed={state === "dragged" || undefined}
       className={cn("fk-task-item", className)}
+      data-completed={(completed && completedStyled) || undefined}
+      data-complete-phase={completePhase || undefined}
       data-has-meta={hasMeta || undefined}
       data-indent={resolvedIndent || undefined}
       data-milestone={milestone || undefined}
@@ -314,7 +350,9 @@ export function TaskListItem({
           />
         </span>
         <span className="fk-task-item__content">
-          <strong>{title}</strong>
+          <span className="fk-task-item__title">
+            <strong>{title}</strong>
+          </span>
           {description ? <small>{description}</small> : null}
           {hasMeta ? (
             <TaskListMeta

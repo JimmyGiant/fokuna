@@ -1,5 +1,7 @@
 "use client";
 
+import type { UserProfileDto } from "@fokuna/api-contracts";
+import { resolveTasksPreferences } from "@fokuna/domain";
 import { Button, Callout, PageHeader, Switch, TabBar } from "@fokuna/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
@@ -7,7 +9,14 @@ import { useState } from "react";
 import { apiGet, apiSend } from "@/lib/api";
 import styles from "./settings-view.module.css";
 
-type SettingsTab = "general" | "calendar" | "account" | "billing" | "notifications" | "focus";
+type SettingsTab =
+  | "general"
+  | "tasks"
+  | "calendar"
+  | "account"
+  | "billing"
+  | "notifications"
+  | "focus";
 
 interface Integration {
   id: string;
@@ -19,6 +28,7 @@ interface Integration {
 
 const tabs: Array<{ value: SettingsTab; label: string }> = [
   { value: "general", label: "Allgemein" },
+  { value: "tasks", label: "Aufgaben" },
   { value: "calendar", label: "Kalender" },
   { value: "account", label: "Account" },
   { value: "billing", label: "Abrechnung" },
@@ -29,6 +39,43 @@ const tabs: Array<{ value: SettingsTab; label: string }> = [
 export function SettingsView() {
   const [tab, setTab] = useState<SettingsTab>("general");
   const queryClient = useQueryClient();
+
+  const profileQuery = useQuery({
+    queryKey: ["profile"],
+    queryFn: () => apiGet<UserProfileDto>("/api/v1/profile"),
+  });
+
+  const tasksPrefs = resolveTasksPreferences(profileQuery.data?.uiPreferences);
+
+  const updateProfile = useMutation({
+    mutationFn: (payload: { tasks: { completeAnimations: boolean } }) =>
+      apiSend<UserProfileDto>("/api/v1/profile", "PATCH", payload),
+    onMutate: async (payload) => {
+      await queryClient.cancelQueries({ queryKey: ["profile"] });
+      const previous = queryClient.getQueryData<UserProfileDto>(["profile"]);
+      if (previous) {
+        queryClient.setQueryData<UserProfileDto>(["profile"], {
+          ...previous,
+          uiPreferences: {
+            ...previous.uiPreferences,
+            tasks: {
+              ...resolveTasksPreferences(previous.uiPreferences),
+              ...payload.tasks,
+            },
+          },
+        });
+      }
+      return { previous };
+    },
+    onError: (_error, _payload, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(["profile"], context.previous);
+      }
+    },
+    onSettled: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["profile"] });
+    },
+  });
 
   const integrationsQuery = useQuery({
     queryKey: ["integrations"],
@@ -57,6 +104,30 @@ export function SettingsView() {
           <label className={styles.row}>
             <span>Wochenstart Montag</span>
             <Switch defaultChecked />
+          </label>
+        </section>
+      ) : null}
+
+      {tab === "tasks" ? (
+        <section className={styles.section}>
+          <h2>Aufgaben</h2>
+          <p>Darstellung und Verhalten der Aufgabenliste — gespeichert im Account.</p>
+          <label className={styles.row}>
+            <span className={styles.rowCopy}>
+              <strong>Animation beim Erledigen</strong>
+              <small>
+                Bewegte Übergänge beim Abhaken (Durchstreichen, Ausblenden). Erledigte Aufgaben sehen
+                immer gleich aus — Farbe, Strikethrough und abgeschwächte Meta. Aus = sofort der
+                Endzustand, ohne Animation.
+              </small>
+            </span>
+            <Switch
+              checked={tasksPrefs.completeAnimations}
+              disabled={profileQuery.isLoading || updateProfile.isPending}
+              onCheckedChange={(checked) =>
+                updateProfile.mutate({ tasks: { completeAnimations: checked } })
+              }
+            />
           </label>
         </section>
       ) : null}

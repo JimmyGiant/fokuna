@@ -15,7 +15,13 @@ import {
   verticalListSortingStrategy,
   type AnimateLayoutChanges,
 } from "@dnd-kit/sortable";
-import type { BlockDto, CalendarEntryDto, TaskDto, TaskSectionDto } from "@fokuna/api-contracts";
+import type {
+  BlockDto,
+  CalendarEntryDto,
+  TaskDto,
+  TaskSectionDto,
+  UserProfileDto,
+} from "@fokuna/api-contracts";
 import {
   TASK_MAX_INDENT_LEVEL,
   TASK_SECTION_ROOT_KEY,
@@ -28,6 +34,7 @@ import {
   layoutToPlacements,
   mergePlacements,
   removeChildrenOfActive,
+  resolveTasksPreferences,
   todayIsoDateString,
   type FlatTreeItem,
   type TaskIndentLevel,
@@ -48,6 +55,7 @@ import {
   Switcher,
   TaskGroup,
   TaskGroupHeader,
+  TASK_COMPLETE_SEQUENCE_MS,
   TaskListItem,
   getCalendarEntryPosition,
   type AddTaskSubmitPayload,
@@ -55,6 +63,7 @@ import {
   type BlockTone,
   type FokunaContextMenuEntry,
   type TagTone,
+  type TaskCompletePhase,
   type TaskListTag,
   useToast,
 } from "@fokuna/ui";
@@ -264,6 +273,13 @@ type FlatTaskRow = {
   hasChildren: boolean;
 };
 
+function prefersReducedMotion() {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+    return false;
+  }
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
 /**
  * Flat sortable row — nested tasks are DOM siblings (indent only).
  * Live tree mutation happens only on drop via projection (dnd-kit SortableTree).
@@ -282,6 +298,9 @@ function SortableFlatTask({
   category,
   tags,
   contextMenuItems,
+  completePhase,
+  completedOverride,
+  completedStyled = true,
   onExpandedChange,
   onOpen,
   onToggle,
@@ -299,6 +318,11 @@ function SortableFlatTask({
   category?: TaskListTag;
   tags?: TaskListTag[];
   contextMenuItems?: FokunaContextMenuEntry[];
+  completePhase?: TaskCompletePhase;
+  /** Local completed visual while exit sequence runs before persist. */
+  completedOverride?: boolean;
+  /** When false, completed rows keep the plain checkbox (no strikethrough). */
+  completedStyled?: boolean;
   onExpandedChange: (expanded: boolean) => void;
   onOpen: (task: TaskDto) => void;
   onToggle: (task: TaskDto, completed: boolean) => void;
@@ -366,39 +390,48 @@ function SortableFlatTask({
       }}
     >
       {slotHidden ? null : (
-        <TaskListItem
-          category={category}
-          className={nestHint ? styles.nestTarget : undefined}
-          completed={task.isCompleted}
-          contextMenuItems={isDragging ? undefined : contextMenuItems}
-          due={formatDueLabel(task.dueDate)}
-          dueTone={dueMetaTone(task.dueDate)}
-          expandable={hasChildren}
-          expanded={expanded}
-          favorite={task.isFavorite}
-          goal={goalTitle}
-          indentLevel={depth}
-          onClick={isDragging ? undefined : () => onOpen(task)}
-          onCompletedChange={
-            isDragging ? undefined : (completed) => onToggle(task, completed)
-          }
-          onExpandedChange={isDragging ? undefined : onExpandedChange}
-          onFavoriteChange={
-            isDragging ? undefined : (favorite) => onFavorite(task, favorite)
-          }
-          priority={task.priority}
-          rowDragProps={isDragging ? undefined : { ...attributes, ...listeners }}
-          state={showPlaceholder ? "placeholder" : "default"}
-          style={{
-            marginLeft: 0,
-            width: "100%",
-            flex: "none",
-            ...lockedStyle,
-          }}
-          subtasks={subtaskLabel}
-          tags={tags}
-          title={task.title}
-        />
+        <div
+          className="fk-task-complete-slot"
+          data-phase={completePhase === "collapsed" ? "collapsed" : undefined}
+        >
+          <div className="fk-task-complete-slot__inner">
+            <TaskListItem
+              category={category}
+              className={nestHint ? styles.nestTarget : undefined}
+              completePhase={completePhase}
+              completed={completedOverride ?? task.isCompleted}
+              completedStyled={completedStyled}
+              contextMenuItems={isDragging ? undefined : contextMenuItems}
+              due={formatDueLabel(task.dueDate)}
+              dueTone={dueMetaTone(task.dueDate)}
+              expandable={hasChildren}
+              expanded={expanded}
+              favorite={task.isFavorite}
+              goal={goalTitle}
+              indentLevel={depth}
+              onClick={isDragging ? undefined : () => onOpen(task)}
+              onCompletedChange={
+                isDragging ? undefined : (completed) => onToggle(task, completed)
+              }
+              onExpandedChange={isDragging ? undefined : onExpandedChange}
+              onFavoriteChange={
+                isDragging ? undefined : (favorite) => onFavorite(task, favorite)
+              }
+              priority={task.priority}
+              rowDragProps={isDragging ? undefined : { ...attributes, ...listeners }}
+              state={showPlaceholder ? "placeholder" : "default"}
+              style={{
+                marginLeft: 0,
+                width: "100%",
+                flex: "none",
+                ...lockedStyle,
+              }}
+              subtasks={subtaskLabel}
+              tags={tags}
+              title={task.title}
+            />
+          </div>
+        </div>
       )}
     </div>
   );
@@ -711,6 +744,11 @@ export function TasksView() {
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [search, setSearch] = useState("");
   const [showCompleted, setShowCompleted] = useState(true);
+  /** Complete-sequence phases while animating (and brief mark before persist settles). */
+  const [completePhaseById, setCompletePhaseById] = useState<Record<string, TaskCompletePhase>>(
+    {},
+  );
+  const completeTimersRef = useRef<Map<string, number[]>>(new Map());
   const [pendingDeleteTask, setPendingDeleteTask] = useState<{
     id: string;
     title: string;
@@ -733,6 +771,13 @@ export function TasksView() {
     queryKey: ["tasks"],
     queryFn: () => apiGet<TaskDto[]>("/api/v1/tasks"),
   });
+  const profileQuery = useQuery({
+    queryKey: ["profile"],
+    queryFn: () => apiGet<UserProfileDto>("/api/v1/profile"),
+  });
+  const completeAnimations = resolveTasksPreferences(
+    profileQuery.data?.uiPreferences,
+  ).completeAnimations;
   const sectionsQuery = useQuery({
     queryKey: sectionQueryKey({ categoryId, labelId }),
     queryFn: () => apiGet<TaskSectionsPayload>(sectionListPath({ categoryId, labelId })),
@@ -830,6 +875,101 @@ export function TasksView() {
       await queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
+
+  function clearCompleteTimers(taskId: string) {
+    const timers = completeTimersRef.current.get(taskId);
+    if (!timers) return;
+    for (const id of timers) window.clearTimeout(id);
+    completeTimersRef.current.delete(taskId);
+  }
+
+  function scheduleCompleteTimer(taskId: string, ms: number, fn: () => void) {
+    const id = window.setTimeout(fn, ms);
+    const list = completeTimersRef.current.get(taskId) ?? [];
+    list.push(id);
+    completeTimersRef.current.set(taskId, list);
+  }
+
+  function clearCompletePhase(taskId: string) {
+    setCompletePhaseById((current) => {
+      if (!(taskId in current)) return current;
+      const next = { ...current };
+      delete next[taskId];
+      return next;
+    });
+  }
+
+  function setCompletePhase(taskId: string, phase: TaskCompletePhase) {
+    setCompletePhaseById((current) => ({ ...current, [taskId]: phase }));
+  }
+
+  useEffect(
+    () => () => {
+      for (const timers of completeTimersRef.current.values()) {
+        for (const id of timers) window.clearTimeout(id);
+      }
+      completeTimersRef.current.clear();
+    },
+    [],
+  );
+
+  function handleTaskCompletedToggle(task: TaskDto, completed: boolean) {
+    if (!completed) {
+      clearCompleteTimers(task.id);
+      clearCompletePhase(task.id);
+      updateMutation.mutate({ id: task.id, isCompleted: false });
+      return;
+    }
+
+    // Settings off: plain check + persist (filter removes when Erledigte ausgeblendet).
+    if (!completeAnimations) {
+      clearCompleteTimers(task.id);
+      clearCompletePhase(task.id);
+      updateMutation.mutate({ id: task.id, isCompleted: true });
+      return;
+    }
+
+    // Mark animation (check + color + strikethrough + meta).
+    clearCompleteTimers(task.id);
+    setCompletePhase(task.id, "marked");
+
+    const reduced = prefersReducedMotion();
+    const mark = reduced ? 0 : TASK_COMPLETE_SEQUENCE_MS.mark;
+
+    if (showCompleted) {
+      // Completed stay visible — full mark motion, no fade/collapse.
+      updateMutation.mutate({ id: task.id, isCompleted: true });
+      scheduleCompleteTimer(task.id, mark, () => {
+        clearCompleteTimers(task.id);
+        clearCompletePhase(task.id);
+      });
+      return;
+    }
+
+    // Hide completed: hold → fade → collapse, then persist (filter removes row).
+    const hold = reduced ? 0 : TASK_COMPLETE_SEQUENCE_MS.hold;
+    const fade = reduced ? 0 : TASK_COMPLETE_SEQUENCE_MS.fade;
+    const gap = reduced ? 0 : TASK_COMPLETE_SEQUENCE_MS.gap;
+    const collapse = reduced ? 0 : TASK_COMPLETE_SEQUENCE_MS.collapse;
+
+    scheduleCompleteTimer(task.id, hold, () => {
+      setCompletePhase(task.id, "fading");
+      scheduleCompleteTimer(task.id, fade + gap, () => {
+        setCompletePhase(task.id, "collapsed");
+        updateMutation.mutate(
+          { id: task.id, isCompleted: true },
+          {
+            onSettled: () => {
+              scheduleCompleteTimer(task.id, collapse, () => {
+                clearCompleteTimers(task.id);
+                clearCompletePhase(task.id);
+              });
+            },
+          },
+        );
+      });
+    });
+  }
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiSend<TaskDto>(`/api/v1/tasks/${id}`, "DELETE"),
@@ -1965,6 +2105,10 @@ export function TasksView() {
       return (
         <SortableFlatTask
           category={resolveTaskCategory(task)}
+          completePhase={completeAnimations ? completePhaseById[task.id] : undefined}
+          completedOverride={
+            completeAnimations && completePhaseById[task.id] != null ? true : undefined
+          }
           contextMenuItems={buildTaskContextMenuItems(task)}
           depth={depth}
           expanded={expandedById[task.id] !== false}
@@ -1983,9 +2127,7 @@ export function TasksView() {
             setEditingTaskId(null);
             setTaskQuery(current.id);
           }}
-          onToggle={(current, completed) =>
-            updateMutation.mutate({ id: current.id, isCompleted: completed })
-          }
+          onToggle={handleTaskCompletedToggle}
           slotHidden={
             activeId === task.id &&
             dragOriginGroupKey != null &&

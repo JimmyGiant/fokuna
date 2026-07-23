@@ -3978,16 +3978,110 @@
     visibility: hidden;
   }
 
+  /*
+   * Title must shrink-wrap the glyph width (grid children otherwise stretch
+   * full column). Strikethrough ::after is then only as wide as the word.
+   */
+  .fk-task-item__title {
+    display: block;
+    justify-self: start;
+    max-width: 100%;
+    min-width: 0;
+    position: relative;
+    width: fit-content;
+  }
+
+  .fk-task-item__title::after {
+    background: var(--fk-color-text-quarternary);
+    content: "";
+    height: 1px;
+    left: 0;
+    pointer-events: none;
+    position: absolute;
+    top: calc(50% + 1px);
+    transform: scaleX(0);
+    transform-origin: left center;
+    /* Default = uncheck exit: shorter, no delay (draw uses a longer enter below). */
+    transition: transform 200ms var(--fk-motion-ease-exit);
+    width: 100%;
+  }
+
+  .fk-task-item__title > strong,
   .fk-task-item__content > strong {
     display: block;
     font-size: var(--fk-type-font-font-size-body-lg);
     font-weight: 400;
     line-height: var(--fk-type-font-line-height-body-lg);
+    max-width: 100%;
     min-width: 0;
     overflow: hidden;
     padding-top: 1px;
     text-overflow: ellipsis;
+    transition: color var(--fk-motion-duration-slow) var(--fk-motion-ease-standard);
     white-space: nowrap;
+  }
+
+  /* Static completed (no live phase): instant marked look, no entrance motion. */
+  .fk-task-item[data-completed]:not([data-complete-phase]) .fk-task-item__title > strong {
+    color: var(--fk-color-text-quarternary);
+    transition: none;
+  }
+
+  .fk-task-item[data-completed]:not([data-complete-phase]) .fk-task-item__title::after {
+    transform: scaleX(1);
+    transition: none;
+  }
+
+  .fk-task-item[data-completed]:not([data-complete-phase]) .fk-task-item__meta {
+    opacity: 0.5;
+    transition: none;
+  }
+
+  /* Animated mark: color + meta immediately, strikethrough after a short delay. */
+  .fk-task-item[data-complete-phase] .fk-task-item__title > strong {
+    color: var(--fk-color-text-quarternary);
+  }
+
+  .fk-task-item[data-complete-phase] .fk-task-item__title::after {
+    transform: scaleX(1);
+    /* Draw: after color fade, then L→R. */
+    transition: transform 360ms var(--fk-motion-ease-enter) 160ms;
+  }
+
+  .fk-task-item[data-complete-phase] .fk-task-item__meta {
+    opacity: 0.5;
+  }
+
+  .fk-task-item[data-complete-phase="fading"],
+  .fk-task-item[data-complete-phase="collapsed"] {
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 320ms var(--fk-motion-ease-exit),
+      background var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
+      box-shadow var(--fk-motion-duration-fast) var(--fk-motion-ease-standard),
+      border-color 320ms var(--fk-motion-ease-exit);
+  }
+
+  .fk-task-item[data-complete-phase="collapsed"] {
+    border-bottom-color: transparent;
+  }
+
+  /* Collapse shell: 1fr → 0fr with a longer ease-out for a premium close. */
+  .fk-task-complete-slot {
+    display: grid;
+    grid-template-rows: 1fr;
+    transition: grid-template-rows 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .fk-task-complete-slot__inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .fk-task-complete-slot[data-phase="collapsed"] {
+    grid-template-rows: 0fr;
+    pointer-events: none;
   }
 
   .fk-task-item:hover .fk-task-item__drag,
@@ -4021,6 +4115,7 @@
     flex-wrap: wrap;
     margin-top: 0;
     row-gap: 4px;
+    transition: opacity var(--fk-motion-duration-slow) var(--fk-motion-ease-standard);
   }
 
   .fk-task-item__meta .fk-tag {
@@ -6603,5 +6698,20 @@
   .fk-toast[data-state="closed"],
   .fk-toast[data-swipe="end"] {
     animation: none;
+  }
+
+  .fk-task-item__title > strong,
+  .fk-task-item__title::after,
+  .fk-task-item__meta,
+  .fk-task-item[data-complete-phase="fading"],
+  .fk-task-item[data-complete-phase="collapsed"],
+  .fk-task-complete-slot {
+    transition: none !important;
+    transition-delay: 0s !important;
+  }
+
+  .fk-task-item[data-complete-phase] .fk-task-item__title::after,
+  .fk-task-item[data-completed] .fk-task-item__title::after {
+    transform: scaleX(1);
   }
 }

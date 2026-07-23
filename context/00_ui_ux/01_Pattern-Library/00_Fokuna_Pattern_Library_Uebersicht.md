@@ -1419,6 +1419,33 @@ Wichtig fuer Umsetzung:
 - Nur auf Kategorie- und Label-Seiten; nicht auf Alle / Favoriten / Heute / Eingang / Prioritaet.
 - Visuelle Paritaet zu Task Add Item: gleicher Abbrechen-Button und gleicher Card-Radius.
 
+### 45 Task Complete Sequence
+
+Screenshot: [29_Task_List_Item.png](29_Task_List_Item.png) (Storyboard; Sequenz motion-only)
+
+Interaktives Pattern-Library-Storyboard fuer die Abhaken-Animationssequenz einer Task-Zeile. Dient der Feeling-Pruefung, bevor die Sequenz in die Live-Aufgabenliste verdrahtet wird. Die Produktivliste bleibt unveraendert.
+
+Sequenz:
+
+1. Checkbox checked (sofort).
+2. Parallel: Titelfarbe `text-quaternary` + Strikethrough links→rechts; Meta auf 50 % Opacity.
+3. Hold ca. 1 s.
+4. Ganze Zeile (inkl. Border) faded auf Opacity 0.
+5. Kurze Pause, dann Collapse der Zeilenhoehe — Nachbarn fahren hoch.
+
+Varianten und Properties:
+
+- `completePhase` am `TaskListItem`: `marked` | `fading` | `collapsed` (nur Storyboard setzt die Phasen).
+- Controls: Abhaken (startet Sequenz) und Reset.
+- `prefers-reduced-motion`: Strikethrough und Collapse ohne Animation / stark verkuerzte Timings.
+
+Wichtig fuer Umsetzung:
+
+- Kein Persistenz-/API-Call im Storyboard.
+- Kein Drag waehrend der Sequenz im Specimen.
+- Live-Liste (`TasksView`): Mark-Phase (Checkbox, Strikethrough, Farbe/Meta) immer beim Abhaken; Fade + Collapse nur wenn „Erledigte ausblenden“ aktiv (`showCompleted === false`).
+- Specimen: `/pattern-library/task-complete-sequence`.
+
 ## Einsatz im Lastenheft
 
 Diese Pattern-Library-Uebersicht soll zusammen mit den View-Screenshots und View-Uebergabenotizen gelesen werden. Die Views zeigen das konkrete Produktverhalten; diese Datei zeigt die wiederverwendbaren Bausteine dahinter. Fuer technische Folgearbeiten sollte erst geprueft werden, ob ein UI-Element bereits in dieser Pattern Library existiert, bevor ein neues technisches Component Pattern definiert wird.

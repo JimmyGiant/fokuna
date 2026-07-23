@@ -31,6 +31,22 @@
   gap: 16px;
 }
 
+.rowCopy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.rowCopy strong {
+  font-weight: 500;
+}
+
+.rowCopy small {
+  color: var(--fk-color-text-secondary);
+  font-size: var(--fk-type-font-font-size-body-sm);
+  line-height: var(--fk-type-font-line-height-body-sm);
+}
+
 .integration {
   padding-top: 8px;
   border-top: 1px solid var(--fk-color-border-subtle);
