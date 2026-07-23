@@ -19,6 +19,7 @@ export * from "./slider";
 export * from "./switch";
 export * from "./tabs";
 export * from "./tag";
+export * from "./tag-item-priority";
 export * from "./task";
 export * from "./template-card";
 export * from "./toast";

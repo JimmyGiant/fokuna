@@ -59,8 +59,8 @@
   --fk-primitive-pink-900: #6d2b4b;
   --fk-primitive-priority-scale-high: #fd766b;
   --fk-primitive-priority-scale-low: #6183b9;
-  --fk-primitive-priority-scale-medium: #fed866;
-  --fk-primitive-priority-scale-urgent: #d32e2e;
+  --fk-primitive-priority-scale-medium: #fcd96f;
+  --fk-primitive-priority-scale-urgent: #e95365;
   --fk-primitive-purple-100: #f7f2ff;
   --fk-primitive-purple-1000: #35185f;
   --fk-primitive-purple-200: #dfd8ed;
@@ -308,9 +308,9 @@
   --fk-color-surface-transparent: #ffffff00;
   --fk-color-task-priority-high: #fd766b;
   --fk-color-task-priority-low: #6183b9;
-  --fk-color-task-priority-medium: #fed866;
+  --fk-color-task-priority-medium: #fcd96f;
   --fk-color-task-priority-on-color: #ffffff;
-  --fk-color-task-priority-urgent: #d32e2e;
+  --fk-color-task-priority-urgent: #e95365;
   --fk-color-text-action-primary: #fd766b;
   --fk-color-text-action-primary-hover: #e45f55;
   --fk-color-text-action-secondary: #2cb1af;
@@ -432,9 +432,9 @@
   --fk-color-surface-transparent: #ffffff00;
   --fk-color-task-priority-high: #fd766b;
   --fk-color-task-priority-low: #6183b9;
-  --fk-color-task-priority-medium: #fed866;
+  --fk-color-task-priority-medium: #fcd96f;
   --fk-color-task-priority-on-color: #ffffff;
-  --fk-color-task-priority-urgent: #d32e2e;
+  --fk-color-task-priority-urgent: #e95365;
   --fk-color-text-action-primary: #fd766b;
   --fk-color-text-action-primary-hover: #e45f55;
   --fk-color-text-action-secondary: #2cb1af;

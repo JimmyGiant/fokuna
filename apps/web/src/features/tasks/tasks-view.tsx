@@ -263,6 +263,7 @@ function SortableFlatTask({
   nestHint,
   subtaskLabel,
   goalTitle,
+  category,
   tags,
   contextMenuItems,
   onExpandedChange,
@@ -278,6 +279,7 @@ function SortableFlatTask({
   nestHint?: boolean;
   subtaskLabel?: string;
   goalTitle?: string;
+  category?: TaskListTag;
   tags?: TaskListTag[];
   contextMenuItems?: FokunaContextMenuEntry[];
   onExpandedChange: (expanded: boolean) => void;
@@ -323,6 +325,7 @@ function SortableFlatTask({
       }}
     >
       <TaskListItem
+        category={category}
         className={nestHint ? styles.nestTarget : undefined}
         completed={task.isCompleted}
         contextMenuItems={isDragging ? undefined : contextMenuItems}
@@ -341,6 +344,7 @@ function SortableFlatTask({
         onFavoriteChange={
           isDragging ? undefined : (favorite) => onFavorite(task, favorite)
         }
+        priority={task.priority}
         rowDragProps={isDragging ? undefined : { ...attributes, ...listeners }}
         state={isDragging ? "placeholder" : "default"}
         style={{
@@ -527,6 +531,17 @@ export function TasksView() {
         return { label: label.name, tone: colorTokenToTone(label.colorToken) };
       })
       .filter((tag): tag is { label: string; tone: TagTone } => Boolean(tag));
+  }
+
+  function resolveTaskCategory(task: TaskDto): TaskListTag | undefined {
+    if (!task.categoryId) return undefined;
+    const category = categories.find((entry) => entry.id === task.categoryId);
+    if (!category) return undefined;
+    return {
+      label: category.name,
+      tone: colorTokenToTone(category.colorToken),
+      swatch: colorTokenToCssVar(category.colorToken),
+    };
   }
 
   const sourceTasks = tasksQuery.data ?? [];
@@ -1185,6 +1200,7 @@ export function TasksView() {
 
       return (
         <SortableFlatTask
+          category={resolveTaskCategory(task)}
           contextMenuItems={buildTaskContextMenuItems(task)}
           depth={depth}
           expanded={expandedById[task.id] !== false}
@@ -1351,6 +1367,7 @@ export function TasksView() {
                 {activeTask ? (
                   <DnDGhostShell>
                     <TaskListItem
+                      category={resolveTaskCategory(activeTask)}
                       completed={activeTask.isCompleted}
                       due={formatDueLabel(activeTask.dueDate)}
                       dueTone={dueMetaTone(activeTask.dueDate)}
@@ -1360,6 +1377,7 @@ export function TasksView() {
                       goal={
                         activeTask.goalId ? goalTitles.get(activeTask.goalId) : undefined
                       }
+                      priority={activeTask.priority}
                       state="dragged"
                       style={{
                         width: "var(--fk-task-column-width, 800px)",

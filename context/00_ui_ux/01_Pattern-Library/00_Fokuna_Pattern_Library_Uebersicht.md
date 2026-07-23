@@ -180,10 +180,10 @@ Varianten und Properties:
 
 States:
 
-- `unchecked/default`: keine Auswahl.
-- `checked/selected`: ausgewaehlt, mit Haken und aktivem Token.
+- `unchecked/default`: keine Auswahl; starke Kontur (`border-tertiary` bzw. Priority-Farbe).
+- `checked/selected`: ausgewaehlt, voll gefuellt mit Haken und aktivem Token.
 - `indeterminate`: Teilzustand bei Gruppen.
-- `hover`: Stroke oder Surface leicht hervorgehoben.
+- `hover` (unchecked): Kontur bleibt; Fill `surface-muted`.
 - `disabled unchecked`: leerer, gedimmter Zustand.
 - `disabled checked`: ausgewaehlt, aber nicht interaktiv.
 - `focus visible`: Tastaturfokus um das Control oder die gesamte Label-Zeile.
@@ -194,6 +194,7 @@ Wichtig fuer Umsetzung:
 - Hit Area groesser denken als sichtbares Kaestchen.
 - Label-Klick muss die Checkbox toggeln.
 - Favorite Checkbox nicht fuer normale Binaerentscheidungen verwenden.
+- Priority-Checkboxen: gleiche State-Logik (starke farbige Kontur → muted Hover-Fill → volle Priority-Fuellung).
 
 ### 06 Radiobox
 
@@ -920,7 +921,8 @@ Varianten und Properties:
 - `favorite`: `false`, `true`.
 - `checkbox`: erledigt/nicht erledigt.
 - `title`: Aufgabenname.
-- `metadata`: Subtask-Count, Datum, Ziel, Labels.
+- `metadata`: Subtask-Count, Datum, Priority-Tag, Ziel, Kategorie, Labels.
+- `priority`: `none` | `urgent` | `high` | `medium` | `low` — steuert das `Tag Item Priority`-Pill in der Meta-Zeile.
 - `drag handle`: fuer Reordering.
 
 States:
@@ -939,6 +941,8 @@ Wichtig fuer Umsetzung:
 - Checkbox, Favorite, Drag Handle und Zeilenklick brauchen getrennte Event-Zonen.
 - Drag-and-Drop darf nicht beim Anklicken der Checkbox starten.
 - Metadata-Tags muessen mit bestehenden Tag- und Category-/Priority-Tokens arbeiten.
+- Meta-Reihenfolge: Subtasks → **Tag Item Priority** (nur wenn Prioritaet ≠ `none`) → Faelligkeit → Ziel → Kategorie → Labels.
+- `Tag Item Priority` ist kein allgemeiner Tag, sondern ein runder Priority-Marker ausschliesslich in der Task-List-Item-Meta: farbiger Kreis (16px) + Flag-Icon (8px), ohne Textlabel. Farben aus `--fk-color-task-priority-*`; Medium nutzt `text-secondary` fuer das Icon, die uebrigen `task-priority-on-color`. Labels (`Wichtig` / `Hoch` / `Medium` / `Niedrig`) bleiben als `aria-label`/`title`.
 - Faelligkeits-Meta: `Heute` und `Morgen` duerfen betont werden (`tone=coral`); alle anderen Daten (inkl. spaetere Zukunft und formatierte Datumsangaben) nutzen neutrales Grau wie Standard-Meta (`tone=neutral`) — keine Korall-/Error-Farbe fuer spaetere Termine.
 - Lange Titel muessen umbrechen oder ellipsieren, ohne die Listenhoehe unkontrolliert zu zerstoeren.
 - Hierarchie: bis zu fuenf Ebenen (`indentLevel` 0–4). Chevron- und Checkbox-Spalte sind gleich breit (16px), Gap 8px → Indent-Schritt 24px. Dadurch sitzt der Chevron des Kindes zentriert unter der Parent-Checkbox, und der Parent-Titel beginnt an der linken Kante der Kind-Checkbox.

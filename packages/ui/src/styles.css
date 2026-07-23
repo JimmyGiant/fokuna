@@ -585,6 +585,7 @@
   }
 
   .fk-checkbox {
+    border-color: var(--fk-color-border-tertiary);
     border-radius: 4px;
   }
 
@@ -604,7 +605,12 @@
     color: var(--fk-color-icon-action-secondary);
   }
 
-  .fk-checkbox[data-variant="default"][data-state="unchecked"]:hover:not(:disabled),
+  /* Strong contour stays; hover only adds muted fill (no stroke change). */
+  .fk-checkbox[data-variant="default"][data-state="unchecked"]:hover:not(:disabled) {
+    background: var(--fk-color-surface-muted);
+    border-color: var(--fk-color-border-tertiary);
+  }
+
   .fk-radio:hover:not(:disabled) {
     border-color: var(--fk-color-border-tertiary);
   }
@@ -704,13 +710,6 @@
     cursor: not-allowed;
   }
 
-  .fk-checkbox[data-priority]:not([data-priority="none"]):not([data-variant="favorite"]):not(
-      [data-variant="milestone"]
-    ):not([data-state="checked"]) {
-    background: color-mix(in srgb, var(--fk-selection-priority) 20%, white);
-    border-color: var(--fk-selection-priority);
-  }
-
   .fk-checkbox[data-priority="low"][data-priority] {
     --fk-selection-priority: var(--fk-color-task-priority-low);
   }
@@ -725,6 +724,21 @@
 
   .fk-checkbox[data-priority="urgent"][data-priority] {
     --fk-selection-priority: var(--fk-color-task-priority-urgent);
+  }
+
+  /* Priority: colored contour always; muted fill on hover; solid fill when checked. */
+  .fk-checkbox[data-priority]:not([data-priority="none"]):not([data-variant="favorite"]):not(
+      [data-variant="milestone"]
+    ):not([data-state="checked"]) {
+    background: var(--fk-color-surface-base);
+    border-color: var(--fk-selection-priority);
+  }
+
+  .fk-checkbox[data-priority]:not([data-priority="none"]):not([data-variant="favorite"]):not(
+      [data-variant="milestone"]
+    )[data-state="unchecked"]:hover:not(:disabled) {
+    background: var(--fk-color-surface-muted);
+    border-color: var(--fk-selection-priority);
   }
 
   .fk-checkbox[data-priority]:not([data-priority="none"])[data-state="checked"] {
@@ -2994,9 +3008,7 @@
     top: calc(
       var(--fk-calendar-track-inset) +
         (var(--fk-calendar-hour-index, 0) / var(--fk-calendar-interval-count, 11)) *
-        (
-          100% - var(--fk-calendar-track-inset) - var(--fk-calendar-rule-end-inset)
-        )
+        (100% - var(--fk-calendar-track-inset) - var(--fk-calendar-rule-end-inset))
     );
   }
 
@@ -3833,7 +3845,10 @@
     border: 1px solid transparent;
     border-radius: 8px;
     background:
-      linear-gradient(var(--fk-color-surface-base, var(--fk-color-surface-subtle)), var(--fk-color-surface-base, var(--fk-color-surface-subtle)))
+      linear-gradient(
+          var(--fk-color-surface-base, var(--fk-color-surface-subtle)),
+          var(--fk-color-surface-base, var(--fk-color-surface-subtle))
+        )
         padding-box,
       linear-gradient(to bottom, rgb(255 255 255 / 16%), rgb(0 0 0 / 4%)) border-box;
     box-shadow: var(--fk-shadow-subtle-element);
@@ -3849,7 +3864,8 @@
     border-radius: 8px;
     /* Same shrink-with-indent width as normal rows (not full column). */
     width: calc(
-      var(--fk-task-column-width, 800px) - (var(--fk-task-indent-level) * var(--fk-task-indent-step))
+      var(--fk-task-column-width, 800px) -
+        (var(--fk-task-indent-level) * var(--fk-task-indent-step))
     );
     pointer-events: none;
     /* Opaque slot so neighbors never read as “behind” the placeholder. */
@@ -3997,19 +4013,72 @@
   }
 
   .fk-task-item__meta {
+    align-items: center;
+    column-gap: 12px;
     display: flex;
     flex-wrap: wrap;
-    column-gap: 12px;
     margin-top: 0;
     row-gap: 4px;
   }
 
   .fk-task-item__meta .fk-tag {
+    align-items: center;
     background: transparent;
     border: 0;
     font-weight: 400;
     height: 16px;
     padding: 0;
+  }
+
+  /* Priority marker — colored circle + flag icon. */
+  .fk-tag-item-priority {
+    align-items: center;
+    border-radius: 999px;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 16px;
+    justify-content: center;
+    width: 16px;
+  }
+
+  .fk-tag-item-priority[data-priority="urgent"] {
+    background: var(--fk-color-task-priority-urgent);
+    color: var(--fk-color-task-priority-on-color);
+  }
+
+  .fk-tag-item-priority[data-priority="high"] {
+    background: var(--fk-color-task-priority-high);
+    color: var(--fk-color-task-priority-on-color);
+  }
+
+  .fk-tag-item-priority[data-priority="medium"] {
+    background: var(--fk-color-task-priority-medium);
+    color: var(--fk-color-text-secondary);
+  }
+
+  .fk-tag-item-priority[data-priority="low"] {
+    background: var(--fk-color-task-priority-low);
+    color: var(--fk-color-task-priority-on-color);
+  }
+
+  .fk-tag-item-priority svg {
+    display: block;
+    flex: 0 0 auto;
+    height: 8px;
+    width: 8px;
+  }
+
+  .fk-tag-item-priority svg path {
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .fk-task-item__category-dot {
+    border-radius: 999px;
+    display: block;
+    flex: 0 0 auto;
+    height: 6px;
+    width: 6px;
   }
 
   .fk-task-item__favorite[data-favorite="true"] {
@@ -4486,7 +4555,8 @@
   }
 
   /* Edit mode: icon aligns to the first textarea line, not the full min-height. */
-  .fk-task-modal-header[data-editing="true"] .fk-task-modal-header__description-row[data-empty="true"] {
+  .fk-task-modal-header[data-editing="true"]
+    .fk-task-modal-header__description-row[data-empty="true"] {
     align-items: start;
   }
 

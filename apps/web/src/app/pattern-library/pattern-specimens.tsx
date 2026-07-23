@@ -52,6 +52,7 @@ import {
   TabBar,
   TabSelect,
   Tag,
+  TagItemPriority,
   TaskGroup,
   TaskGroupHeader,
   TaskListItem,
@@ -354,11 +355,39 @@ function TaskItems({
           due="Morgen"
           dueTone="coral"
           goal={isMilestoneHeader || isMilestoneTask ? "Mein Ziel" : "Website Launch"}
+          priority="urgent"
           subtasks="1/3"
           tags={["Design"]}
           title={isMilestoneHeader ? "Meilenstein A" : "Komponenten prüfen"}
           {...sharedMilestoneProps}
         />
+      </MatrixRow>
+      <MatrixRow label="Priority Meta (Tag Item Priority)">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, width: "100%" }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
+            <TagItemPriority priority="urgent" />
+            <TagItemPriority priority="high" />
+            <TagItemPriority priority="medium" />
+            <TagItemPriority priority="low" />
+          </div>
+          <TaskListItem
+            due="Morgen"
+            dueTone="coral"
+            priority="high"
+            subtasks="0/2"
+            tags={["Etikettenname"]}
+            title="Aufgabenname"
+            {...sharedMilestoneProps}
+          />
+          <TaskListItem
+            priority="medium"
+            subtasks="0/2"
+            tags={["Etikettenname"]}
+            title="Unteraufgabenname"
+            {...sharedMilestoneProps}
+            indentLevel={1}
+          />
+        </div>
       </MatrixRow>
       <MatrixRow label="Fälligkeit (Datum, neutral)">
         <TaskListItem

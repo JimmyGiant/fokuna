@@ -26,6 +26,11 @@ import {
 import { Checkbox } from "./selection-control";
 import { SubtaskIcon } from "./subtask-icon";
 import { Tag, type TagTone } from "./tag";
+import {
+  isTagItemPriorityLevel,
+  TagItemPriority,
+  type TagItemPriorityLevel,
+} from "./tag-item-priority";
 import { cn } from "./utils";
 
 export { TASK_MAX_DEPTH, TASK_MAX_INDENT_LEVEL, type TaskIndentLevel };
@@ -33,9 +38,11 @@ export { TASK_MAX_DEPTH, TASK_MAX_INDENT_LEVEL, type TaskIndentLevel };
 export type TaskItemState = "default" | "hover" | "selected" | "dragged" | "placeholder";
 
 /** List-item tag chip — string keeps legacy specimens; object carries label color. */
-export type TaskListTag = string | { label: string; tone?: TagTone };
+export type TaskListTag = string | { label: string; tone?: TagTone; swatch?: string };
 
-function resolveListTag(tag: TaskListTag): { label: string; tone?: TagTone } {
+export type TaskListPriority = "none" | TagItemPriorityLevel;
+
+function resolveListTag(tag: TaskListTag): { label: string; tone?: TagTone; swatch?: string } {
   return typeof tag === "string" ? { label: tag } : tag;
 }
 
@@ -47,8 +54,14 @@ export interface TaskListItemProps extends HTMLAttributes<HTMLDivElement> {
   state?: TaskItemState;
   goal?: string;
   due?: string;
+  /** Category chip — only rendered when set. */
+  category?: TaskListTag;
   tags?: TaskListTag[];
   subtasks?: string;
+  /**
+   * Priority meta pill (Figma Tag Item Priority). Shown before due when not `none`.
+   */
+  priority?: TaskListPriority;
   milestone?: boolean;
   milestoneTask?: boolean;
   expandable?: boolean;
@@ -72,6 +85,72 @@ export interface TaskListItemProps extends HTMLAttributes<HTMLDivElement> {
   onFavoriteChange?: (favorite: boolean) => void;
 }
 
+function TaskListMeta({
+  subtasks,
+  due,
+  dueTone,
+  priority,
+  goal,
+  category,
+  tags,
+}: {
+  subtasks?: string;
+  due?: string;
+  dueTone: TagTone;
+  priority?: TagItemPriorityLevel;
+  goal?: string;
+  category?: TaskListTag;
+  tags: TaskListTag[];
+}) {
+  const resolvedCategory = category ? resolveListTag(category) : null;
+  const categorySwatch =
+    resolvedCategory?.swatch ??
+    (resolvedCategory?.tone && resolvedCategory.tone !== "neutral"
+      ? `var(--fk-color-category-${resolvedCategory.tone})`
+      : undefined);
+
+  return (
+    <span className="fk-task-item__meta">
+      {subtasks ? <Tag icon={<SubtaskIcon />}>{subtasks}</Tag> : null}
+      {priority ? <TagItemPriority priority={priority} /> : null}
+      {due ? (
+        <Tag icon="calendar" tone={dueTone}>
+          {due}
+        </Tag>
+      ) : null}
+      {goal ? (
+        <Tag icon="focus-target" tone="teal">
+          {goal}
+        </Tag>
+      ) : null}
+      {resolvedCategory ? (
+        <Tag
+          icon={
+            categorySwatch ? (
+              <span
+                aria-hidden="true"
+                className="fk-task-item__category-dot"
+                style={{ background: categorySwatch }}
+              />
+            ) : undefined
+          }
+          tone={resolvedCategory.tone}
+        >
+          {resolvedCategory.label}
+        </Tag>
+      ) : null}
+      {tags.map((tag) => {
+        const resolved = resolveListTag(tag);
+        return (
+          <Tag icon="tag" key={resolved.label} tone={resolved.tone}>
+            {resolved.label}
+          </Tag>
+        );
+      })}
+    </span>
+  );
+}
+
 export function TaskListItem({
   title,
   description,
@@ -81,6 +160,8 @@ export function TaskListItem({
   goal,
   due,
   dueTone = "neutral",
+  priority = "none",
+  category,
   tags = [],
   subtasks,
   milestone,
@@ -103,12 +184,21 @@ export function TaskListItem({
   const [internalExpanded, setInternalExpanded] = useState(defaultExpanded);
   const isFavorite = onFavoriteChange ? Boolean(favorite) : internalFavorite;
   const resolvedGoal = goal ?? (milestone || milestoneTask ? "Mein Ziel" : undefined);
+  const resolvedPriority = isTagItemPriorityLevel(priority) ? priority : undefined;
   const childCount = Children.count(children);
   const isExpandable = milestoneTask
     ? false
     : (expandable ?? (Boolean(subtasks) || childCount > 0));
   const isExpanded = expandedProp ?? internalExpanded;
-  const hasMeta = Boolean(description || subtasks || resolvedGoal || due || tags.length);
+  const hasMeta = Boolean(
+    description ||
+      subtasks ||
+      resolvedGoal ||
+      due ||
+      resolvedPriority ||
+      category ||
+      tags.length,
+  );
   const resolvedIndent = Math.max(
     0,
     Math.min(TASK_MAX_INDENT_LEVEL, indentLevel),
@@ -137,27 +227,15 @@ export function TaskListItem({
           <span className="fk-task-item__content">
             <strong>{title}</strong>
             {hasMeta ? (
-              <span className="fk-task-item__meta">
-                {subtasks ? <Tag icon={<SubtaskIcon />}>{subtasks}</Tag> : null}
-                {resolvedGoal ? (
-                  <Tag icon="focus-target" tone="teal">
-                    {resolvedGoal}
-                  </Tag>
-                ) : null}
-                {due ? (
-                  <Tag icon="calendar" tone={dueTone}>
-                    {due}
-                  </Tag>
-                ) : null}
-                {tags.map((tag) => {
-                  const resolved = resolveListTag(tag);
-                  return (
-                    <Tag icon="tag" key={resolved.label} tone={resolved.tone}>
-                      {resolved.label}
-                    </Tag>
-                  );
-                })}
-              </span>
+              <TaskListMeta
+                category={category}
+                due={due}
+                dueTone={dueTone}
+                goal={resolvedGoal}
+                priority={resolvedPriority}
+                subtasks={subtasks}
+                tags={tags}
+              />
             ) : null}
           </span>
           <span className="fk-task-item__favorite" />
@@ -228,27 +306,15 @@ export function TaskListItem({
           <strong>{title}</strong>
           {description ? <small>{description}</small> : null}
           {hasMeta ? (
-            <span className="fk-task-item__meta">
-              {subtasks ? <Tag icon={<SubtaskIcon />}>{subtasks}</Tag> : null}
-              {resolvedGoal ? (
-                <Tag icon="focus-target" tone="teal">
-                  {resolvedGoal}
-                </Tag>
-              ) : null}
-              {due ? (
-                <Tag icon="calendar" tone={dueTone}>
-                  {due}
-                </Tag>
-              ) : null}
-              {tags.map((tag) => {
-                const resolved = resolveListTag(tag);
-                return (
-                  <Tag icon="tag" key={resolved.label} tone={resolved.tone}>
-                    {resolved.label}
-                  </Tag>
-                );
-              })}
-            </span>
+            <TaskListMeta
+              category={category}
+              due={due}
+              dueTone={dueTone}
+              goal={resolvedGoal}
+              priority={resolvedPriority}
+              subtasks={subtasks}
+              tags={tags}
+            />
           ) : null}
         </span>
         <button

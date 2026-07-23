@@ -89,6 +89,7 @@ function SortableSubtaskRow({
         onCompletedChange={
           isDragging ? undefined : (completed) => onToggleCompleted(task.id, completed)
         }
+        priority={task.priority}
         rowDragProps={isDragging ? undefined : { ...attributes, ...listeners }}
         state={isDragging ? "placeholder" : "default"}
         style={
@@ -284,6 +285,7 @@ export function ModalSubtaskList({
                     <TaskListItem
                       completed={overlayTask.isCompleted}
                       due={formatDueLabel(overlayTask.dueDate)}
+                      priority={overlayTask.priority}
                       state="dragged"
                       style={{
                         boxSizing: "border-box",

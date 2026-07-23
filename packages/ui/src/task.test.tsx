@@ -41,6 +41,44 @@ describe("task composition patterns", () => {
     expect(taskWithMeta?.querySelector(".fk-task-item__expand svg")).toBeInTheDocument();
   });
 
+  it("orders meta as priority → due → goal → category → labels with a category color swatch", () => {
+    render(
+      <TaskListItem
+        category={{ label: "Privat", tone: "purple", swatch: "var(--fk-color-category-purple)" }}
+        due="Heute"
+        goal="Halbmarathon"
+        priority="high"
+        tags={[{ label: "Deep Work", tone: "teal" }]}
+        title="Intervall"
+      />,
+    );
+
+    const meta = screen.getByText("Intervall").closest(".fk-task-item")?.querySelector(
+      ".fk-task-item__meta",
+    );
+    expect(meta).toBeTruthy();
+    const chips = Array.from(meta!.children).map((node) => {
+      if (node.classList.contains("fk-tag-item-priority")) {
+        return node.getAttribute("aria-label") ?? "";
+      }
+      return (node.textContent ?? "").replace(/\s+/g, " ").trim();
+    });
+    expect(chips).toEqual(["Hoch", "Heute", "Halbmarathon", "Privat", "Deep Work"]);
+    expect(meta!.querySelector(".fk-tag-item-priority")).toHaveAttribute("data-priority", "high");
+    expect(meta!.querySelector(".fk-task-item__category-dot")).toHaveStyle({
+      background: "var(--fk-color-category-purple)",
+    });
+  });
+
+  it("hides the priority meta pill when priority is none", () => {
+    render(<TaskListItem due="Morgen" priority="none" title="Ohne Prio" />);
+
+    const meta = screen.getByText("Ohne Prio").closest(".fk-task-item")?.querySelector(
+      ".fk-task-item__meta",
+    );
+    expect(meta?.querySelector(".fk-tag-item-priority")).not.toBeInTheDocument();
+  });
+
   it("expands nested children even without a subtasks label", () => {
     render(
       <TaskListItem title="Hauptaufgabe">
