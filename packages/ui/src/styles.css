@@ -1265,9 +1265,14 @@
     font-weight: 600;
     gap: 4px;
     height: var(--fk-dropdown-height);
-    justify-content: center;
     line-height: var(--fk-type-font-line-height-body-md);
     padding: 0 var(--fk-dropdown-pad-x);
+  }
+
+  /* Value left-aligned, chevron trailing — never centered label text. */
+  .fk-dropdown__trigger {
+    justify-content: space-between;
+    text-align: left;
   }
 
   .fk-dropdown__trigger:hover,
@@ -1298,8 +1303,14 @@
   .fk-dropdown__value {
     align-items: center;
     display: inline-flex;
+    flex: 1 1 auto;
     gap: 4px;
+    justify-content: flex-start;
     min-width: 0;
+    overflow: hidden;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .fk-dropdown__trigger [data-placeholder] {

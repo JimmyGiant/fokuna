@@ -76,6 +76,8 @@ import {
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
+import { ListOptionsPopover } from "@/features/tasks/list-options-popover";
+
 import styles from "./pattern-library.module.css";
 
 const sizes: ControlSize[] = ["sm", "md", "lg", "xl"];
@@ -373,15 +375,29 @@ function HeaderMetaMenu() {
 
 function ListOverflowMenu({ active = false }: { active?: boolean }) {
   return (
-    <MetaMenu
-      items={[
-        {
-          label: active ? "Erledigte ausblenden" : "Erledigte einblenden",
-          icon: "checklist",
-        },
+    <ListOptionsPopover
+      active={active}
+      capabilities={{
+        showCompleted: true,
+        grouping: true,
+        sorting: true,
+        filterDate: true,
+        filterPriority: true,
+        filterLabel: true,
+      }}
+      labels={[
+        { id: "reclaim", name: "reclaim" },
+        { id: "reclaim_personal", name: "reclaim_personal" },
       ]}
-      label="Listenoptionen"
-      trigger={<OverflowButton active={active} aria-label="Listenoptionen" />}
+      onChange={() => {}}
+      onReset={() => {}}
+      prefs={{
+        showCompleted: active,
+        grouping: "none",
+        sorting: active ? "date" : "manual",
+        sortDirection: "asc",
+        filters: { date: "all", priorities: [], labelIds: [] },
+      }}
     />
   );
 }

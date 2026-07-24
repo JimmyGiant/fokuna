@@ -1,10 +1,17 @@
 import type { UpdateUserProfileInput, UserProfileDto } from "@fokuna/api-contracts";
 import { eq, userProfile } from "@fokuna/db";
 import {
+  DEFAULT_TASKS_LIST_VIEW_PREFERENCES,
+  mergeTasksListViewPreferences,
+  normalizeTasksListViewPreferences,
+  normalizeTasksListViewsMap,
   normalizeTasksPreferences,
   normalizeTasksSidebarPreferences,
   resolveTasksPreferences,
   resolveTasksSidebarPreferences,
+  tasksListViewPreferencesEqual,
+  type TasksListViewPreferences,
+  type TasksListViewPreferencesPatch,
   type UiPreferences,
 } from "@fokuna/domain";
 
@@ -46,6 +53,30 @@ function mergeUiPreferences(
       ...current,
       ...input.tasks,
     });
+  }
+  if (input.tasksListViews) {
+    const merged: Record<string, TasksListViewPreferences> = {
+      ...normalizeTasksListViewsMap(existing.tasksListViews),
+    };
+    for (const [viewKey, patch] of Object.entries(input.tasksListViews)) {
+      if (patch === null) {
+        delete merged[viewKey];
+        continue;
+      }
+      const current = merged[viewKey]
+        ? normalizeTasksListViewPreferences(merged[viewKey])
+        : normalizeTasksListViewPreferences({});
+      const nextPrefs = mergeTasksListViewPreferences(
+        current,
+        patch as TasksListViewPreferencesPatch,
+      );
+      if (tasksListViewPreferencesEqual(nextPrefs, DEFAULT_TASKS_LIST_VIEW_PREFERENCES)) {
+        delete merged[viewKey];
+      } else {
+        merged[viewKey] = nextPrefs;
+      }
+    }
+    next.tasksListViews = normalizeTasksListViewsMap(merged);
   }
   return next;
 }

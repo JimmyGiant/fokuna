@@ -13,6 +13,7 @@ export * from "./goal-card";
 export * from "./insight-card";
 export * from "./input";
 export * from "./page-layout";
+export * from "./popover";
 export * from "./search-field";
 export * from "./selection-control";
 export * from "./sidebar";

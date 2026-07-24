@@ -86,6 +86,17 @@
 
 ---
 
+## Listenoptionen (Sort / Gruppe / Filter)
+
+| Stufe | Status | Hinweis |
+|-------|--------|---------|
+| Persistenz `ui_preferences.tasksListViews` | `Done` | Account-scoped via Profile PATCH; Key pro Smart/Kategorie/Label/Priorität; Heute ohne Gruppierung |
+| Popover (Erledigte + Sortieren + Filter) | `Done` | Overflow am Listentitel; Active-Badge bei Abweichung vom Default |
+| Modus Manuell vs. Abgeleitet | `Done` | DnD nur im Manual-Default; dynamische Gruppierung nutzt bestehende Abschnitts-UI |
+| Goals-Views | `Deferred` | Später eigener Namespace |
+
+---
+
 ## Bewusst deferred (Handshake)
 
 - Dedizierte Duplicate-API

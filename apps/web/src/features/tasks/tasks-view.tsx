@@ -26,19 +26,25 @@ import {
   TASK_MAX_INDENT_LEVEL,
   TASK_SECTION_ROOT_KEY,
   applyCompletedTaskWindow,
+  applyListViewSortOrders,
   applyPlacementsToTasks,
   buildTaskDragLayout,
   canCreateSubtaskAtDepth,
   commitTaskTreeMove,
   COMPLETED_TASK_PAGE_SIZE,
   COMPLETED_WINDOW_BUCKET,
+  derivedGroupKeyForTask,
   flattenTasksForTree,
   formatRemainingCompletedLabel,
   getTaskTreeProjection,
+  isTasksListViewManualMode,
   layoutToPlacements,
   mergePlacements,
+  orderDerivedGroupKeys,
   removeChildrenOfActive,
   resolveTasksPreferences,
+  taskMatchesListViewFilters,
+  titleForDerivedGroup,
   todayIsoDateString,
   type FlatTreeItem,
   type TaskIndentLevel,
@@ -53,8 +59,6 @@ import {
   CalendarDrawer,
   CalendarItem,
   Dropdown,
-  MetaMenu,
-  OverflowButton,
   PageHeader,
   SearchField,
   Switcher,
@@ -88,6 +92,7 @@ import {
 } from "@/components/confirm-delete-modal";
 import { apiGet, apiSend } from "@/lib/api";
 import { useTaskTaxonomy } from "./aufgaben-shell";
+import { ListOptionsPopover } from "./list-options-popover";
 import { colorTokenToCssVar, colorTokenToTone } from "./taxonomy";
 import { TaskDetailModal } from "./task-detail-modal";
 import { TaskDueDateMenuPanel, TaskEstimateMenuPanel, TaskLabelsMenuPanel } from "./task-property-editor";
@@ -100,6 +105,7 @@ import {
   type TaskSectionsPayload,
 } from "./task-sections";
 import { useTasksListDndRegistration } from "./tasks-dnd-host";
+import { useTasksListViewPreferences } from "./use-tasks-list-view-preferences";
 import styles from "./tasks-view.module.css";
 
 const ROOT_GROUP = "root";
@@ -717,6 +723,23 @@ export function TasksView() {
   const labelId = searchParams.get("label");
   const priorityFilter = searchParams.get("priority");
   const selectedTaskId = searchParams.get("task");
+  const {
+    prefs: listPrefs,
+    capabilities: listCapabilities,
+    isActive: listPrefsActive,
+    setPrefs: setListPrefs,
+    resetPrefs: resetListPrefs,
+  } = useTasksListViewPreferences({
+    filter,
+    categoryId,
+    labelId,
+    priority: priorityFilter,
+  });
+  const showCompleted = listPrefs.showCompleted;
+  const manualListMode = isTasksListViewManualMode(listPrefs);
+  const derivedGrouping =
+    listCapabilities.grouping && listPrefs.grouping !== "none";
+  const showUserSections = Boolean(categoryId || labelId) && manualListMode && !derivedGrouping;
   const openLabelsAfterTaskCloseRef = useRef(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
@@ -752,7 +775,6 @@ export function TasksView() {
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [search, setSearch] = useState("");
-  const [showCompleted, setShowCompleted] = useState(false);
   /** Completed roots revealed per list/section bucket (client window → later server page). */
   const [completedRevealByBucket, setCompletedRevealByBucket] = useState<Record<string, number>>(
     {},
@@ -782,6 +804,11 @@ export function TasksView() {
   const [rootAdding, setRootAdding] = useState(false);
 
   const sectionListMode = Boolean(categoryId || labelId);
+  const labelTitleById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const label of labels) map.set(label.id, label.name);
+    return map;
+  }, [labels]);
 
   const tasksQuery = useQuery({
     queryKey: ["tasks"],
@@ -1171,6 +1198,7 @@ export function TasksView() {
       if (categoryId && task.categoryId !== categoryId) return false;
       if (labelId && !task.labelIds.includes(labelId)) return false;
       if (priorityFilter && normalizePriority(task.priority) !== priorityFilter) return false;
+      if (!taskMatchesListViewFilters(task, listPrefs.filters, today)) return false;
       return matchesSearch(task);
     }
 
@@ -1191,15 +1219,41 @@ export function TasksView() {
       }
       return false;
     });
-  }, [categoryId, filter, labelId, labelsById, priorityFilter, search, showCompleted, sourceTasks]);
+  }, [
+    categoryId,
+    filter,
+    labelId,
+    labelsById,
+    listPrefs.filters,
+    priorityFilter,
+    search,
+    showCompleted,
+    sourceTasks,
+  ]);
 
   /** Category/label lists: virtual groupKey from section membership for DnD/rendering. */
   const sectionScopedTasks = useMemo(() => {
-    if (!sectionListMode) return visibleTasks;
+    if (!showUserSections) return visibleTasks;
     return applySectionGroupKeys(visibleTasks, listSections, listMemberships);
-  }, [listMemberships, listSections, sectionListMode, visibleTasks]);
+  }, [listMemberships, listSections, showUserSections, visibleTasks]);
 
-  const treeTasks = sectionListMode ? sectionScopedTasks : visibleTasks;
+  const treeTasks = useMemo(() => {
+    const base = showUserSections ? sectionScopedTasks : visibleTasks;
+    const grouped = derivedGrouping
+      ? base.map((task) => {
+          if (task.parentTaskId) return task;
+          const key = derivedGroupKeyForTask(task, listPrefs.grouping);
+          return key ? { ...task, groupKey: key } : task;
+        })
+      : base;
+    return applyListViewSortOrders(grouped, listPrefs);
+  }, [
+    derivedGrouping,
+    listPrefs,
+    sectionScopedTasks,
+    showUserSections,
+    visibleTasks,
+  ]);
 
   const overdueTreeIds = useMemo(() => {
     if (filter !== "today") return new Set<string>();
@@ -1220,7 +1274,7 @@ export function TasksView() {
     return ids;
   }, [filter, visibleTasks]);
 
-  const unifyFlatList = filter !== "today" && !sectionListMode;
+  const unifyFlatList = filter !== "today" && !showUserSections && !derivedGrouping;
 
   const completedWindow = useMemo(
     () =>
@@ -1292,14 +1346,20 @@ export function TasksView() {
     return map;
   }, [displayTreeTasks, overdueTreeIds]);
 
-  const createGroupKey = sectionListMode
+  const createGroupKey = showUserSections
     ? TASK_SECTION_ROOT_KEY
     : createGroupKeyForFilter(filter);
 
   const orderedGroupKeys = useMemo(() => {
-    if (sectionListMode) {
-      const keys = [TASK_SECTION_ROOT_KEY, ...listSections.map((section) => section.id)];
-      return keys;
+    if (derivedGrouping) {
+      return orderDerivedGroupKeys(
+        [...rootTasksByGroup.keys()],
+        listPrefs.grouping,
+        labelTitleById,
+      );
+    }
+    if (showUserSections) {
+      return [TASK_SECTION_ROOT_KEY, ...listSections.map((section) => section.id)];
     }
     const keys = [...rootTasksByGroup.keys()];
     keys.sort((a, b) => {
@@ -1311,7 +1371,15 @@ export function TasksView() {
       keys.unshift(createGroupKey);
     }
     return keys;
-  }, [createGroupKey, listSections, rootTasksByGroup, sectionListMode]);
+  }, [
+    createGroupKey,
+    derivedGrouping,
+    labelTitleById,
+    listPrefs.grouping,
+    listSections,
+    rootTasksByGroup,
+    showUserSections,
+  ]);
 
   /** Base flat tree (children of active hidden while dragging). */
   const dragFlatBase = useMemo(
@@ -1365,14 +1433,14 @@ export function TasksView() {
 
   /** Destination group implied by current `over` (task row or section chrome). */
   const dragTargetGroupKey = useMemo(() => {
-    if (!sectionListMode || !activeId || activeId.startsWith("section:")) return null;
+    if (!showUserSections || !activeId || activeId.startsWith("section:")) return null;
     const sectionKey = parseTaskSectionTargetKey(overId);
     if (sectionKey) return sectionKey;
     if (overId && !overId.startsWith("section")) {
       return dragFlatBase.find((item) => item.id === overId)?.groupKey ?? null;
     }
     return null;
-  }, [activeId, dragFlatBase, overId, sectionListMode]);
+  }, [activeId, dragFlatBase, overId, showUserSections]);
 
   /**
    * Last known target while dragging — avoids origin placeholder flashing back
@@ -1412,7 +1480,7 @@ export function TasksView() {
           offsetLeft,
           INDENTATION_WIDTH,
           undefined,
-          !unifyFlatList && !sectionListMode,
+          !unifyFlatList && !showUserSections,
         )
       : null;
 
@@ -1428,6 +1496,7 @@ export function TasksView() {
   }, [activeId, dragFlatItems, dragProjection]);
 
   const allSortableIds = useMemo(() => {
+    if (!manualListMode) return [];
     const byId = new Map(displayTreeTasks.map((task) => [task.id, task]));
     return dragFlatItems
       .map((item) => item.id)
@@ -1436,7 +1505,7 @@ export function TasksView() {
         const task = byId.get(id);
         return Boolean(task && !task.isCompleted);
       });
-  }, [displayTreeTasks, dragFlatItems, editingTaskId]);
+  }, [displayTreeTasks, dragFlatItems, editingTaskId, manualListMode]);
   const activeTask = dragOverlayTask;
   const selectedTask = (tasksQuery.data ?? []).find((task) => task.id === selectedTaskId) ?? null;
   const tasksById = useMemo(
@@ -1641,7 +1710,7 @@ export function TasksView() {
 
     // Section header / empty-row targets: move into that group at start or end.
     // Only on over-change — lingering onMove would thrash against task rows.
-    const sectionTargetKey = sectionListMode ? parseTaskSectionTargetKey(input.overId) : null;
+    const sectionTargetKey = showUserSections ? parseTaskSectionTargetKey(input.overId) : null;
     if (sectionTargetKey) {
       if (!input.overChanged && lastSyncedOverIdRef.current === input.overId) return;
       const itemsById = new Map(dragFlatBase.map((item) => [item.id, item]));
@@ -1668,7 +1737,7 @@ export function TasksView() {
     const activeMeta = dragFlatBase.find((item) => item.id === input.activeId);
     const overMeta = dragFlatBase.find((item) => item.id === input.overId);
     if (!activeMeta || !overMeta) return;
-    if (!unifyFlatList && !sectionListMode && activeMeta.groupKey !== overMeta.groupKey) return;
+    if (!unifyFlatList && !showUserSections && activeMeta.groupKey !== overMeta.groupKey) return;
 
     let nextIndex: number;
 
@@ -1698,6 +1767,7 @@ export function TasksView() {
   }
 
   function onDragStart(event: DragStartEvent) {
+    if (!manualListMode) return;
     cancelScheduledDragClear();
     setEditingTaskId(null);
     const id = String(event.active.id);
@@ -1849,7 +1919,7 @@ export function TasksView() {
       const liveOrderedIds =
         dragOrderedSectionIdsRef.current ?? listSections.map((section) => section.id);
       clearDragUi();
-      if (!sectionListMode) return;
+      if (!showUserSections) return;
       const unchanged =
         liveOrderedIds.length === listSections.length &&
         liveOrderedIds.every((id, index) => listSections[index]?.id === id);
@@ -1868,14 +1938,14 @@ export function TasksView() {
     const offsetSnapshot = offsetLeft;
     const scopedSnapshot = treeTasks;
     const sourceById = new Map((tasksQuery.data ?? []).map((task) => [task.id, task]));
-    const sectionTargetKey = sectionListMode ? parseTaskSectionTargetKey(over) : null;
+    const sectionTargetKey = showUserSections ? parseTaskSectionTargetKey(over) : null;
 
     clearDragUi();
 
     if (!over || !origin) return;
 
     // Empty section / header drop without a task row under the pointer.
-    if (sectionListMode && sectionTargetKey) {
+    if (showUserSections && sectionTargetKey) {
       const source = sourceById.get(active);
       if (!source || source.parentTaskId) return;
       const previousKey =
@@ -1932,7 +2002,7 @@ export function TasksView() {
       offsetSnapshot,
       INDENTATION_WIDTH,
       undefined,
-      !unifyFlatList && !sectionListMode,
+      !unifyFlatList && !showUserSections,
     );
     if (!projected) return;
 
@@ -1966,7 +2036,7 @@ export function TasksView() {
       };
     });
 
-    if (sectionListMode) {
+    if (showUserSections) {
       const originById = new Map(origin.map((placement) => [placement.id, placement]));
       const patchById = new Map(patch.map((placement) => [placement.id, placement]));
       for (const [taskId, next] of patchById) {
@@ -2300,7 +2370,7 @@ export function TasksView() {
             effectiveTargetGroupKey != null &&
             dragOriginGroupKey !== effectiveTargetGroupKey
           }
-          sortableDisabled={task.isCompleted}
+          sortableDisabled={task.isCompleted || !manualListMode}
           subtaskLabel={subtaskLabel}
           tags={resolveTaskTagLabels(task)}
           task={task}
@@ -2366,7 +2436,7 @@ export function TasksView() {
       // Favoriten is a filter view — new tasks must be flagged or they vanish after create.
       ...(filter === "favorites" ? { isFavorite: true } : {}),
     });
-    if (sectionListMode && options?.sectionId) {
+    if (showUserSections && options?.sectionId) {
       await setMembershipMutation.mutateAsync({
         taskId: created.id,
         sectionId: options.sectionId,
@@ -2436,21 +2506,13 @@ export function TasksView() {
         <div className={styles.listStack}>
           <div className={styles.listTitleRow}>
             <h1 className={styles.listTitle}>{listTitle}</h1>
-            <MetaMenu
-              items={[
-                {
-                  label: showCompleted ? "Erledigte ausblenden" : "Erledigte einblenden",
-                  icon: "checklist",
-                  onSelect: () => setShowCompleted((value) => !value),
-                },
-              ]}
-              label="Listenoptionen"
-              trigger={
-                <OverflowButton
-                  active={showCompleted}
-                  aria-label="Listenoptionen"
-                />
-              }
+            <ListOptionsPopover
+              active={listPrefsActive}
+              capabilities={listCapabilities}
+              labels={labels.map((label) => ({ id: label.id, name: label.name }))}
+              onChange={setListPrefs}
+              onReset={resetListPrefs}
+              prefs={listPrefs}
             />
           </div>
 
@@ -2502,7 +2564,36 @@ export function TasksView() {
                       </div>
                     )}
                   </>
-                ) : sectionListMode ? (
+                ) : derivedGrouping ? (
+                  <>
+                    {orderedGroupKeys.map((groupKey) => {
+                      const groupRoots = rootTasksByGroup.get(groupKey)?.length ?? 0;
+                      return (
+                        <TaskGroup
+                          count={groupRoots}
+                          defaultExpanded
+                          key={groupKey}
+                          showAdd={false}
+                          title={titleForDerivedGroup(groupKey, labelTitleById)}
+                        >
+                          {renderFlatRows((item) => item.groupKey === groupKey, {
+                            groupKey,
+                          })}
+                          {renderCompletedLoadMore(groupKey)}
+                        </TaskGroup>
+                      );
+                    })}
+                    <div className={`${styles.rootList} fk-task-list`} key="derived-add">
+                      <AddTask
+                        keepOpenOnSubmit
+                        onSubmit={async (payload) => {
+                          await submitNewTask(payload);
+                        }}
+                        {...addTaskDefaults}
+                      />
+                    </div>
+                  </>
+                ) : showUserSections ? (
                   <>
                     <div
                       className={`${styles.rootList} fk-task-list`}

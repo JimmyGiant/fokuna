@@ -1,0 +1,208 @@
+.content {
+  background: var(--fk-color-surface-base);
+  border: 1px solid var(--fk-color-border-default);
+  border-radius: 12px;
+  box-shadow: var(--fk-elevation-shadow-md, 0 8px 24px rgb(0 0 0 / 10%));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 320px;
+  padding: 12px;
+  width: 320px;
+  z-index: 60;
+}
+
+.completedRow {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  min-height: 36px;
+  padding: 4px 4px 8px;
+}
+
+.completedLabel {
+  color: var(--fk-color-text-primary);
+  font-family: var(--fk-type-font-font-family-body);
+  font-size: var(--fk-type-font-font-size-body-md);
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.section {
+  border-top: 1px solid var(--fk-color-border-subtle, var(--fk-color-border-default));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+}
+
+.sectionHeader {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 4px;
+  text-align: left;
+  width: 100%;
+}
+
+.sectionTitle {
+  color: var(--fk-color-text-primary);
+  font-family: var(--fk-type-font-font-family-body);
+  font-size: var(--fk-type-font-font-size-body-md);
+  font-weight: 600;
+  line-height: 20px;
+}
+
+.sectionBadge {
+  align-items: center;
+  background: var(--fk-color-surface-muted);
+  border-radius: 999px;
+  color: var(--fk-color-text-secondary);
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  height: 18px;
+  justify-content: center;
+  min-width: 18px;
+  padding: 0 6px;
+}
+
+.sectionChevron {
+  color: var(--fk-color-icon-tertiary);
+  margin-left: auto;
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 4px 4px;
+}
+
+.row {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  min-height: 32px;
+}
+
+.rowLabel {
+  align-items: center;
+  color: var(--fk-color-text-secondary);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-family: var(--fk-type-font-font-family-body);
+  font-size: var(--fk-type-font-font-size-body-sm);
+  gap: 6px;
+  line-height: 18px;
+}
+
+.rowDot {
+  background: var(--fk-color-icon-brand-primary);
+  border-radius: 999px;
+  height: 6px;
+  width: 6px;
+}
+
+.rowControl {
+  flex: 1 1 auto;
+  max-width: 168px;
+  min-width: 0;
+}
+
+.rowControl :global(.fk-dropdown__trigger) {
+  width: 100%;
+}
+
+/* Match `.fk-dropdown__trigger` (sm): semibold value, left-aligned, trailing chevron. */
+.multiTrigger {
+  align-items: center;
+  background: var(--fk-color-surface-base);
+  border: 1px solid var(--fk-color-border-default);
+  border-radius: var(--fk-control-radius-sm);
+  box-shadow: var(--fk-shadow-micro-element);
+  color: var(--fk-color-text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--fk-type-font-font-family-heading-primary);
+  font-size: var(--fk-type-font-font-size-body-sm);
+  font-weight: 600;
+  gap: 4px;
+  height: var(--fk-control-height-sm);
+  justify-content: space-between;
+  line-height: var(--fk-type-font-line-height-body-sm);
+  padding: 0 12px;
+  text-align: left;
+  width: 100%;
+}
+
+.multiTrigger:hover {
+  background: var(--fk-color-surface-muted);
+  border-color: var(--fk-color-border-strong);
+}
+
+.multiPanel {
+  background: var(--fk-color-surface-base);
+  border: 1px solid var(--fk-color-border-default);
+  border-radius: 12px;
+  box-shadow: var(--fk-elevation-shadow-md, 0 8px 24px rgb(0 0 0 / 10%));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 280px;
+  min-width: 220px;
+  overflow: auto;
+  padding: 8px;
+  z-index: 70;
+}
+
+.multiItem {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: var(--fk-color-text-primary);
+  cursor: pointer;
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  text-align: left;
+  width: 100%;
+}
+
+.multiItem:hover,
+.multiItem[data-selected="true"] {
+  background: var(--fk-color-surface-subtle);
+}
+
+.multiItem span {
+  flex: 1 1 auto;
+}
+
+/* Quiet utility link: tertiary (grau) → action-secondary (grün) on hover. */
+.resetButton {
+  align-self: flex-end;
+  background: transparent;
+  border: 0;
+  color: var(--fk-color-text-tertiary);
+  cursor: pointer;
+  font-family: var(--fk-type-font-font-family-body);
+  font-size: var(--fk-type-font-font-size-body-sm);
+  font-weight: 400;
+  margin-top: 4px;
+  padding: 8px 12px;
+}
+
+.resetButton:hover:not(:disabled) {
+  color: var(--fk-color-text-action-secondary);
+}
+
+.resetButton:disabled {
+  color: var(--fk-color-text-disabled);
+  cursor: default;
+}

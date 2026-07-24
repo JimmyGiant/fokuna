@@ -2,7 +2,11 @@
  * Aufgaben-Sidebar L2 prefs — account-scoped, syncable across web/native.
  * Nav entries are reorderable; Alle / Favoriten / Heute (+ sections) are hideable.
  * Eingang stays always visible (inbox catch-all).
+ *
+ * Per-list view prefs live in `tasksListViews` — see `tasks-list-view-preferences.ts`.
  */
+
+import type { TasksListViewsMap } from "./tasks-list-view-preferences";
 
 export const DEFAULT_TASKS_SIDEBAR_NAV_ORDER = [
   "all",
@@ -50,6 +54,8 @@ export const DEFAULT_TASKS_COMPLETE_ANIMATIONS = true;
 export interface UiPreferences {
   tasksSidebar?: TasksSidebarPreferences;
   tasks?: TasksPreferences;
+  /** Sparse map of non-default per-list view prefs, keyed by `tasksListViewKey`. */
+  tasksListViews?: TasksListViewsMap;
 }
 
 const NAV_SET = new Set<string>(DEFAULT_TASKS_SIDEBAR_NAV_ORDER);

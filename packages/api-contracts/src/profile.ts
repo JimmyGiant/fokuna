@@ -32,9 +32,58 @@ export const tasksPreferencesSchema = z.object({
   completeAnimations: z.boolean(),
 });
 
+export const tasksListGroupingSchema = z.enum([
+  "none",
+  "date",
+  "added",
+  "deadline",
+  "priority",
+  "label",
+]);
+export const tasksListSortingSchema = z.enum([
+  "manual",
+  "name",
+  "date",
+  "added",
+  "deadline",
+  "priority",
+]);
+export const tasksListSortDirectionSchema = z.enum(["asc", "desc"]);
+export const tasksListDateFilterSchema = z.enum([
+  "all",
+  "today",
+  "this_week",
+  "next_7_days",
+  "this_month",
+  "next_30_days",
+  "no_date",
+]);
+export const tasksListPriorityFilterSchema = z.enum(["urgent", "medium", "low", "none"]);
+
+export const tasksListViewFiltersSchema = z.object({
+  date: tasksListDateFilterSchema,
+  priorities: z.array(tasksListPriorityFilterSchema),
+  labelIds: z.array(z.string().min(1)),
+});
+
+export const tasksListViewPreferencesSchema = z.object({
+  showCompleted: z.boolean(),
+  grouping: tasksListGroupingSchema,
+  sorting: tasksListSortingSchema,
+  sortDirection: tasksListSortDirectionSchema,
+  filters: tasksListViewFiltersSchema,
+});
+
+/** Sparse map — only non-default views need to be stored. */
+export const tasksListViewsMapSchema = z.record(
+  z.string().min(1),
+  tasksListViewPreferencesSchema,
+);
+
 export const uiPreferencesSchema = z.object({
   tasksSidebar: tasksSidebarPreferencesSchema.optional(),
   tasks: tasksPreferencesSchema.optional(),
+  tasksListViews: tasksListViewsMapSchema.optional(),
 });
 
 export const userProfileDtoSchema = z.object({
@@ -58,6 +107,21 @@ export const updateUserProfileInputSchema = z.object({
   tasksSidebar: tasksSidebarPreferencesSchema.partial().optional(),
   /** Partial Aufgaben prefs — merged server-side onto existing uiPreferences.tasks. */
   tasks: tasksPreferencesSchema.partial().optional(),
+  /**
+   * Partial per-view list prefs — deep-merged per view key onto uiPreferences.tasksListViews.
+   * Pass `null` for a view key to clear it back to defaults (omit from map).
+   */
+  tasksListViews: z
+    .record(
+      z.string().min(1),
+      tasksListViewPreferencesSchema
+        .partial()
+        .extend({
+          filters: tasksListViewFiltersSchema.partial().optional(),
+        })
+        .nullable(),
+    )
+    .optional(),
 });
 
 export type UpdateUserProfileInput = z.infer<typeof updateUserProfileInputSchema>;
