@@ -19,6 +19,10 @@
     background: var(--fk-color-surface-subtle);
     color: var(--fk-color-text-primary);
     font-family: var(--fk-type-font-font-family-body-primary), sans-serif;
+    /* Prefer grayscale AA for UI type (Geist): cleaner Semibold/Label weights on Retina. */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 
   body {

@@ -17,7 +17,7 @@
   min-width: 0;
   min-height: 0;
   overflow: auto;
-  padding: 16px 24px 40px 32px;
+  padding: 0 0 40px;
   background: var(--fk-color-surface-subtle);
   transition: padding var(--fk-motion-duration-slow) var(--fk-motion-ease-standard);
 }
@@ -43,9 +43,9 @@
   margin: 0;
   color: var(--fk-color-text-primary);
   font-family: var(--fk-type-font-font-family-heading-primary);
-  font-size: var(--fk-type-font-font-size-body-2xl);
-  font-weight: 600;
-  line-height: 28px;
+  font-size: var(--fk-type-font-font-size-heading-md);
+  font-weight: var(--fk-type-font-font-weight-heading-primary);
+  line-height: var(--fk-type-font-line-height-heading-md);
 }
 
 .list {

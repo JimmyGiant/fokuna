@@ -2928,10 +2928,12 @@
 
   .fk-page-header {
     align-items: center;
+    box-sizing: border-box;
     display: grid;
     gap: 16px 24px;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     min-height: 48px;
+    padding: 24px 32px 0;
     width: 100%;
   }
 
@@ -2943,10 +2945,13 @@
 
   .fk-page-header h1 {
     color: var(--fk-color-text-primary);
-    font-size: var(--fk-type-font-font-size-heading-md);
-    font-weight: 700;
-    line-height: var(--fk-type-font-line-height-heading-md);
-    text-shadow: 0 1px 1px rgb(9 25 49 / 4%);
+    font-family: var(--fk-type-font-font-family-heading-primary);
+    font-size: var(--fk-type-font-font-size-label-xl);
+    font-weight: var(--fk-type-font-font-weight-label-primary);
+    line-height: var(--fk-type-font-line-height-label-xl);
+    text-shadow:
+      0 1px 1px rgb(9 25 49 / 4%),
+      0 2px 6px rgb(9 25 49 / 4%);
     margin: 0;
   }
 

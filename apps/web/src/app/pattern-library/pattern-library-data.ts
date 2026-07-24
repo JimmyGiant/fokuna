@@ -277,7 +277,11 @@ export const patternEntries: PatternEntry[] = [
     category: "Layout",
     implementation: "PageHeader · OverflowButton",
     screenshot: "21_Page_Header.png",
-    dimensions: ["1170 × 56 px"],
+    dimensions: [
+      "1170 × 56 px",
+      "Header inset 24 top · 32 left/right (header only)",
+      "Title Label/XL (20/28 · weight 600)",
+    ],
     variantSummary: "Content, calendar, mapped (Aufgaben list overflow at title)",
   },
   {

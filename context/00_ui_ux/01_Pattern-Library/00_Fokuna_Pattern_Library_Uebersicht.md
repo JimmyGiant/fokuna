@@ -703,6 +703,8 @@ States:
 Wichtig fuer Umsetzung:
 
 - Header nicht je View neu bauen.
+- Titel nutzt Label/XL (`--fk-type-font-font-size-label-xl` / weight `--fk-type-font-font-weight-label-primary` = 600), nicht Heading Bold.
+- Page-Inset gilt nur fuer den Page Header: 24 px oben, 32 px links/rechts — nicht fuer den gesamten Shell-Content.
 - Actions und Search nach bestehender Control-Hoehenleiter ausrichten.
 - Mapped-Varianten beachten, wenn Header in finalen Views genutzt werden.
 - Primaeraktion muss visuell und semantisch eindeutig sein.
