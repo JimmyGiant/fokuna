@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import {
   InsightActivityCard,
+  InsightActivityPanel,
   InsightCard,
   InsightDeadlineContent,
   InsightMetricContent,
@@ -110,5 +111,28 @@ describe("InsightCard", () => {
     expect(
       screen.queryByRole("button", { name: "Schwellenwert festlegen" }),
     ).not.toBeInTheDocument();
+  });
+
+  it("renders the modal activity panel without card elevation / Schmuckrahmen", () => {
+    const { container } = render(
+      <InsightActivityPanel
+        threshold={4}
+        weeks={[
+          { label: "KW 22", value: 3 },
+          { label: "KW 23", value: 2 },
+        ]}
+      />,
+    );
+
+    const panel = container.querySelector(".fk-insight-activity-panel");
+    expect(panel).toBeInTheDocument();
+    expect(panel).not.toHaveClass("fk-card");
+    expect(panel).not.toHaveAttribute("data-elevation");
+    expect(screen.getByText("Aktivität")).toBeInTheDocument();
+    expect(
+      screen.getByText("Geplante und durchgeführte Einheiten pro Woche"),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Frühere Wochen" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Spätere Wochen" })).toBeInTheDocument();
   });
 });

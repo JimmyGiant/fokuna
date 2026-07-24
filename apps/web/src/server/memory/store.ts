@@ -24,6 +24,30 @@ export interface MemoryGoal {
   updatedAt: string;
 }
 
+export interface MemoryBlockRhythm {
+  kind: "none" | "daily" | "weekly" | "monthly" | "yearly";
+  count: number;
+}
+
+export interface MemoryBlockTimerConfig {
+  kind: "none" | "pomodoro" | "countdown" | "stopwatch" | "clock";
+  pomodoroPresetId?: string;
+}
+
+export interface MemoryBlockFocusConfig {
+  musicId?: string | null;
+  backgroundKind?: "colors" | "gradients" | "shapes" | "nature";
+  backgroundId?: string | null;
+}
+
+export interface MemoryBlockInsights {
+  count: number;
+  avgDurationMinutes: number;
+  lastAt: string | null;
+  weeks: Array<{ label: string; value: number }>;
+  threshold?: number | null;
+}
+
 export interface MemoryBlock {
   id: string;
   userId: string;
@@ -36,6 +60,10 @@ export interface MemoryBlock {
   colorToken: string | null;
   isTemplate: boolean;
   isPreset: boolean;
+  rhythm: MemoryBlockRhythm | null;
+  timerConfig: MemoryBlockTimerConfig | null;
+  focusConfig: MemoryBlockFocusConfig | null;
+  insights: MemoryBlockInsights | null;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
@@ -121,7 +149,7 @@ const globalStore = globalThis as typeof globalThis & {
   __fokunaMemoryStoreVersion?: number;
 };
 
-const MEMORY_STORE_VERSION = 10;
+const MEMORY_STORE_VERSION = 11;
 
 function createStore(): MemoryStore {
   const store: MemoryStore = {
@@ -438,23 +466,29 @@ function createStore(): MemoryStore {
     updatedAt: now,
   });
 
-  const blockDeep = createId("block");
-  store.blocks.set(blockDeep, {
-    id: blockDeep,
-    userId: demoUser.id,
-    goalId,
-    categoryId: buyCategoryId,
-    title: "Deep Work",
-    description: "Fokussierter Schreibblock",
-    durationMinutes: 50,
-    icon: "focus-target",
-    colorToken: "category.teal",
-    isTemplate: false,
-    isPreset: false,
-    sortOrder: 0,
-    createdAt: now,
-    updatedAt: now,
-  });
+  const demoWeeks = [
+    { label: "KW 22", value: 2 },
+    { label: "KW 23", value: 4 },
+    { label: "KW 24", value: 3 },
+    { label: "KW 25", value: 5 },
+    { label: "KW 26", value: 2 },
+    { label: "KW 27", value: 4 },
+    { label: "KW 28", value: 3 },
+    { label: "KW 29", value: 6 },
+    { label: "KW 30", value: 4 },
+    { label: "KW 31", value: 3 },
+    { label: "KW 32", value: 5 },
+    { label: "KW 33", value: 2 },
+    { label: "KW 34", value: 4 },
+    { label: "KW 35", value: 3 },
+    { label: "KW 36", value: 5 },
+    { label: "KW 37", value: 4 },
+    { label: "KW 38", value: 3 },
+    { label: "KW 39", value: 2 },
+    { label: "KW 40", value: 4 },
+    { label: "KW 41", value: 3 },
+    { label: "KW 42", value: 5 },
+  ];
 
   const blockRead = createId("block");
   store.blocks.set(blockRead, {
@@ -463,34 +497,225 @@ function createStore(): MemoryStore {
     goalId: null,
     categoryId: null,
     title: "Lesen",
-    description: null,
-    durationMinutes: 30,
+    description: "Non Fiction Leseeinheit für den gebildeten morgen.",
+    durationMinutes: 45,
     icon: "newspaper",
     colorToken: "category.coral",
-    isTemplate: true,
-    isPreset: true,
+    isTemplate: false,
+    isPreset: false,
+    rhythm: { kind: "none", count: 1 },
+    timerConfig: { kind: "pomodoro", pomodoroPresetId: "steuererklaerung" },
+    focusConfig: { musicId: "ambient", backgroundKind: "colors", backgroundId: "teal" },
+    insights: {
+      count: 278,
+      avgDurationMinutes: 35,
+      lastAt: "2026-06-24",
+      weeks: demoWeeks,
+      threshold: 4,
+    },
+    sortOrder: 0,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const blockDeepRest = createId("block");
+  store.blocks.set(blockDeepRest, {
+    id: blockDeepRest,
+    userId: demoUser.id,
+    goalId: null,
+    categoryId: null,
+    title: "Deep Rest",
+    description: "Deep Rest Protocol von Andrew Huberman",
+    durationMinutes: 15,
+    icon: "moon",
+    colorToken: "category.purple",
+    isTemplate: false,
+    isPreset: false,
+    rhythm: { kind: "daily", count: 1 },
+    timerConfig: { kind: "countdown" },
+    focusConfig: { musicId: "energy", backgroundKind: "colors", backgroundId: "purple" },
+    insights: null,
     sortOrder: 1,
     createdAt: now,
     updatedAt: now,
   });
 
-  const blockFood = createId("block");
-  store.blocks.set(blockFood, {
-    id: blockFood,
+  const blockMarathon = createId("block");
+  store.blocks.set(blockMarathon, {
+    id: blockMarathon,
     userId: demoUser.id,
-    goalId: null,
+    goalId: marathonGoalId,
     categoryId: null,
-    title: "Mittagessen",
-    description: null,
-    durationMinutes: 45,
-    icon: "fork-spoon",
-    colorToken: "category.purple",
-    isTemplate: true,
-    isPreset: true,
+    title: "Berlin Marathon",
+    description: "Generierter Zeitblock auf Basis deiner Rhythmuseinstellungen.",
+    durationMinutes: 60,
+    icon: "focus-target",
+    colorToken: "category.teal",
+    isTemplate: false,
+    isPreset: false,
+    rhythm: { kind: "weekly", count: 3 },
+    timerConfig: { kind: "stopwatch" },
+    focusConfig: { musicId: "chill", backgroundKind: "colors", backgroundId: "teal" },
+    insights: null,
     sortOrder: 2,
     createdAt: now,
     updatedAt: now,
   });
+
+  const blockNovel = createId("block");
+  store.blocks.set(blockNovel, {
+    id: blockNovel,
+    userId: demoUser.id,
+    goalId: novelGoalId,
+    categoryId: null,
+    title: "Roman schreiben",
+    description: "Generierter Zeitblock auf Basis deiner Rhythmuseinstellungen.",
+    durationMinutes: 90,
+    icon: "focus-target",
+    colorToken: "category.teal",
+    isTemplate: false,
+    isPreset: false,
+    rhythm: { kind: "weekly", count: 5 },
+    timerConfig: { kind: "none" },
+    focusConfig: { musicId: "acoustic", backgroundKind: "colors", backgroundId: "blue" },
+    insights: null,
+    sortOrder: 3,
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  const templateBlocks: Array<{
+    title: string;
+    description: string;
+    durationMinutes: number;
+    icon: string;
+    colorToken: string;
+    timerKind: MemoryBlockTimerConfig["kind"];
+    musicId: string;
+  }> = [
+    {
+      title: "Meditation",
+      description: "Ruhiger Einstieg mit Atemfokus und klarer Abschlussrunde.",
+      durationMinutes: 15,
+      icon: "balance",
+      colorToken: "category.pink",
+      timerKind: "pomodoro",
+      musicId: "woods",
+    },
+    {
+      title: "Mittagessen",
+      description: "Bewusste Pause mit Abstand zum Schreibtisch.",
+      durationMinutes: 60,
+      icon: "fork-spoon",
+      colorToken: "category.purple",
+      timerKind: "countdown",
+      musicId: "ambient",
+    },
+    {
+      title: "E-Mails bearbeiten",
+      description: "Inbox zero in einem fokussierten Durchgang.",
+      durationMinutes: 45,
+      icon: "envelope",
+      colorToken: "category.coral",
+      timerKind: "stopwatch",
+      musicId: "energy",
+    },
+    {
+      title: "Deep Work Sprint",
+      description: "Ununterbrochener Fokusblock für anspruchsvolle Arbeit.",
+      durationMinutes: 90,
+      icon: "focus-target",
+      colorToken: "category.teal",
+      timerKind: "clock",
+      musicId: "chill",
+    },
+    {
+      title: "Kreativ schreiben",
+      description: "Freies Schreiben ohne Korrekturzwang.",
+      durationMinutes: 60,
+      icon: "notes",
+      colorToken: "category.blue",
+      timerKind: "none",
+      musicId: "acoustic",
+    },
+    {
+      title: "Lernblock",
+      description: "Strukturierte Lerneinheit mit Wiederholung.",
+      durationMinutes: 45,
+      icon: "settings-sliders",
+      colorToken: "category.gold",
+      timerKind: "countdown",
+      musicId: "woods",
+    },
+    {
+      title: "Workout",
+      description: "Kraft oder Cardio je nach Tagesform.",
+      durationMinutes: 45,
+      icon: "circle-check",
+      colorToken: "category.coral",
+      timerKind: "stopwatch",
+      musicId: "ambient",
+    },
+    {
+      title: "Haushalt Reset",
+      description: "Schneller Durchgang für Ordnung und Klarheit.",
+      durationMinutes: 30,
+      icon: "calendar",
+      colorToken: "category.teal",
+      timerKind: "none",
+      musicId: "energy",
+    },
+    {
+      title: "Wochenplanung",
+      description: "Prioritäten setzen und den Wochenrhythmus festziehen.",
+      durationMinutes: 30,
+      icon: "star",
+      colorToken: "category.purple",
+      timerKind: "pomodoro",
+      musicId: "chill",
+    },
+  ];
+
+  const blockFood = createId("block");
+  let templateSort = 4;
+  for (const template of templateBlocks) {
+    const id = template.title === "Mittagessen" ? blockFood : createId("block");
+    store.blocks.set(id, {
+      id,
+      userId: demoUser.id,
+      goalId: null,
+      categoryId: null,
+      title: template.title,
+      description: template.description,
+      durationMinutes: template.durationMinutes,
+      icon: template.icon,
+      colorToken: template.colorToken,
+      isTemplate: true,
+      isPreset: true,
+      rhythm: { kind: "none", count: 1 },
+      timerConfig: {
+        kind: template.timerKind,
+        ...(template.timerKind === "pomodoro"
+          ? { pomodoroPresetId: "steuererklaerung" }
+          : {}),
+      },
+      focusConfig: {
+        musicId: template.musicId,
+        backgroundKind: "colors",
+        backgroundId: "teal",
+      },
+      insights: null,
+      sortOrder: templateSort,
+      createdAt: now,
+      updatedAt: now,
+    });
+    templateSort += 1;
+  }
+
+  // Calendar seed: prefer Deep Work Sprint template as the timed block source.
+  const blockDeep =
+    [...store.blocks.values()].find((block) => block.title === "Deep Work Sprint")?.id ??
+    blockRead;
 
   const dayStart = new Date();
   dayStart.setHours(7, 20, 0, 0);
@@ -563,6 +788,20 @@ function createStore(): MemoryStore {
       allDay: false,
       timezone: "Europe/Berlin",
       recurrenceRule: null,
+    });
+  }
+
+  const profile = store.profiles.get(demoUser.id);
+  if (profile) {
+    store.profiles.set(demoUser.id, {
+      ...profile,
+      uiPreferences: {
+        ...profile.uiPreferences,
+        blocks: {
+          railIds: [blockRead, blockFood, blockMarathon],
+          hubHintSeen: false,
+        },
+      },
     });
   }
 

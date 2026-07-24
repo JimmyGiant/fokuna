@@ -3,10 +3,12 @@ import { eq, userProfile } from "@fokuna/db";
 import {
   DEFAULT_TASKS_LIST_VIEW_PREFERENCES,
   mergeTasksListViewPreferences,
+  normalizeBlocksPreferences,
   normalizeTasksListViewPreferences,
   normalizeTasksListViewsMap,
   normalizeTasksPreferences,
   normalizeTasksSidebarPreferences,
+  resolveBlocksPreferences,
   resolveTasksPreferences,
   resolveTasksSidebarPreferences,
   tasksListViewPreferencesEqual,
@@ -77,6 +79,14 @@ function mergeUiPreferences(
       }
     }
     next.tasksListViews = normalizeTasksListViewsMap(merged);
+  }
+  if (input.blocks) {
+    const current = resolveBlocksPreferences(existing);
+    next.blocks = normalizeBlocksPreferences({
+      ...current,
+      ...input.blocks,
+      railIds: input.blocks.railIds ?? current.railIds,
+    });
   }
   return next;
 }

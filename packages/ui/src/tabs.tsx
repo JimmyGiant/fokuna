@@ -142,6 +142,8 @@ export interface SwitcherProps extends Omit<HTMLAttributes<HTMLDivElement>, "onC
   onNext?: () => void;
   previousLabel?: string;
   nextLabel?: string;
+  /** Value cell sizes to content (Anzahl / short labels). Default keeps date-range min-width. */
+  fit?: boolean;
 }
 
 export function Switcher({
@@ -151,12 +153,18 @@ export function Switcher({
   onNext,
   previousLabel = "Vorheriger Zeitraum",
   nextLabel = "Nächster Zeitraum",
+  fit = false,
   className,
   ...props
 }: SwitcherProps) {
   const iconSize = 24;
   return (
-    <div {...props} className={cn("fk-switcher", className)} data-size={size}>
+    <div
+      {...props}
+      className={cn("fk-switcher", className)}
+      data-fit={fit || undefined}
+      data-size={size}
+    >
       <button aria-label={previousLabel} onClick={onPrevious} type="button">
         <FokunaIcon name="chevron-left-small" size={iconSize} />
       </button>
@@ -181,7 +189,7 @@ export interface TabSelectProps extends Omit<ToggleGroupSingleProps, "type"> {
   size?: ControlSize;
 }
 
-export function TabSelect({ addItem, items, size = "md", className, ...props }: TabSelectProps) {
+export function TabSelect({ addItem, items, size = "sm", className, ...props }: TabSelectProps) {
   const iconSize = size === "xl" ? 24 : 16;
 
   return (

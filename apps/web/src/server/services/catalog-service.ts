@@ -4,6 +4,7 @@ import {
   createGoalInputSchema,
   moveCalendarEntryInputSchema,
   startFocusSessionInputSchema,
+  updateBlockInputSchema,
   updateFocusSessionInputSchema,
   upsertJournalEntryInputSchema,
   type CreateBlockInput,
@@ -11,6 +12,7 @@ import {
   type CreateGoalInput,
   type GoalDto,
   type ReorderIdsInput,
+  type UpdateBlockInput,
 } from "@fokuna/api-contracts";
 import {
   applySortOrders,
@@ -20,7 +22,7 @@ import {
   remainingFocusSeconds,
 } from "@fokuna/domain";
 
-import { getMemoryStore } from "../memory/store";
+import { getMemoryStore, type MemoryBlock } from "../memory/store";
 
 /** Catalog services currently use the memory store for the vertical slice.
  * Neon repositories follow the same contracts and can replace these call sites. */
@@ -98,13 +100,30 @@ export async function updateGoal(
 export async function listBlocks(userId: string) {
   return [...getMemoryStore().blocks.values()]
     .filter((block) => block.userId === userId)
-    .sort((a, b) => a.sortOrder - b.sortOrder);
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map(toBlockDto);
+}
+
+function toBlockDto(block: MemoryBlock) {
+  return {
+    ...block,
+    rhythm: block.rhythm ?? null,
+    timerConfig: block.timerConfig ?? null,
+    focusConfig: block.focusConfig ?? null,
+    insights: block.insights ?? null,
+  };
+}
+
+export async function getBlock(userId: string, blockId: string) {
+  const block = getMemoryStore().blocks.get(blockId);
+  if (!block || block.userId !== userId) return null;
+  return toBlockDto(block);
 }
 
 export async function createBlock(userId: string, raw: CreateBlockInput) {
   const input = createBlockInputSchema.parse(raw);
   const now = new Date().toISOString();
-  const block = {
+  const block: MemoryBlock = {
     id: createId("block"),
     userId,
     goalId: input.goalId ?? null,
@@ -116,12 +135,75 @@ export async function createBlock(userId: string, raw: CreateBlockInput) {
     colorToken: input.colorToken ?? null,
     isTemplate: input.isTemplate,
     isPreset: false,
+    rhythm: input.rhythm ?? { kind: "none", count: 1 },
+    timerConfig: input.timerConfig ?? { kind: "none" },
+    focusConfig: input.focusConfig ?? { musicId: null, backgroundKind: "colors", backgroundId: null },
+    insights: null,
     sortOrder: (await listBlocks(userId)).length,
     createdAt: now,
     updatedAt: now,
   };
   getMemoryStore().blocks.set(block.id, block);
-  return block;
+  return toBlockDto(block);
+}
+
+export async function updateBlock(userId: string, blockId: string, raw: UpdateBlockInput) {
+  const input = updateBlockInputSchema.parse(raw);
+  const existing = getMemoryStore().blocks.get(blockId);
+  if (!existing || existing.userId !== userId) return null;
+  const updated: MemoryBlock = {
+    ...existing,
+    title: input.title ?? existing.title,
+    description:
+      input.description === undefined ? existing.description : input.description,
+    durationMinutes: input.durationMinutes ?? existing.durationMinutes,
+    icon: input.icon === undefined ? existing.icon : input.icon,
+    colorToken: input.colorToken === undefined ? existing.colorToken : input.colorToken,
+    goalId: input.goalId === undefined ? existing.goalId : input.goalId,
+    categoryId: input.categoryId === undefined ? existing.categoryId : input.categoryId,
+    isTemplate: input.isTemplate ?? existing.isTemplate,
+    rhythm: input.rhythm === undefined ? existing.rhythm : input.rhythm,
+    timerConfig: input.timerConfig === undefined ? existing.timerConfig : input.timerConfig,
+    focusConfig: input.focusConfig === undefined ? existing.focusConfig : input.focusConfig,
+    updatedAt: new Date().toISOString(),
+  };
+  getMemoryStore().blocks.set(blockId, updated);
+  return toBlockDto(updated);
+}
+
+export async function deleteBlock(userId: string, blockId: string) {
+  const existing = getMemoryStore().blocks.get(blockId);
+  if (!existing || existing.userId !== userId) return null;
+  getMemoryStore().blocks.delete(blockId);
+  return { id: blockId };
+}
+
+export async function duplicateBlock(
+  userId: string,
+  blockId: string,
+  options?: { asOwn?: boolean },
+) {
+  const existing = getMemoryStore().blocks.get(blockId);
+  if (!existing || existing.userId !== userId) return null;
+  const now = new Date().toISOString();
+  const asOwn = options?.asOwn ?? true;
+  const copy: MemoryBlock = {
+    ...existing,
+    id: createId("block"),
+    title:
+      asOwn && (existing.isPreset || existing.isTemplate)
+        ? existing.title
+        : `${existing.title} (Kopie)`,
+    goalId: asOwn ? null : existing.goalId,
+    isTemplate: false,
+    isPreset: false,
+    insights: null,
+    sortOrder: (await listBlocks(userId)).length,
+    createdAt: now,
+    updatedAt: now,
+  };
+  getMemoryStore().blocks.set(copy.id, copy);
+  return toBlockDto(copy);
 }
 
 export async function listCalendarEntries(userId: string) {

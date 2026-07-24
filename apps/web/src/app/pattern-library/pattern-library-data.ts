@@ -45,8 +45,12 @@ export const patternEntries: PatternEntry[] = [
     category: "Feedback",
     implementation: "Callout",
     screenshot: "02_Callout.png",
-    dimensions: ["920 × 72 px"],
-    variantSummary: "Line or icon · default, info, warning, error",
+    dimensions: [
+      "content height · padding 12/16",
+      "920 px wide",
+      "Body LG (--fk-type-font-font-size-body-lg · 16/22)",
+    ],
+    variantSummary: "Line or icon · default, info, warning, error · height follows content",
   },
   {
     number: 3,
@@ -213,8 +217,8 @@ export const patternEntries: PatternEntry[] = [
     category: "Selection",
     implementation: "TabSelect",
     screenshot: "16_Tab_Select.png",
-    dimensions: ["28 px", "32 px", "40 px", "48 px"],
-    variantSummary: "Default and music item rows · selected state",
+    dimensions: ["28 px (Default)", "32 px", "40 px", "48 px"],
+    variantSummary: "Default sm · music rows md/lg · selected state",
   },
   {
     number: 17,
@@ -470,6 +474,19 @@ export const patternEntries: PatternEntry[] = [
     dimensions: ["214 × 216 px", "452 × 216 px", "452 × 456 px"],
     variantSummary:
       "Deadline · metric · quote · place · activity · milestones · progress · bars · consistency · priorities",
+  },
+  {
+    number: 46,
+    slug: "activity-panel",
+    title: "Activity Panel (Modal)",
+    figmaName: "Zeitblock Modal · Aktivität",
+    figmaNodeId: "18791:31655",
+    category: "Cards",
+    implementation: "InsightActivityPanel",
+    screenshot: "38_Insight_Dashboard_Cards.png",
+    dimensions: ["Full width · 260 px", "Pad 24 · Radius 16"],
+    variantSummary:
+      "surface-soft · kein Schmuckrahmen · Range-Nav · Wochenbalken (Modal-Weiterentwicklung von InsightActivityCard)",
   },
   {
     number: 39,

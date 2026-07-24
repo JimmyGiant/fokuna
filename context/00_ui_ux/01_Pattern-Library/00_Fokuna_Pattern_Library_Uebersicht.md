@@ -97,6 +97,7 @@ Wichtig fuer Umsetzung:
 
 - Statusfarben duerfen nicht mit Category- oder Brandfarben verwechselt werden.
 - Die linke Linie ist das Hauptmerkmal und soll ueber Tokens gepflegt werden.
+- Body-Text nutzt Body LG (`--fk-type-font-font-size-body-lg` / 16/22).
 - Text bleibt knapp und handlungsorientiert.
 - Callouts sind nicht fuer dauerhafte Navigation oder komplexe Inhalte gedacht.
 
@@ -1242,6 +1243,23 @@ Wichtig fuer Umsetzung:
 - Keine Chart-Library; reine CSS/SVG-Umsetzung mit Design-Tokens.
 - Alle Karten nutzen `Card` inkl. dekorativem Innenrahmen und denselben Elevations.
 - Icons stammen aus `@fokuna/icons`; Subtask-Metadaten teilen sich das Icon mit Goal Card / Task.
+
+### 46 Activity Panel (Modal)
+
+Live: `/pattern-library/activity-panel` · Figma node `18791:31655` (Zeitblock Modal · Aktivität)
+
+Weiterentwicklung der Dashboard-`InsightActivityCard` fuer den Zeitblock-Detail-Modal-Kontext. Sitzt **nicht** auf dem Card-Slot (`03`): kein Schmuckrahmen, kein Elevation-Shadow, Hintergrund `surface-soft`, Radius `16px`, feste Hoehe `260px`, Padding `24px`, volle Inhaltsbreite.
+
+Varianten und Properties:
+
+- `InsightActivityPanel`: Header (Rocket + Titel/Subline), optionale Range-Nav (`showRangeNav`, `onPrev`/`onNext`), Shared `InsightActivityChart`.
+- Subline in `text-quarternary` (Figma `text-subtle`).
+- Threshold-Linie bleibt im Chart; kein Threshold-Picker (Modal zeigt Range-Chevrons statt Goal-Picker).
+
+Wichtig fuer Umsetzung:
+
+- Dashboard behält `InsightActivityCard` (Card + Schmuckrahmen). Modal und vergleichbare Embeds nutzen ausschliesslich `InsightActivityPanel`.
+- Keine Chart-Library; gleiche Balken-Tokens wie Dashboard-Activity.
 
 ### 39 Block Card
 

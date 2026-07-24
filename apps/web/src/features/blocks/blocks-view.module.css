@@ -1,10 +1,213 @@
+/* One surface — no mid-column scroll / splitscreen. Rail floats over content. */
 .page {
-  display: grid;
-  gap: 20px;
+  position: relative;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  padding: 32px 40px 48px;
+  overflow: auto;
+}
+
+.header {
+  flex: 0 0 auto;
+  width: 100%;
+  min-width: 0;
+}
+
+.main {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  flex: 1 0 auto;
+}
+
+/* TabBar + sections centered as one column (max = 3×334 + 2×24). */
+.center {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: calc(3 * 334px + 2 * 24px);
+  margin-inline: auto;
+  flex: 1 0 auto;
+  min-width: 0;
+}
+
+.tabs {
+  flex: 0 0 auto;
+  width: 100%;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  position: relative;
+  flex: 1 0 auto;
+  min-width: 0;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sectionTitle {
+  margin: 0;
+  color: var(--fk-color-text-tertiary);
+  font-family: var(--fk-type-font-font-family-heading-primary);
+  font-size: var(--fk-type-font-font-size-body-lg);
+  font-weight: var(--fk-type-font-font-weight-heading-primary);
+  line-height: var(--fk-type-font-line-height-body-lg);
 }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(3, 334px);
+  gap: 24px;
+  justify-content: start;
+  width: 100%;
+}
+
+.cardDrag {
+  cursor: grab;
+  width: 334px;
+  max-width: 100%;
+  overflow: visible;
+}
+
+.cardDrag[data-dragging] {
+  opacity: 0.45;
+}
+
+.cardDrag :global(.fk-block-card) {
+  overflow: visible;
+}
+
+.cardDrag :global(.fk-block-card__icon) {
+  overflow: visible;
+  z-index: 1;
+}
+
+.cardDrag :global(.fk-block-tile__badge) {
+  z-index: 2;
+}
+
+/* Rail: fixed in viewport, right axis = page padding / header actions (40px). */
+.railAside {
+  position: fixed;
+  top: 112px;
+  right: 40px;
+  bottom: 32px;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+
+.railDrop {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.railDrop[data-over] :global(.fk-block-rail) {
+  outline: 1px dashed var(--fk-color-border-strong);
+  outline-offset: 4px;
+}
+
+.rail {
+  height: 652px;
+  max-height: 100%;
+  overflow: visible;
+}
+
+.rail :global(.fk-block-rail__items) {
+  overflow: visible;
+  max-height: none;
+}
+
+.rail :global(.fk-block-rail__items > li) {
+  overflow: visible;
+}
+
+.rail :global(.fk-block-tile) {
+  overflow: visible;
+}
+
+/* Matches library card rect so snapCenterToCursor centers the icon, not card top-left. */
+.dragGhostHost {
+  align-items: center;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.hintLayer {
+  position: fixed;
+  top: 112px;
+  right: calc(40px + 72px + 24px);
+  bottom: 32px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  width: 228px;
+  pointer-events: none;
+}
+
+.hintArt {
+  display: block;
+  width: 228px;
+  height: auto;
+  max-width: none;
+  user-select: none;
+}
+
+.empty {
+  margin: 0;
+  font: var(--fk-type-font-body-lg);
+  color: var(--fk-color-text-tertiary);
+}
+
+@media (max-width: 1280px) {
+  .page {
+    padding-inline: 24px;
+  }
+
+  .center {
+    max-width: calc(2 * 334px + 24px);
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 334px);
+  }
+
+  .railAside {
+    right: 24px;
+  }
+
+  .hintLayer {
+    right: calc(24px + 72px + 16px);
+  }
+}
+
+@media (max-width: 960px) {
+  .center {
+    max-width: 334px;
+  }
+
+  .grid {
+    grid-template-columns: 334px;
+  }
 }

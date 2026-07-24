@@ -4,8 +4,8 @@
 **Detail-Arbeit am aktuellen Modul:** [`aufgaben-status.md`](./aufgaben-status.md)  
 **Quellen:** [`context/03_prd/FOKUNA_PRD.md`](../../context/03_prd/FOKUNA_PRD.md) · Figma `ltQMlboZomvr70Z4m0aLQj` · [`context/00_ui_ux/02_Views/`](../../context/00_ui_ux/02_Views/)
 
-**Stand:** 2026-07-23  
-**Aktueller Fokus:** Aufgaben **A3** fertig → als Nächstes **A4** (Zeitblöcke 05–12)  
+**Stand:** 2026-07-24  
+**Aktueller Fokus:** Aufgaben **A4** fertig → als Nächstes **A5** (Ziele-Tab View 02)  
 **Nächster Fokus (nach Aufgaben-Kern):** Ziele-Übersicht / Onboarding **oder** Kalender-DnD-Gate (PO entscheidet)  
 **Infra-Gate (nicht vergessen):** Neon-Cutover — siehe [Persistenz-Pfad](#persistenz--neon-pfad-prd--101--102)
 
@@ -55,7 +55,7 @@ Ziele setzen → Arbeit strukturieren → Zeit planen → fokussiert ausführen 
 | Pattern Library | `/pattern-library` | — | `Done` | Lebend halten bei jeder UI-Änderung |
 | App Shell / Auth | `/app/*`, Auth-Routen | — | `Partial` | Shell navigierbar; Demo-Auth stark genutzt |
 | **Aufgaben** | `/app/aufgaben` | 01–04 | `Partial` | V1 + DnD + Sidebar-Taxonomie (A3); Rest in [aufgaben-status.md](./aufgaben-status.md) |
-| **Zeitblöcke** | `/app/aufgaben/blocks` | 05–12 | `Scaffold` | Teil von Aufgaben-Slices A4 |
+| **Zeitblöcke** | `/app/aufgaben/blocks` | 05–12 | `Done` | Hub + Rail-DnD + Detail-Modal + ViewOverlay; Entry via Block-Rail-Pen |
 | **Fokus** | `/app/fokus` | 13–18 (unter Aufgaben) | `Scaffold` | Slice A6 |
 | Kalender | `/app/kalender` | 01_Kalender | `Partial` | FullCalendar + Basis-CRUD; DnD-Gate offen |
 | Ziele | `/app/ziele`, `/app/aufgaben/ziele` | 01–19 | `Scaffold` | Nach Aufgaben-Kern |
@@ -68,7 +68,7 @@ Ziele setzen → Arbeit strukturieren → Zeit planen → fokussiert ausführen 
 
 ## Empfohlene Reihenfolge bis Release (grob)
 
-1. **Jetzt:** Aufgaben fertigziehen (Zeitblöcke → Ziele-Tab → Fokus) — Detail in Aufgaben-Status. Lokal weiter **Memory** OK.
+1. **Jetzt:** Aufgaben fertigziehen (Ziele-Tab → Fokus) — Detail in Aufgaben-Status. Lokal weiter **Memory** OK.
 2. **Danach:** Ziele-Modul (Empty → Onboarding → Overview/Detail) *oder* Kalender-Feinschliff/DnD-Gate — PO-Wahl.
 3. Journal (Templates + Check-in/out).
 4. **Infra-Gate — Neon-Cutover** (spätestens hier, ideal früher wenn Auth/Billing angefasst werden): siehe unten.

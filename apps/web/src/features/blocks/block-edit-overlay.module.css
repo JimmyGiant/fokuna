@@ -1,0 +1,539 @@
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  max-width: 920px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.sectionTitle {
+  margin: 0;
+  width: max-content;
+  max-width: 100%;
+  font-family: var(--fk-type-font-font-family-heading-primary);
+  font-size: var(--fk-type-font-font-size-body-lg);
+  font-weight: 600;
+  line-height: var(--fk-type-font-line-height-body-lg);
+  color: var(--fk-color-text-primary);
+}
+
+.symbolRow {
+  display: flex;
+  gap: 24px;
+  align-items: center;
+}
+
+.symbolPreview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 132px;
+  height: 132px;
+  border-radius: 12px;
+  border: 1px solid var(--fk-color-border-default);
+  background: var(--fk-color-surface-soft);
+}
+
+.symbolTile,
+.headerIcon,
+.swatch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--fk-color-icon-inverse);
+}
+
+.symbolTile {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+}
+
+.headerIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+}
+
+.symbolControls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.fieldLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  width: max-content;
+  max-width: 100%;
+  font-family: var(--fk-type-font-font-family-heading-primary);
+  font-size: var(--fk-type-font-font-size-body-sm);
+  font-weight: 600;
+  line-height: var(--fk-type-font-line-height-body-sm);
+  color: var(--fk-color-text-primary);
+}
+
+.swatches {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.bgSwatches {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+.swatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.swatch[data-selected] {
+  border-color: var(--fk-color-border-strong);
+}
+
+.swatchFill {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  flex-shrink: 0;
+}
+
+.swatch[data-selected] .swatchFill {
+  width: 24px;
+  height: 24px;
+}
+
+.swatchCheck {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  color: var(--fk-color-icon-inverse);
+  pointer-events: none;
+}
+
+.symbolTile[data-tone="coral"],
+.headerIcon[data-tone="coral"],
+.swatchFill[data-tone="coral"] {
+  background: var(--fk-color-category-coral);
+}
+
+.symbolTile[data-tone="teal"],
+.headerIcon[data-tone="teal"],
+.swatchFill[data-tone="teal"] {
+  background: var(--fk-color-category-teal);
+}
+
+.symbolTile[data-tone="blue"],
+.headerIcon[data-tone="blue"],
+.swatchFill[data-tone="blue"] {
+  background: var(--fk-color-category-blue);
+}
+
+.symbolTile[data-tone="purple"],
+.headerIcon[data-tone="purple"],
+.swatchFill[data-tone="purple"] {
+  background: var(--fk-color-category-purple);
+}
+
+.symbolTile[data-tone="pink"],
+.headerIcon[data-tone="pink"],
+.swatchFill[data-tone="pink"] {
+  background: var(--fk-color-category-pink);
+}
+
+.symbolTile[data-tone="gold"],
+.headerIcon[data-tone="gold"],
+.swatchFill[data-tone="gold"] {
+  background: var(--fk-color-category-gold);
+}
+
+.bgSwatch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 0;
+  min-width: 0;
+  height: 63px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: var(--fk-color-surface-base);
+  cursor: pointer;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.bgSwatch[data-selected] {
+  border-color: var(--fk-color-border-strong);
+}
+
+.bgSwatchFill {
+  display: block;
+  width: calc(100% - 4px);
+  height: calc(100% - 4px);
+  border-radius: 8px;
+  background-color: var(--fk-color-surface-muted);
+  background-size: cover;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+.bgSwatch[data-selected] .bgSwatchFill {
+  width: calc(100% - 8px);
+  height: calc(100% - 8px);
+  border-radius: 7px;
+}
+
+.bgSwatch:focus {
+  outline: none;
+}
+
+.bgSwatch:focus-visible:not([data-selected]) {
+  box-shadow: var(--fk-focus-ring);
+}
+
+.bgSwatchCheck {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--fk-color-surface-base);
+  color: var(--fk-color-icon-primary);
+  pointer-events: none;
+}
+
+.bgSwatchCheck :is(path) {
+  stroke-width: 2.5;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 24px;
+  border-radius: var(--fk-radius-global-radius-card);
+  background: var(--fk-color-surface-soft);
+  border: 1px solid var(--fk-color-border-default);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.panelHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.rhythmPanel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+  padding: 24px;
+  border-radius: var(--fk-radius-global-radius-card);
+  background: var(--fk-color-surface-soft);
+  border: 1px solid var(--fk-color-border-default);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.rhythmCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.countCol {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: flex-start;
+  flex: 0 0 auto;
+}
+
+.panelTitle {
+  margin: 0;
+  color: var(--fk-color-text-primary);
+  font-family: var(--fk-type-font-font-family-heading-primary);
+  font-size: var(--fk-type-font-font-size-body-lg);
+  font-weight: 600;
+  line-height: var(--fk-type-font-line-height-body-lg);
+  width: max-content;
+  max-width: 100%;
+}
+
+.tabSelect {
+  width: max-content;
+  max-width: 100%;
+}
+
+.tabSelectWrap:global(.fk-tab-select) {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+}
+
+.iconDropdown {
+  width: max-content;
+}
+
+/* Figma Input Group labels: body-lg / heading-primary, content-sized (not full row). */
+.fieldFull {
+  width: 100%;
+}
+
+.fieldFull :global(.fk-input-group__label) {
+  width: max-content;
+  max-width: 100%;
+  justify-self: start;
+  white-space: nowrap;
+  font-family: var(--fk-type-font-font-family-heading-primary);
+  font-size: var(--fk-type-font-font-size-body-lg);
+  font-weight: 600;
+  line-height: var(--fk-type-font-line-height-body-lg);
+}
+
+.stepper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: var(--fk-type-font-font-family-heading-primary);
+  font-size: var(--fk-type-font-font-size-body-lg);
+  font-weight: 600;
+  line-height: var(--fk-type-font-line-height-body-lg);
+  color: var(--fk-color-text-primary);
+  width: max-content;
+}
+
+.pomodoroTray {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 16px 0 12px;
+  box-sizing: border-box;
+  border-radius: 16px;
+  background: var(--fk-color-surface-muted);
+}
+
+.pomodoroGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+  max-width: 864px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  box-sizing: border-box;
+}
+
+.pomodoroCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  aspect-ratio: 1;
+  padding: 12px 8px 10px;
+  border: 0;
+  border-radius: var(--fk-radius-global-radius-card);
+  background: var(--fk-color-surface-base);
+  box-shadow: var(--fk-shadow-micro-element);
+  cursor: pointer;
+  text-align: center;
+  overflow: hidden;
+  outline: none;
+}
+
+/* Inset Schmuckrahmen — same language as Modal / Cards (§03). */
+.pomodoroCard::after {
+  background: linear-gradient(to bottom, rgb(255 255 255 / 16%), rgb(0 0 0 / 4%)) border-box;
+  border: 1px solid transparent;
+  border-radius: 16px;
+  content: "";
+  inset: 8px;
+  mask:
+    linear-gradient(#000 0 0) padding-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  position: absolute;
+  z-index: 1;
+}
+
+.pomodoroCard:focus {
+  outline: none;
+}
+
+.pomodoroCard:focus-visible::after {
+  background: none;
+  border: 2px solid var(--fk-color-border-focus);
+  mask: none;
+}
+
+.pomodoroCard[data-selected]::after {
+  background: none;
+  border: 2px solid var(--fk-color-surface-action-secondary);
+  mask: none;
+}
+
+.pomodoroBadge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  border: 1px solid rgb(255 255 255 / 40%);
+  background: var(--fk-color-surface-action-secondary);
+  box-shadow: var(--fk-shadow-micro-element);
+  color: var(--fk-color-icon-inverse);
+  position: relative;
+  z-index: 0;
+}
+
+.pomodoroBadgeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+}
+
+.pomodoroBadgeIcon :global(svg) {
+  width: 32px;
+  height: 32px;
+}
+
+.pomodoroBadgeLabel {
+  font-family: var(--fk-type-font-font-family-heading-primary);
+  /* Figma badge caption is 10px — no smaller type token exists. */
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--fk-color-text-inverse);
+}
+
+.pomodoroCopy {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
+  padding-inline: 10px;
+  box-sizing: border-box;
+  overflow: hidden;
+  position: relative;
+  z-index: 0;
+}
+
+.pomodoroName {
+  font-family: var(--fk-type-font-font-family-heading-primary);
+  font-size: var(--fk-type-font-font-size-body-md);
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--fk-color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.pomodoroDetail {
+  font-family: var(--fk-type-font-font-family-body-primary);
+  /* Compact duration line — Figma fits full “25 min · 1 min · 10 min” in the tile. */
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.25;
+  color: var(--fk-color-text-tertiary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.pomodoroFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 864px;
+  margin-inline: auto;
+  padding-inline: 16px;
+  box-sizing: border-box;
+}
+
+.pomodoroHint {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  font-family: var(--fk-type-font-font-family-body-primary);
+  font-size: var(--fk-type-font-font-size-body-sm);
+  font-weight: 400;
+  line-height: var(--fk-type-font-line-height-body-sm);
+  color: var(--fk-color-text-tertiary);
+}
+
+.pomodoroHint :global(svg) {
+  flex-shrink: 0;
+  color: var(--fk-color-icon-tertiary);
+}
+
+.pomodoroHint strong {
+  font-weight: 700;
+  color: var(--fk-color-text-tertiary);
+}
+
+.bgHint {
+  margin: 0;
+  font-family: var(--fk-type-font-font-family-body-primary);
+  font-size: var(--fk-type-font-font-size-body-md);
+  font-weight: 400;
+  line-height: var(--fk-type-font-line-height-body-md);
+  color: var(--fk-color-text-quarternary);
+}

@@ -20,6 +20,7 @@ export interface BlockCardProps extends Omit<HTMLAttributes<HTMLDivElement>, "ti
   description?: string;
   icon: IconName;
   tone?: BlockTone;
+  badge?: number | string;
   durationLabel: string;
   durationIcon?: IconName;
   meta?: BlockCardMeta[];
@@ -34,6 +35,7 @@ export function BlockCard({
   description,
   icon,
   tone = "pink",
+  badge,
   durationLabel,
   durationIcon = "clock",
   meta = [],
@@ -51,8 +53,11 @@ export function BlockCard({
           <div className="fk-block-card__identity">
             <span aria-hidden="true" className="fk-block-tile fk-block-card__icon" data-tone={tone}>
               <FokunaIcon name={icon} radius={1} size={24} stroke={1.5} />
+              {badge !== undefined ? (
+                <span className="fk-block-tile__badge">{badge}</span>
+              ) : null}
             </span>
-            <Tag className="fk-block-card__duration" icon={durationIcon} size="lg">
+            <Tag className="fk-block-card__duration" icon={durationIcon} size="sm">
               {durationLabel}
             </Tag>
           </div>

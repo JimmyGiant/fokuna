@@ -42,6 +42,7 @@ import {
   mergePlacements,
   orderDerivedGroupKeys,
   removeChildrenOfActive,
+  resolveBlocksPreferences,
   resolveTasksPreferences,
   taskMatchesListViewFilters,
   titleForDerivedGroup,
@@ -269,8 +270,16 @@ const DRAWER_DAY_RANGE = {
   hourCount: DRAWER_END_HOUR - DRAWER_START_HOUR,
 } as const;
 
-function toBlockRailItems(blocks: BlockDto[]): BlockRailItem[] {
-  return blocks.slice(0, 8).map((block) => ({
+function toBlockRailItems(
+  blocks: BlockDto[],
+  railIds: string[],
+): BlockRailItem[] {
+  const byId = new Map(blocks.map((block) => [block.id, block]));
+  const ordered =
+    railIds.length > 0
+      ? railIds.map((id) => byId.get(id)).filter((block): block is BlockDto => Boolean(block))
+      : blocks.slice(0, 6);
+  return ordered.map((block) => ({
     id: block.id,
     label: block.title,
     icon: (block.icon as IconName | null) ?? "layers",
@@ -1531,7 +1540,8 @@ export function TasksView() {
     }
     return chain;
   }, [selectedTask, tasksById]);
-  const railItems = toBlockRailItems(blocksQuery.data ?? []);
+  const railIds = resolveBlocksPreferences(profileQuery.data?.uiPreferences).railIds;
+  const railItems = toBlockRailItems(blocksQuery.data ?? [], railIds);
   const blocksById = useMemo(
     () => new Map((blocksQuery.data ?? []).map((block) => [block.id, block])),
     [blocksQuery.data],
@@ -2861,7 +2871,7 @@ export function TasksView() {
                   ]
             }
             onEdit={() => {
-              window.location.href = "/app/aufgaben/blocks";
+              router.push("/app/aufgaben/blocks");
             }}
           />
         </div>

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export default function BlocksPage() {
   return (
-    <AppShell activeId="tasks" secondaryActiveId="blocks">
+    <AppShell activeId="tasks" primaryOnly>
       <BlocksView />
     </AppShell>
   );

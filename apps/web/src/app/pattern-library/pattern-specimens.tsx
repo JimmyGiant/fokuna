@@ -25,6 +25,7 @@ import {
   getCalendarEntryPosition,
   GoalCard,
   InsightActivityCard,
+  InsightActivityPanel,
   InsightBarList,
   InsightCard,
   InsightConsistencyGrid,
@@ -2086,6 +2087,50 @@ export function PatternSpecimen({ slug }: { slug: string }) {
       );
     }
 
+    case "activity-panel": {
+      const panelWeeks = [
+        { label: "KW 22", value: 3 },
+        { label: "KW 23", value: 4 },
+        { label: "KW 24", value: 3 },
+        { label: "KW 25", value: 3 },
+        { label: "KW 26", value: 2 },
+        { label: "KW 27", value: 3 },
+        { label: "KW 28", value: 4 },
+        { label: "KW 29", value: 1 },
+        { label: "KW 30", value: 2 },
+        { label: "KW 31", value: 3 },
+        { label: "KW 32", value: 2 },
+        { label: "KW 33", value: 1 },
+        { label: "KW 34", value: 2 },
+        { label: "KW 35", value: 3 },
+        { label: "KW 36", value: 2 },
+        { label: "KW 37", value: 3 },
+        { label: "KW 38", value: 2 },
+        { label: "KW 39", value: 3 },
+        { label: "KW 40", value: 4 },
+        { label: "KW 41", value: 2 },
+        { label: "KW 42", value: 3 },
+      ];
+      return (
+        <Matrix>
+          <MatrixRow label="Modal embed · surface-soft · kein Schmuckrahmen">
+            <div style={{ width: "min(848px, 100%)" }}>
+              <InsightActivityPanel threshold={4} weeks={panelWeeks} />
+            </div>
+          </MatrixRow>
+          <MatrixRow label="Ohne Range-Nav">
+            <div style={{ width: "min(848px, 100%)" }}>
+              <InsightActivityPanel
+                showRangeNav={false}
+                threshold={3}
+                weeks={panelWeeks.slice(0, 8)}
+              />
+            </div>
+          </MatrixRow>
+        </Matrix>
+      );
+    }
+
     case "block-card":
       return (
         <Matrix>
@@ -2134,10 +2179,15 @@ export function PatternSpecimen({ slug }: { slug: string }) {
           <ViewOverlay
             footerEnd={
               <>
-                <Button buttonType="link" intent="tertiary" size="lg">
+                <Button
+                  buttonType="outline"
+                  intent="tertiary"
+                  size="md"
+                  trailingIcon={null}
+                >
                   Verwerfen
                 </Button>
-                <Button intent="secondary" leadingIcon="save" size="lg">
+                <Button intent="secondary" size="md" trailingIcon={null}>
                   Speichern
                 </Button>
               </>
@@ -2147,7 +2197,7 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                 buttonType="link"
                 intent="primary"
                 leadingIcon="delete"
-                size="lg"
+                size="md"
                 trailingIcon={null}
               >
                 Template löschen

@@ -176,6 +176,15 @@
     color: var(--fk-color-text-action-primary-hover);
   }
 
+  /* Secondary = teal (Fokuna brand secondary) — used for quiet edit/manage actions. */
+  .fk-button[data-type="icon-text-inline"][data-intent="secondary"] {
+    color: var(--fk-color-text-primary);
+  }
+
+  .fk-button[data-type="icon-text-inline"][data-intent="secondary"]:hover:not(:disabled) {
+    color: var(--fk-color-text-action-secondary-hover);
+  }
+
   /* Quiet manage/utility links (… verwalten) — softer than default primary text. */
   .fk-button[data-type="icon-text-inline"][data-intent="tertiary"] {
     color: var(--fk-color-text-tertiary);
@@ -266,16 +275,15 @@
     --fk-callout-accent: var(--fk-color-border-tertiary);
     --fk-callout-border: var(--fk-color-border-feedback-default);
     --fk-callout-surface: var(--fk-color-surface-feedback-default);
-    align-items: flex-start;
+    align-items: center;
     background: var(--fk-callout-surface);
     border: 1px solid var(--fk-callout-border);
     border-radius: 12px;
     color: var(--fk-color-text-secondary);
     display: flex;
-    font-size: var(--fk-type-font-font-size-body-md);
+    font-size: var(--fk-type-font-font-size-body-lg);
     gap: 12px;
-    line-height: var(--fk-type-font-line-height-body-md);
-    min-height: 72px;
+    line-height: var(--fk-type-font-line-height-body-lg);
     padding: 12px 16px;
     position: relative;
   }
@@ -316,7 +324,7 @@
   .fk-callout__icon {
     color: var(--fk-callout-accent);
     display: inline-flex;
-    margin-top: 2px;
+    flex-shrink: 0;
   }
 
   .fk-callout__icon svg :is(path, circle, line, polyline) {
@@ -1347,6 +1355,10 @@
     font-weight: 400;
   }
 
+  .fk-dropdown__trigger[data-type="icon"] {
+    font-weight: var(--fk-type-font-font-weight-body-tertiary);
+  }
+
   .fk-dropdown__trigger[data-type="key-value"] .fk-dropdown__key {
     font-family: var(--fk-type-font-font-family-heading-primary);
     font-weight: 600;
@@ -1964,7 +1976,7 @@
     align-items: center;
     background: var(--fk-color-surface-base);
     border: 1px solid var(--fk-color-border-default);
-    color: var(--fk-color-text-primary);
+    color: var(--fk-color-text-secondary);
     display: inline-flex;
     height: 100%;
     justify-content: center;
@@ -2003,6 +2015,10 @@
     white-space: nowrap;
   }
 
+  .fk-switcher[data-fit] > span {
+    min-width: 0;
+  }
+
   .fk-switcher[data-size="sm"] {
     --fk-switcher-height: var(--fk-control-height-sm);
     --fk-switcher-radius: var(--fk-control-radius-sm);
@@ -2033,7 +2049,7 @@
   }
 
   .fk-tab-select {
-    --fk-tab-select-height: var(--fk-control-height-md);
+    --fk-tab-select-height: var(--fk-control-height-sm);
     --fk-tab-select-radius: var(--fk-control-radius-md);
     align-items: center;
     display: inline-flex;
@@ -2659,7 +2675,8 @@
     background: rgb(37 38 41 / 45%);
     inset: 0;
     position: fixed;
-    z-index: 80;
+    /* Above View Overlay (80/90) so confirmations dim the edit shell. */
+    z-index: 100;
   }
 
   /* Pattern 03: slot-modal — outer border + inset Schmucklinie, no header/footer rules. */
@@ -2678,7 +2695,7 @@
     top: 50%;
     transform: translate(-50%, -50%);
     width: min(560px, calc(100vw - 32px));
-    z-index: 90;
+    z-index: 110;
   }
 
   .fk-modal::after {
@@ -2797,11 +2814,17 @@
     flex-direction: column;
     gap: 80px;
     inset: 0;
+    outline: none;
     overflow: hidden;
     padding: var(--fk-space-10);
     position: fixed;
     will-change: transform;
     z-index: 90;
+  }
+
+  .fk-view-overlay:focus,
+  .fk-view-overlay:focus-visible {
+    outline: none;
   }
 
   .fk-view-overlay__header {
@@ -2869,6 +2892,7 @@
   }
 
   .fk-view-overlay__body {
+    box-sizing: border-box;
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -2877,6 +2901,8 @@
     max-width: 920px;
     min-height: 0;
     overflow: auto;
+    /* Focus ring is 4px outside controls — without this, L/R rings clip on the scrollport. */
+    padding-inline: 4px;
     width: 100%;
   }
 
@@ -3707,6 +3733,7 @@
     display: inline-flex;
     height: 40px;
     justify-content: center;
+    overflow: visible;
     padding: 0;
     position: relative;
     transition:
@@ -3777,6 +3804,7 @@
     position: absolute;
     right: -5px;
     top: -5px;
+    z-index: 2;
   }
 
   .fk-block-rail {
@@ -3787,6 +3815,7 @@
     flex-direction: column;
     height: 100%;
     min-height: 100%;
+    overflow: visible;
     padding: 20px 12px 24px;
     position: relative;
     width: 72px;
@@ -3799,6 +3828,7 @@
     gap: 12px;
     list-style: none;
     margin: 0;
+    overflow: visible;
     padding: 0;
     width: 40px;
   }
@@ -3806,6 +3836,37 @@
   .fk-block-rail__items > li {
     display: flex;
     line-height: 0;
+    overflow: visible;
+    position: relative;
+  }
+
+  /* Source slot while the overlay ghost is free under the pointer — same language as sidebar. */
+  .fk-block-rail__items > li[data-placeholder="true"] {
+    background: var(--fk-color-surface-muted);
+    border-radius: 14px;
+    height: 40px;
+    pointer-events: none;
+    width: 40px;
+  }
+
+  .fk-block-rail__items > li[data-placeholder="true"] .fk-block-tile {
+    visibility: hidden;
+  }
+
+  /* Dock-like dismiss: brief swell, then shrink + fade + soft blur. */
+  .fk-block-rail__items > li[data-exiting="true"] {
+    pointer-events: none;
+  }
+
+  .fk-block-rail__items > li[data-exiting="true"] .fk-block-tile,
+  .fk-block-tile-poof .fk-block-tile {
+    animation: fk-block-tile-poof var(--fk-motion-duration-slow) var(--fk-motion-ease-exit) forwards;
+  }
+
+  .fk-block-tile-poof {
+    pointer-events: none;
+    position: fixed;
+    z-index: 200;
   }
 
   .fk-block-rail__edit {
@@ -3836,12 +3897,19 @@
     background: var(--fk-color-surface-base);
     border-radius: 20px;
     box-shadow: var(--fk-shadow-subtle-element);
-    height: 645px;
-    padding-bottom: 16px;
+    flex: 0 0 auto;
+    /* 20 + 12×40 + 11×12 + 20 = 652 — keeps tiles clear of the 8px Schmuckrahmen. */
+    height: 652px;
+    /* Badge hangs 5px past the 40px tile; keep side padding ≥ that. */
+    overflow: visible;
+    padding: 20px 16px 20px;
+    width: 72px;
   }
 
   .fk-block-rail[data-state="editable"] .fk-block-rail__items {
     gap: 12px;
+    position: relative;
+    z-index: 1;
   }
 
   .fk-block-rail[data-state="editable"]::after {
@@ -3856,6 +3924,8 @@
     mask-composite: exclude;
     pointer-events: none;
     position: absolute;
+    /* Decorative stroke must not paint over badge corners. */
+    z-index: 0;
   }
 
   .fk-task-item {
@@ -6057,6 +6127,98 @@
     height: 1px;
   }
 
+  /*
+   * Insight Activity Panel — Figma Zeitblock Modal (18791:31655).
+   * Soft embed: surface-soft, radius 16, h 260, pad 24 — no Card / Schmuckrahmen.
+   */
+  .fk-insight-activity-panel {
+    background: var(--fk-color-surface-soft);
+    border: 0;
+    border-radius: var(--fk-radius-xl);
+    box-shadow: none;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    height: 260px;
+    justify-content: center;
+    padding: 24px;
+    width: 100%;
+  }
+
+  .fk-insight-activity-panel__header {
+    align-items: flex-start;
+    display: flex;
+    flex-shrink: 0;
+    gap: 12px;
+    justify-content: space-between;
+    width: 100%;
+  }
+
+  .fk-insight-activity-panel__heading {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .fk-insight-activity-panel__title-row {
+    align-items: center;
+    display: flex;
+    gap: 4px;
+    min-height: 22px;
+  }
+
+  .fk-insight-activity-panel__title-row svg {
+    color: var(--fk-color-icon-quarternary);
+    flex-shrink: 0;
+  }
+
+  .fk-insight-activity-panel__title {
+    color: var(--fk-color-text-primary);
+    font-family: var(--fk-type-font-font-family-heading-primary);
+    font-size: var(--fk-type-font-font-size-body-lg);
+    font-weight: 600;
+    line-height: var(--fk-type-font-line-height-body-lg);
+    margin: 0;
+  }
+
+  .fk-insight-activity-panel__subtitle {
+    color: var(--fk-color-text-quarternary);
+    font-family: var(--fk-type-font-font-family-body-primary);
+    font-size: var(--fk-type-font-font-size-body-lg);
+    font-weight: 400;
+    line-height: var(--fk-type-font-line-height-body-lg);
+    margin: 0;
+  }
+
+  .fk-insight-activity-panel__nav {
+    align-items: flex-start;
+    display: flex;
+    flex-shrink: 0;
+    gap: 4px;
+  }
+
+  .fk-insight-activity-panel__nav .fk-button[data-icon-only="true"][data-size="sm"] {
+    height: 28px;
+    width: 28px;
+  }
+
+  .fk-insight-activity-panel__body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 0;
+    width: 100%;
+  }
+
+  /* Modal panel: crisp segments — no micro-shadow / soft border halo (dashboard card keeps both). */
+  .fk-insight-activity-panel .fk-insight-activity__segment {
+    border: 0;
+    box-shadow: none;
+  }
+
   .fk-insight-threshold-popover {
     background: var(--fk-color-surface-base);
     border: 1px solid var(--fk-color-border-default);
@@ -6545,6 +6707,7 @@
     flex-direction: column;
     height: 240px;
     justify-content: space-between;
+    overflow: visible;
     width: 334px;
   }
 
@@ -6559,6 +6722,7 @@
     align-items: center;
     display: flex;
     justify-content: space-between;
+    overflow: visible;
     width: 100%;
   }
 
@@ -6567,17 +6731,23 @@
     display: flex;
     gap: 8px;
     min-width: 0;
+    overflow: visible;
   }
 
   .fk-block-card__icon {
+    /* Figma C - Desktop - Card - Time Blocks: squircle radius 12 */
+    border-radius: 12px;
     cursor: default;
     flex-shrink: 0;
+    overflow: visible;
     pointer-events: none;
+    z-index: 1;
   }
 
+  /* Figma duration bubble: Tag sm (body-sm / h=28), px 12, border-only. */
   .fk-block-card__duration {
-    background: var(--fk-color-surface-base);
-    padding-inline: 16px;
+    background: transparent;
+    padding-inline: 12px;
   }
 
   .fk-block-card__copy {
@@ -6598,12 +6768,16 @@
   }
 
   .fk-block-card__description {
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
     color: var(--fk-color-text-tertiary);
+    display: -webkit-box;
     font-family: var(--fk-type-font-font-family-body-primary);
     font-size: var(--fk-type-font-font-size-body-lg);
     font-weight: 400;
     line-height: var(--fk-type-font-line-height-body-lg);
     margin: 0;
+    overflow: hidden;
   }
 
   .fk-block-card__footer {
@@ -6825,6 +6999,26 @@
   }
 }
 
+@keyframes fk-block-tile-poof {
+  0% {
+    filter: blur(0);
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  32% {
+    filter: blur(0);
+    opacity: 1;
+    transform: scale(1.12);
+  }
+
+  100% {
+    filter: blur(5px);
+    opacity: 0;
+    transform: scale(0.2);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fk-button,
   .fk-input,
@@ -6857,6 +7051,12 @@
   .fk-toast[data-state="closed"],
   .fk-toast[data-swipe="end"] {
     animation: none;
+  }
+
+  .fk-block-rail__items > li[data-exiting="true"] .fk-block-tile,
+  .fk-block-tile-poof .fk-block-tile {
+    animation: none;
+    opacity: 0;
   }
 
   .fk-task-item__title > strong,

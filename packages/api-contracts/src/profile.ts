@@ -80,10 +80,16 @@ export const tasksListViewsMapSchema = z.record(
   tasksListViewPreferencesSchema,
 );
 
+export const blocksPreferencesSchema = z.object({
+  railIds: z.array(z.string().min(1)),
+  hubHintSeen: z.boolean(),
+});
+
 export const uiPreferencesSchema = z.object({
   tasksSidebar: tasksSidebarPreferencesSchema.optional(),
   tasks: tasksPreferencesSchema.optional(),
   tasksListViews: tasksListViewsMapSchema.optional(),
+  blocks: blocksPreferencesSchema.optional(),
 });
 
 export const userProfileDtoSchema = z.object({
@@ -122,6 +128,8 @@ export const updateUserProfileInputSchema = z.object({
         .nullable(),
     )
     .optional(),
+  /** Partial Zeitblöcke prefs — merged server-side onto existing uiPreferences.blocks. */
+  blocks: blocksPreferencesSchema.partial().optional(),
 });
 
 export type UpdateUserProfileInput = z.infer<typeof updateUserProfileInputSchema>;

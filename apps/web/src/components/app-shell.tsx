@@ -120,12 +120,17 @@ export function AppShell({
   secondaryActiveId,
   children,
   overlay,
+  /** When true, only the L1 icon rail is shown — no Aufgaben L2 sidebar. */
+  primaryOnly = false,
 }: {
   activeId: string;
   secondaryActiveId?: string;
   children: ReactNode;
   overlay?: ReactNode;
+  primaryOnly?: boolean;
 }) {
+  const showTasksSecondary = activeId === "tasks" && !primaryOnly;
+
   return (
     <UiShell
       className={styles.shell}
@@ -139,9 +144,9 @@ export function AppShell({
           logo={
             <Image alt="Fokuna" height={32} src="/branding/fokuna_logo_no-text.svg" width={34} />
           }
-          secondaryActiveId={secondaryActiveId}
-          secondaryItems={activeId === "tasks" ? tasksSecondaryItems : undefined}
-          secondarySections={activeId === "tasks" ? tasksSecondarySections : undefined}
+          secondaryActiveId={showTasksSecondary ? secondaryActiveId : undefined}
+          secondaryItems={showTasksSecondary ? tasksSecondaryItems : undefined}
+          secondarySections={showTasksSecondary ? tasksSecondarySections : undefined}
         />
       }
     >

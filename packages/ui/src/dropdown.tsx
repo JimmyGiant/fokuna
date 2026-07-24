@@ -81,7 +81,7 @@ export function Dropdown({
         <span className="fk-dropdown__value">
           {leadingIcon ? (
             <span className="fk-dropdown__leading">
-              <FokunaIcon name={leadingIcon} size={leadingIconSize(controlSize)} stroke={1.5} />
+              <FokunaIcon name={leadingIcon} size={leadingIconSize(controlSize)} stroke={2} />
             </span>
           ) : null}
           {keyLabel ? <span className="fk-dropdown__key">{keyLabel}</span> : null}
@@ -105,7 +105,7 @@ export function Dropdown({
                 key={option.value}
                 value={option.value}
               >
-                {option.icon ? <FokunaIcon name={option.icon} size={16} stroke={1.5} /> : null}
+                {option.icon ? <FokunaIcon name={option.icon} size={16} stroke={2} /> : null}
                 <Select.ItemText>{option.label}</Select.ItemText>
                 <Select.ItemIndicator className="fk-menu__indicator">
                   <FokunaIcon name="check-small" size={16} stroke={1.5} />
@@ -155,7 +155,12 @@ export function MetaMenu({
         )}
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content className="fk-menu" sideOffset={6}>
+        <DropdownMenu.Content
+          className="fk-menu"
+          onCloseAutoFocus={(event) => event.preventDefault()}
+          onPointerDown={(event) => event.stopPropagation()}
+          sideOffset={6}
+        >
           {items.map((item, index) => (
             <DropdownMenu.Item
               className="fk-menu__item"

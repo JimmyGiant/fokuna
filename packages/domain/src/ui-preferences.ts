@@ -51,11 +51,25 @@ export interface TasksPreferences {
 
 export const DEFAULT_TASKS_COMPLETE_ANIMATIONS = true;
 
+/** Zeitblöcke Hub + Block-Rail prefs — account-scoped. */
+export interface BlocksPreferences {
+  /** Ordered block ids pinned to the Block Rail (Favoritenleiste). */
+  railIds: string[];
+  /** Erstbesuch-Hint auf dem Hub wurde gesehen / ausgeblendet. */
+  hubHintSeen: boolean;
+}
+
+export const DEFAULT_BLOCKS_PREFERENCES: BlocksPreferences = {
+  railIds: [],
+  hubHintSeen: false,
+};
+
 export interface UiPreferences {
   tasksSidebar?: TasksSidebarPreferences;
   tasks?: TasksPreferences;
   /** Sparse map of non-default per-list view prefs, keyed by `tasksListViewKey`. */
   tasksListViews?: TasksListViewsMap;
+  blocks?: BlocksPreferences;
 }
 
 const NAV_SET = new Set<string>(DEFAULT_TASKS_SIDEBAR_NAV_ORDER);
@@ -81,6 +95,26 @@ export function resolveTasksPreferences(raw: unknown): TasksPreferences {
       ? (raw as UiPreferences)
       : ({} as UiPreferences);
   return normalizeTasksPreferences(ui.tasks ?? {});
+}
+
+export function resolveBlocksPreferences(raw: unknown): BlocksPreferences {
+  const ui =
+    raw && typeof raw === "object" && !Array.isArray(raw)
+      ? (raw as UiPreferences)
+      : ({} as UiPreferences);
+  return normalizeBlocksPreferences(ui.blocks ?? {});
+}
+
+export function normalizeBlocksPreferences(
+  input: Partial<BlocksPreferences>,
+): BlocksPreferences {
+  const railIds = Array.isArray(input.railIds)
+    ? [...new Set(input.railIds.filter((id): id is string => typeof id === "string" && id.length > 0))]
+    : [];
+  return {
+    railIds,
+    hubHintSeen: typeof input.hubHintSeen === "boolean" ? input.hubHintSeen : false,
+  };
 }
 
 export function normalizeTasksPreferences(

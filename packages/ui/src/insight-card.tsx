@@ -2,7 +2,13 @@
 
 import { FokunaIcon, type IconName } from "@fokuna/icons";
 import { Popover } from "radix-ui";
-import { useId, useState, type CSSProperties, type ReactNode } from "react";
+import {
+  useId,
+  useState,
+  type CSSProperties,
+  type HTMLAttributes,
+  type ReactNode,
+} from "react";
 
 import { Button } from "./button";
 import { Card, type CardProps } from "./card-modal";
@@ -56,6 +62,22 @@ export interface InsightActivityCardProps extends Omit<InsightCardProps, "action
   thresholdMin?: number;
   thresholdMax?: number;
   showThresholdControl?: boolean;
+}
+
+export interface InsightActivityPanelProps
+  extends Omit<HTMLAttributes<HTMLDivElement>, "title" | "children"> {
+  weeks: InsightActivityWeek[];
+  /** Optional goal line; omit or null to hide. */
+  threshold?: number | null;
+  title?: string;
+  subtitle?: ReactNode;
+  icon?: IconName | ReactNode;
+  /** Week-range navigation (Figma modal). Default true. */
+  showRangeNav?: boolean;
+  onPrev?: () => void;
+  onNext?: () => void;
+  prevLabel?: string;
+  nextLabel?: string;
 }
 
 export interface InsightMilestoneItem {
@@ -464,6 +486,72 @@ export function InsightActivityCard({
     >
       <InsightActivityChart threshold={resolvedThreshold} weeks={weeks} />
     </InsightCard>
+  );
+}
+
+/**
+ * Modal / embed activity chart — Figma Zeitblock Modal (18791:31655).
+ * Soft surface, 16px radius, no Card Schmuckrahmen (unlike InsightActivityCard).
+ */
+export function InsightActivityPanel({
+  weeks,
+  threshold = null,
+  title = "Aktivität",
+  subtitle = "Geplante und durchgeführte Einheiten pro Woche",
+  icon = "rocket",
+  showRangeNav = true,
+  onPrev,
+  onNext,
+  prevLabel = "Frühere Wochen",
+  nextLabel = "Spätere Wochen",
+  className,
+  ...props
+}: InsightActivityPanelProps) {
+  return (
+    <section {...props} className={cn("fk-insight-activity-panel", className)}>
+      <header className="fk-insight-activity-panel__header">
+        <div className="fk-insight-activity-panel__heading">
+          <div className="fk-insight-activity-panel__title-row">
+            {renderIcon(icon)}
+            {title ? <h3 className="fk-insight-activity-panel__title">{title}</h3> : null}
+          </div>
+          {subtitle != null && subtitle !== "" ? (
+            <p className="fk-insight-activity-panel__subtitle">{subtitle}</p>
+          ) : null}
+        </div>
+        {showRangeNav ? (
+          <div className="fk-insight-activity-panel__nav">
+            <Button
+              aria-label={prevLabel}
+              buttonType="outline"
+              iconOnly
+              intent="tertiary"
+              leadingIcon="chevron-left"
+              onClick={onPrev}
+              size="sm"
+              type="button"
+            >
+              {prevLabel}
+            </Button>
+            <Button
+              aria-label={nextLabel}
+              buttonType="outline"
+              iconOnly
+              intent="tertiary"
+              leadingIcon="chevron-right"
+              onClick={onNext}
+              size="sm"
+              type="button"
+            >
+              {nextLabel}
+            </Button>
+          </div>
+        ) : null}
+      </header>
+      <div className="fk-insight-activity-panel__body">
+        <InsightActivityChart threshold={threshold} weeks={weeks} />
+      </div>
+    </section>
   );
 }
 
