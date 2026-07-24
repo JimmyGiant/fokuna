@@ -41,6 +41,7 @@ import {
   MetaMenu,
   MilestoneTaskGroup,
   Modal,
+  OverflowButton,
   PageHeader,
   Radio,
   RadioGroupRoot,
@@ -370,6 +371,21 @@ function HeaderMetaMenu() {
   );
 }
 
+function ListOverflowMenu({ active = false }: { active?: boolean }) {
+  return (
+    <MetaMenu
+      items={[
+        {
+          label: active ? "Erledigte ausblenden" : "Erledigte einblenden",
+          icon: "checklist",
+        },
+      ]}
+      label="Listenoptionen"
+      trigger={<OverflowButton active={active} aria-label="Listenoptionen" />}
+    />
+  );
+}
+
 function HeaderSearch() {
   return <SearchField collapsedWidth={152} expandedWidth={240} placeholder="Suchen..." />;
 }
@@ -378,10 +394,10 @@ function AufgabenPageHeaderSpecimen() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   return (
+    <>
     <PageHeader
       actions={
         <>
-          <HeaderMetaMenu />
           <HeaderSearch />
           <Button
             intent="secondary"
@@ -410,6 +426,11 @@ function AufgabenPageHeaderSpecimen() {
         </>
       }
     />
+    <div className={styles.listTitleRowSpecimen}>
+      <h2 className={styles.listTitleSpecimen}>Alle Aufgaben</h2>
+      <ListOverflowMenu active />
+    </div>
+    </>
   );
 }
 
@@ -987,6 +1008,14 @@ export function PatternSpecimen({ slug }: { slug: string }) {
                 </Button>
               </SizeSample>
             ))}
+          </MatrixRow>
+          <MatrixRow label="Overflow (button-overflow)">
+            <OverflowButton aria-label="Inactive default" />
+            <OverflowButton aria-label="Inactive hover" data-preview-state="hover" />
+            <OverflowButton active aria-label="Active default" />
+            <OverflowButton active aria-label="Active hover" data-preview-state="hover" />
+            <ListOverflowMenu />
+            <ListOverflowMenu active />
           </MatrixRow>
         </Matrix>
       );

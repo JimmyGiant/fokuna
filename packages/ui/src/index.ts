@@ -1,4 +1,5 @@
 export * from "./button";
+export * from "./overflow-button";
 export * from "./breadcrumb";
 export * from "./block-card";
 export * from "./block-rail";

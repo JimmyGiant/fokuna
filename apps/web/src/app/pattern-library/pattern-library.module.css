@@ -1066,6 +1066,23 @@
   width: 100%;
 }
 
+.listTitleRowSpecimen {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+  padding-left: 56px;
+}
+
+.listTitleSpecimen {
+  margin: 0;
+  color: var(--fk-color-text-primary);
+  font-family: var(--fk-type-font-font-family-heading-primary);
+  font-size: var(--fk-type-font-font-size-body-2xl);
+  font-weight: 600;
+  line-height: 28px;
+}
+
 .sidebarSpecimen :global(.fk-sidebar),
 .shellSpecimen :global(.fk-shell),
 .shellSpecimen :global(.fk-sidebar) {

@@ -54,6 +54,7 @@ import {
   CalendarItem,
   Dropdown,
   MetaMenu,
+  OverflowButton,
   PageHeader,
   SearchField,
   Switcher,
@@ -751,7 +752,7 @@ export function TasksView() {
   const [expandedById, setExpandedById] = useState<Record<string, boolean>>({});
   const [drawerOpen, setDrawerOpen] = useState(true);
   const [search, setSearch] = useState("");
-  const [showCompleted, setShowCompleted] = useState(true);
+  const [showCompleted, setShowCompleted] = useState(false);
   /** Completed roots revealed per list/section bucket (client window → later server page). */
   const [completedRevealByBucket, setCompletedRevealByBucket] = useState<Record<string, number>>(
     {},
@@ -2362,6 +2363,8 @@ export function TasksView() {
           : {}),
       ...(categoryId ? { categoryId } : {}),
       ...(labelId ? { labelIds: [labelId] } : {}),
+      // Favoriten is a filter view — new tasks must be flagged or they vanish after create.
+      ...(filter === "favorites" ? { isFavorite: true } : {}),
     });
     if (sectionListMode && options?.sectionId) {
       await setMembershipMutation.mutateAsync({
@@ -2393,15 +2396,6 @@ export function TasksView() {
         <PageHeader
           actions={
             <>
-              <MetaMenu
-                items={[
-                  {
-                    label: showCompleted ? "Erledigte ausblenden" : "Erledigte einblenden",
-                    icon: "checklist",
-                    onSelect: () => setShowCompleted((value) => !value),
-                  },
-                ]}
-              />
               <SearchField
                 collapsedWidth={152}
                 expandedWidth={240}
@@ -2440,7 +2434,25 @@ export function TasksView() {
         />
 
         <div className={styles.listStack}>
-          <h1 className={styles.listTitle}>{listTitle}</h1>
+          <div className={styles.listTitleRow}>
+            <h1 className={styles.listTitle}>{listTitle}</h1>
+            <MetaMenu
+              items={[
+                {
+                  label: showCompleted ? "Erledigte ausblenden" : "Erledigte einblenden",
+                  icon: "checklist",
+                  onSelect: () => setShowCompleted((value) => !value),
+                },
+              ]}
+              label="Listenoptionen"
+              trigger={
+                <OverflowButton
+                  active={showCompleted}
+                  aria-label="Listenoptionen"
+                />
+              }
+            />
+          </div>
 
           {tasksQuery.isError ? (
             <p className={styles.status}>Aufgaben konnten nicht geladen werden.</p>
